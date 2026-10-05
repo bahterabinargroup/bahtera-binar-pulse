@@ -33,6 +33,10 @@ async function runChecks(): Promise<Check[]> {
   const supabase = await createClient();
   // Tanpa login, RLS mengembalikan 0 baris (bukan error) jika tabel ada.
   const { error } = await supabase.from("roles_config").select("id").limit(1);
+  const { error: meetingsError } = await supabase
+    .from("meetings")
+    .select("id")
+    .limit(1);
   checks.push({
     label: "Koneksi ke Supabase",
     ok: !error || !/fetch|network|Invalid API key/i.test(error.message),
@@ -44,6 +48,13 @@ async function runChecks(): Promise<Check[]> {
     detail: error
       ? "Tabel belum ditemukan. Ikuti panduan langkah 2."
       : "Tabel roles_config ditemukan",
+  });
+  checks.push({
+    label: "Tabel Notulensi Meeting",
+    ok: !meetingsError,
+    detail: meetingsError
+      ? "Tabel meetings belum ditemukan. Bagian 11 file SQL belum dijalankan."
+      : "Tabel meetings ditemukan",
   });
   return checks;
 }

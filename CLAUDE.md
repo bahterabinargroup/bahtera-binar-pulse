@@ -22,6 +22,7 @@ Kemajuan & langkah berikutnya: `STATUS.md` — baca di awal setiap sesi, perbaru
 
 ## Database (jangan diubah tanpa izin)
 - Tabel: `companies`, `roles_config` (jabatan + `form_template` JSON), `users` (role = hak akses, position_id = jabatan), `daily_reports`, `user_invites`.
+- Notulensi: `meetings` (visibility `company`/`holding`), `meeting_attendees`, `meeting_action_items` (status `open`/`in_progress`/`done`).
 - RPC/View: `get_missing_reports`, `get_weekly_report_compliance`, `get_weekly_team_reports`, `v_weekly_team_reports`.
 - **Keamanan ada di RLS.** Aplikasi hanya memakai kunci publik (publishable/anon) + sesi login. DILARANG service role key di kode browser/komponen client. Tidak ada jalan pintas melewati RLS.
 - Satu laporan per karyawan per hari. Buat/edit hanya untuk hari ini (WIB); laporan lampau read-only (tampilkan "Terkunci"). Hanya Owner bisa mengoreksi laporan lampau. Database yang menegakkan.
@@ -39,6 +40,12 @@ Kemajuan & langkah berikutnya: `STATUS.md` — baca di awal setiap sesi, perbaru
 | Dashboard belum mengisi & kepatuhan | Ya | Ya (company-nya) | Tidak |
 | Kelola company, undangan, pengguna | Ya | Tidak | Tidak |
 | Tarikan mingguan | Ya | Tidak | Tidak |
+| Buat & baca notulensi | Ya | Ya | Ya |
+| Lihat notulensi | Semua | Company-nya + "Seluruh holding" | Company-nya + "Seluruh holding" |
+| Edit notulensi | Semua | Miliknya | Miliknya |
+| Buat notulensi "Seluruh holding" | Ya | Tidak | Tidak |
+| Hapus notulensi | Ya | Tidak | Tidak |
+| Ubah status tindak lanjut | Semua | Jika PIC atau pembuat | Jika PIC atau pembuat |
 
 Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager/employee) menentukan AKSES.
 
@@ -56,5 +63,16 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Validasi ramah berbahasa Indonesia; simpan sebagian boleh; field `required` kosong ditandai "Belum lengkap" tanpa memblokir simpan.
 - Bila hari berganti dan simpan ditolak: "Hari sudah berganti, laporan ini terkunci" — JANGAN hapus teks yang sudah diketik.
 
+## Notulensi Meeting (milestone M3b — dikerjakan SETELAH M2, jangan lebih awal)
+- Menu "Notulensi" untuk semua peran. Semua aturan akses ditegakkan database (RLS + trigger); aplikasi hanya menampilkan/menyembunyikan tombol.
+- Notulensi company: dilihat se-company + Owner. "Seluruh holding" (`visibility = holding`): dilihat semua; hanya Owner yang membuat — opsi hanya tampil untuk Owner dan jadi pilihan awalnya.
+- Edit: pembuat + Owner. Hapus: hanya Owner (dengan konfirmasi; peserta & tindak lanjut ikut terhapus).
+- Tindak lanjut: PIC hanya boleh ubah STATUS; deskripsi/PIC/tenggat hanya pembuat atau Owner.
+- Peserta karyawan & PIC harus se-company dengan notulensi (kecuali Owner). Nama peserta/PIC/pembuat disalin otomatis oleh trigger (jangan dikirim dari aplikasi untuk karyawan). Tamu: isi nama saja (`user_id` kosong).
+- Tidak ada kunci harian: boleh dibuat/diedit kapan saja, tanggal lampau boleh.
+- Halaman: Daftar (terbaru dulu, cari judul, filter tanggal, filter company khusus Owner, lencana "Seluruh holding", jumlah tindak lanjut belum selesai, tombol "Buat Notulensi"); Form Buat/Edit (judul wajib; jam selesai ≥ mulai; lampiran link maks 20; visibilitas khusus Owner); Detail (status tindak lanjut bisa diubah PIC langsung; tombol Edit untuk pembuat & Owner); Tab "Tugas saya" (tindak lanjut belum selesai milik saya, urut tenggat, lewat tenggat merah).
+- Urutan kerja M3b: daftar + form → detail + tindak lanjut → "Tugas saya".
+- Desain: gaya sama dengan form harian, aksen netral biru `#2E75B6`. Tidak ada PDF acuan.
+
 ## Di luar cakupan
-Review harian manager, notifikasi, unggah file (hanya link), analisis AI dalam aplikasi, aplikasi native, tarikan otomatis Sabtu.
+Review harian manager, notifikasi, unggah file (hanya link), analisis AI dalam aplikasi, aplikasi native, tarikan otomatis Sabtu. Notulensi: unggah file, pengingat tenggat, rekaman/transkripsi, persetujuan/tanda tangan peserta.

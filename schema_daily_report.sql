@@ -3,7 +3,7 @@
 -- Skema PostgreSQL untuk Supabase
 -- Urutan: 0 Enum & Helper -> 1 companies -> 2 roles_config -> 3 users
 --         -> 4 daily_reports -> 5 RLS -> 6 Column privilege -> 7 Seed
---         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian
+--         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian -> 11 Notulensi meeting
 -- Aman dijalankan di Supabase SQL Editor (jalankan sekali, berurutan).
 -- =====================================================================
 
@@ -1539,3 +1539,383 @@ $$;
 
 revoke all on function public.get_weekly_report_compliance(date, uuid, smallint[], boolean) from public, anon;
 grant execute on function public.get_weekly_report_compliance(date, uuid, smallint[], boolean) to authenticated;
+
+
+-- =====================================================================
+-- 11. NOTULENSI MEETING
+--
+--     Semua peran (Owner, Manager, Employee) bisa membuat dan melihat notulensi.
+--     Aturan akses:
+--     - Notulensi milik company pembuatnya. Dilihat oleh semua user di company
+--       itu dan oleh Owner. Company lain tidak bisa melihatnya.
+--     - visibility = 'holding': dilihat SEMUA user aktif di seluruh holding.
+--       Hanya Owner yang boleh membuat notulensi jenis ini (mis. rapat besar).
+--     - Edit: pembuat notulensi dan Owner. Hapus: hanya Owner.
+--     - Tindak lanjut (action item): PIC yang ditunjuk boleh mengubah STATUS-nya
+--       sendiri; field lain hanya bisa diubah pembuat notulensi atau Owner.
+--     - Nama pembuat, peserta, dan PIC disimpan sebagai salinan (snapshot) agar
+--       tetap terbaca pada notulensi lintas company, walau profil orang itu
+--       tidak terlihat oleh pembaca.
+--     Tidak ada kunci harian: notulensi boleh dibuat dan diedit kapan saja,
+--     karena sering ditulis setelah rapat selesai.
+-- =====================================================================
+
+do $mig$ begin
+  create type public.meeting_visibility as enum ('company', 'holding');
+exception when duplicate_object then null;
+end $mig$;
+
+do $mig$ begin
+  create type public.action_item_status as enum ('open', 'in_progress', 'done');
+exception when duplicate_object then null;
+end $mig$;
+
+-- ---------- 11a. meetings ----------
+create table if not exists public.meetings (
+  id                uuid primary key default gen_random_uuid(),
+  company_id        uuid not null,
+  created_by        uuid not null,
+  created_by_name   text,
+  title             text not null,
+  meeting_date      date not null default public.today_jakarta(),
+  start_time        time,
+  end_time          time,
+  location          text,
+  agenda            text,
+  discussion        text,
+  decisions         text,
+  next_meeting_date date,
+  attachment_links  text[] not null default '{}',
+  visibility        public.meeting_visibility not null default 'company',
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+
+  constraint meetings_company_fk foreign key (company_id)
+    references public.companies (id) on delete restrict,
+  -- Isolasi company: pembuat harus berada di company yang sama dengan notulensi
+  constraint meetings_creator_company_fk foreign key (created_by, company_id)
+    references public.users (id, company_id) on delete restrict,
+  constraint meetings_title_not_blank   check (btrim(title) <> ''),
+  constraint meetings_time_order        check (end_time is null or start_time is null or end_time >= start_time),
+  constraint meetings_attachments_max   check (cardinality(attachment_links) <= 20)
+);
+
+create index if not exists meetings_company_date_idx on public.meetings (company_id, meeting_date desc);
+create index if not exists meetings_date_idx         on public.meetings (meeting_date desc);
+create index if not exists meetings_created_by_idx   on public.meetings (created_by);
+create index if not exists meetings_holding_idx      on public.meetings (meeting_date desc) where visibility = 'holding';
+
+comment on table  public.meetings is 'Notulensi meeting. visibility=company: dilihat satu company; holding: dilihat seluruh holding (hanya dibuat Owner).';
+comment on column public.meetings.location is 'Tempat atau link meeting online.';
+comment on column public.meetings.attachment_links is 'Link lampiran (Drive, dokumen, dsb). Maks. 20.';
+
+-- ---------- 11b. meeting_attendees ----------
+create table if not exists public.meeting_attendees (
+  id         uuid primary key default gen_random_uuid(),
+  meeting_id uuid not null references public.meetings (id) on delete cascade,
+  user_id    uuid references public.users (id) on delete set null,
+  name       text not null,
+  created_at timestamptz not null default now(),
+
+  constraint meeting_attendees_name_not_blank check (btrim(name) <> '')
+);
+
+create unique index if not exists meeting_attendees_user_uidx
+  on public.meeting_attendees (meeting_id, user_id) where user_id is not null;
+create index if not exists meeting_attendees_meeting_idx on public.meeting_attendees (meeting_id);
+
+comment on table  public.meeting_attendees is 'Peserta meeting. user_id terisi untuk karyawan; kosong untuk tamu (isi name saja).';
+comment on column public.meeting_attendees.name is 'Salinan nama. Untuk karyawan, diisi otomatis dari profil dan tidak bisa dipalsukan.';
+
+-- ---------- 11c. meeting_action_items ----------
+create table if not exists public.meeting_action_items (
+  id            uuid primary key default gen_random_uuid(),
+  meeting_id    uuid not null references public.meetings (id) on delete cascade,
+  description   text not null,
+  assignee_id   uuid references public.users (id) on delete set null,
+  assignee_name text,
+  due_date      date,
+  status        public.action_item_status not null default 'open',
+  completed_at  timestamptz,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+
+  constraint meeting_action_items_desc_not_blank check (btrim(description) <> '')
+);
+
+create index if not exists meeting_action_items_meeting_idx  on public.meeting_action_items (meeting_id);
+create index if not exists meeting_action_items_assignee_idx on public.meeting_action_items (assignee_id, status) where status <> 'done';
+create index if not exists meeting_action_items_due_idx      on public.meeting_action_items (due_date) where status <> 'done';
+
+comment on table  public.meeting_action_items is 'Tindak lanjut hasil meeting. PIC boleh mengubah status-nya sendiri.';
+comment on column public.meeting_action_items.completed_at is 'Terisi otomatis saat status menjadi done.';
+
+-- ---------- 11d. Trigger ----------
+create or replace function public.meetings_fill_creator_name()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  select u.full_name into new.created_by_name
+  from public.users u where u.id = new.created_by;
+  return new;
+end;
+$$;
+
+create or replace function public.meeting_attendees_prepare()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_name text; v_cid uuid; v_mcid uuid;
+begin
+  if new.user_id is not null then
+    select u.full_name, u.company_id into v_name, v_cid
+    from public.users u where u.id = new.user_id;
+    if not found then
+      raise exception 'Peserta tidak ditemukan.' using errcode = '23503';
+    end if;
+
+    select m.company_id into v_mcid from public.meetings m where m.id = new.meeting_id;
+    if v_cid is distinct from v_mcid
+       and auth.uid() is not null
+       and public.current_user_role() is distinct from 'owner' then
+      raise exception 'Peserta harus berasal dari company yang sama dengan meeting.'
+        using errcode = '42501';
+    end if;
+
+    new.name := v_name;  -- selalu dari profil, tidak bisa dipalsukan
+  end if;
+  return new;
+end;
+$$;
+
+-- Dijalankan PERTAMA (nama berawalan a_): pembatas hak ubah untuk PIC
+create or replace function public.meeting_action_items_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_creator uuid;
+begin
+  if v_uid is null then
+    return new;                                   -- service_role / SQL Editor
+  end if;
+  if public.current_user_role() = 'owner' then
+    return new;
+  end if;
+
+  select m.created_by into v_creator from public.meetings m where m.id = old.meeting_id;
+  if v_creator = v_uid then
+    return new;                                   -- pembuat notulensi
+  end if;
+
+  -- Selain pembuat dan Owner (yaitu PIC): hanya status yang boleh berubah
+  if new.meeting_id    is distinct from old.meeting_id
+     or new.description   is distinct from old.description
+     or new.assignee_id   is distinct from old.assignee_id
+     or new.assignee_name is distinct from old.assignee_name
+     or new.due_date      is distinct from old.due_date then
+    raise exception 'PIC hanya boleh mengubah status tindak lanjut.' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.meeting_action_items_prepare()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_name text; v_cid uuid; v_mcid uuid; v_check boolean := false;
+begin
+  if new.assignee_id is not null then
+    select u.full_name, u.company_id into v_name, v_cid
+    from public.users u where u.id = new.assignee_id;
+    if not found then
+      raise exception 'PIC tidak ditemukan.' using errcode = '23503';
+    end if;
+
+    if tg_op = 'INSERT' then
+      v_check := true;
+    elsif new.assignee_id is distinct from old.assignee_id then
+      v_check := true;
+    end if;
+
+    if v_check then
+      select m.company_id into v_mcid from public.meetings m where m.id = new.meeting_id;
+      if v_cid is distinct from v_mcid
+         and auth.uid() is not null
+         and public.current_user_role() is distinct from 'owner' then
+        raise exception 'PIC harus berasal dari company yang sama dengan meeting.'
+          using errcode = '42501';
+      end if;
+    end if;
+
+    new.assignee_name := v_name;
+  end if;
+
+  -- completed_at mengikuti status
+  if new.status = 'done' then
+    if tg_op = 'UPDATE' then
+      if old.status = 'done' then
+        new.completed_at := old.completed_at;
+      else
+        new.completed_at := now();
+      end if;
+    else
+      new.completed_at := now();
+    end if;
+  else
+    new.completed_at := null;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.meetings_fill_creator_name()        from public, anon, authenticated;
+revoke all on function public.meeting_attendees_prepare()         from public, anon, authenticated;
+revoke all on function public.meeting_action_items_guard()        from public, anon, authenticated;
+revoke all on function public.meeting_action_items_prepare()      from public, anon, authenticated;
+
+drop trigger if exists trg_meetings_a_creator_name on public.meetings;
+create trigger trg_meetings_a_creator_name
+  before insert on public.meetings
+  for each row execute function public.meetings_fill_creator_name();
+
+drop trigger if exists trg_meetings_b_updated_at on public.meetings;
+create trigger trg_meetings_b_updated_at
+  before update on public.meetings
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_meeting_attendees_prepare on public.meeting_attendees;
+create trigger trg_meeting_attendees_prepare
+  before insert or update on public.meeting_attendees
+  for each row execute function public.meeting_attendees_prepare();
+
+drop trigger if exists trg_meeting_action_items_a_guard on public.meeting_action_items;
+create trigger trg_meeting_action_items_a_guard
+  before update on public.meeting_action_items
+  for each row execute function public.meeting_action_items_guard();
+
+drop trigger if exists trg_meeting_action_items_b_prepare on public.meeting_action_items;
+create trigger trg_meeting_action_items_b_prepare
+  before insert or update on public.meeting_action_items
+  for each row execute function public.meeting_action_items_prepare();
+
+drop trigger if exists trg_meeting_action_items_c_updated_at on public.meeting_action_items;
+create trigger trg_meeting_action_items_c_updated_at
+  before update on public.meeting_action_items
+  for each row execute function public.set_updated_at();
+
+-- ---------- 11e. Row Level Security ----------
+alter table public.meetings             enable row level security;
+alter table public.meeting_attendees    enable row level security;
+alter table public.meeting_action_items enable row level security;
+
+-- meetings
+drop policy if exists meetings_select on public.meetings;
+create policy meetings_select on public.meetings
+  for select to authenticated
+  using (
+    (select public.current_user_role()) = 'owner'
+    or company_id = (select public.current_company_id())
+    or (visibility = 'holding' and (select public.current_user_role()) is not null)
+  );
+
+drop policy if exists meetings_insert_own on public.meetings;
+create policy meetings_insert_own on public.meetings
+  for insert to authenticated
+  with check (
+    created_by = (select auth.uid())
+    and company_id = (select public.current_company_id())
+    and visibility = 'company'
+  );
+
+drop policy if exists meetings_update_own on public.meetings;
+create policy meetings_update_own on public.meetings
+  for update to authenticated
+  using (created_by = (select auth.uid()))
+  with check (
+    created_by = (select auth.uid())
+    and company_id = (select public.current_company_id())
+    and visibility = 'company'
+  );
+
+drop policy if exists meetings_owner_all on public.meetings;
+create policy meetings_owner_all on public.meetings
+  for all to authenticated
+  using ((select public.current_user_role()) = 'owner')
+  with check ((select public.current_user_role()) = 'owner');
+
+-- meeting_attendees
+drop policy if exists meeting_attendees_select on public.meeting_attendees;
+create policy meeting_attendees_select on public.meeting_attendees
+  for select to authenticated
+  using (exists (select 1 from public.meetings m where m.id = meeting_attendees.meeting_id));
+
+drop policy if exists meeting_attendees_creator_write on public.meeting_attendees;
+create policy meeting_attendees_creator_write on public.meeting_attendees
+  for all to authenticated
+  using (exists (select 1 from public.meetings m
+                 where m.id = meeting_attendees.meeting_id and m.created_by = (select auth.uid())))
+  with check (exists (select 1 from public.meetings m
+                      where m.id = meeting_attendees.meeting_id and m.created_by = (select auth.uid())));
+
+drop policy if exists meeting_attendees_owner_all on public.meeting_attendees;
+create policy meeting_attendees_owner_all on public.meeting_attendees
+  for all to authenticated
+  using ((select public.current_user_role()) = 'owner')
+  with check ((select public.current_user_role()) = 'owner');
+
+-- meeting_action_items
+drop policy if exists meeting_action_items_select on public.meeting_action_items;
+create policy meeting_action_items_select on public.meeting_action_items
+  for select to authenticated
+  using (exists (select 1 from public.meetings m where m.id = meeting_action_items.meeting_id));
+
+drop policy if exists meeting_action_items_creator_write on public.meeting_action_items;
+create policy meeting_action_items_creator_write on public.meeting_action_items
+  for all to authenticated
+  using (exists (select 1 from public.meetings m
+                 where m.id = meeting_action_items.meeting_id and m.created_by = (select auth.uid())))
+  with check (exists (select 1 from public.meetings m
+                      where m.id = meeting_action_items.meeting_id and m.created_by = (select auth.uid())));
+
+drop policy if exists meeting_action_items_assignee_update on public.meeting_action_items;
+create policy meeting_action_items_assignee_update on public.meeting_action_items
+  for update to authenticated
+  using (assignee_id = (select auth.uid()))
+  with check (assignee_id = (select auth.uid()));
+
+drop policy if exists meeting_action_items_owner_all on public.meeting_action_items;
+create policy meeting_action_items_owner_all on public.meeting_action_items
+  for all to authenticated
+  using ((select public.current_user_role()) = 'owner')
+  with check ((select public.current_user_role()) = 'owner');
+
+-- ---------- 11f. Pembatasan kolom ----------
+-- Kolom identitas (id, company_id, created_by, created_by_name, created_at, meeting_id)
+-- tidak bisa diubah lewat API. Hapus notulensi hanya lewat policy Owner.
+revoke all on public.meetings, public.meeting_attendees, public.meeting_action_items from anon;
+
+revoke update on public.meetings             from authenticated;
+revoke update on public.meeting_attendees    from authenticated;
+revoke update on public.meeting_action_items from authenticated;
+
+grant update (title, meeting_date, start_time, end_time, location, agenda, discussion,
+              decisions, next_meeting_date, attachment_links, visibility)
+  on public.meetings to authenticated;
+grant update (user_id, name)
+  on public.meeting_attendees to authenticated;
+grant update (description, assignee_id, assignee_name, due_date, status)
+  on public.meeting_action_items to authenticated;

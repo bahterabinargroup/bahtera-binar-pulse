@@ -4,7 +4,7 @@ Dokumen ini adalah spesifikasi untuk Claude Code. Baca seluruhnya sebelum mulai 
 
 ## 1. Tujuan
 
-Aplikasi web tempat karyawan mengisi laporan harian, manager/SPV melihat laporan timnya, dan Owner melihat seluruh holding serta menarik data mingguan untuk dianalisis.
+Aplikasi web tempat karyawan mengisi laporan harian, manager/SPV melihat laporan timnya, dan Owner melihat seluruh holding serta menarik data mingguan untuk dianalisis. Selain itu, semua orang dapat menulis dan membaca notulensi meeting.
 
 Database dan aturan keamanannya sudah selesai di `schema_daily_report.sql` (Supabase / PostgreSQL). Tugasmu adalah membangun aplikasi web di atas database itu.
 
@@ -18,7 +18,7 @@ Pemilik proyek bukan programmer.
 - Jangan pernah meminta pemilik menempelkan kunci rahasia ke chat. Minta pemilik mengisinya sendiri di file `.env.local`, dan tunjukkan caranya langkah demi langkah.
 - Simpan kemajuan dengan git (commit kecil dengan pesan yang jelas).
 - Setelah tiap tahap, perbarui `STATUS.md`: yang sudah selesai, yang berikutnya, masalah terbuka. Tujuannya agar sesi berikutnya bisa lanjut tanpa mengulang.
-- Buat file `CLAUDE.md` berisi ringkasan aturan penting dari brief ini (bagian 2, 3, 4, 5, dan 5a).
+- Buat file `CLAUDE.md` berisi ringkasan aturan penting dari brief ini (bagian 2, 3, 4, 5, 5a, dan 5b).
 - Enam PDF contoh form dari pemilik berada di folder `referensi-form/`. Itu acuan VISUAL wajib untuk semua form (lihat bagian 5a). Buka dan lihat PDF-nya, jangan hanya membaca teksnya.
 
 ## 3. Teknologi (keputusan awal)
@@ -45,6 +45,9 @@ Sumber kebenaran: `schema_daily_report.sql`.
 | `get_weekly_report_compliance(...)` | Rekap kepatuhan mingguan per karyawan |
 | `get_weekly_team_reports(minggu, company)` | Tarikan laporan satu minggu |
 | `v_weekly_team_reports` | View gabungan laporan + company + karyawan + jabatan |
+| `meetings` | Notulensi meeting: judul, tanggal, jam, tempat/link, agenda, pembahasan, keputusan, rapat berikutnya, lampiran (link), `visibility` (`company` atau `holding`) |
+| `meeting_attendees` | Peserta meeting (karyawan atau tamu). Nama disalin otomatis dari profil |
+| `meeting_action_items` | Tindak lanjut hasil meeting: deskripsi, PIC, tenggat, status (`open`, `in_progress`, `done`) |
 
 Aturan penting:
 
@@ -67,6 +70,12 @@ Jabatan (SPV, ADV, ...) dan hak akses (role) adalah dua hal berbeda. Jabatan men
 | Dashboard "belum mengisi" dan kepatuhan | Ya | Ya (company-nya) | Tidak |
 | Kelola company, undangan, pengguna | Ya | Tidak | Tidak |
 | Tarikan mingguan (tabel/unduh) | Ya | Tidak | Tidak |
+| Buat dan baca notulensi meeting | Ya | Ya | Ya |
+| Lihat notulensi | Semua | Company-nya + "Seluruh holding" | Company-nya + "Seluruh holding" |
+| Edit notulensi | Semua | Miliknya | Miliknya |
+| Buat notulensi "Seluruh holding" | Ya | Tidak | Tidak |
+| Hapus notulensi | Ya | Tidak | Tidak |
+| Ubah status tindak lanjut | Semua | Jika PIC atau pembuat | Jika PIC atau pembuat |
 
 ## 5a. Bentuk dan desain form harian (WAJIB meniru PDF contoh)
 
@@ -96,6 +105,28 @@ Isi form per jabatan. Sumber kebenaran tetap `roles_config.form_template`; tabel
 
 Catatan penyimpanan: form CC hanya punya satu kotak "Insight / kendala hari ini"; isinya disimpan di kolom `obstacles`. Bukti pada form SPV disimpan di `evidence_links`.
 
+## 5b. Notulensi Meeting (fitur untuk semua peran)
+
+Semua peran (Owner, Manager, Employee) bisa membuat dan membaca notulensi. Menu "Notulensi" tampil untuk semua pengguna.
+
+Aturan akses. Semuanya ditegakkan database (RLS dan trigger); aplikasi hanya menampilkan dan menyembunyikan tombol sesuai aturan ini:
+
+- Notulensi milik company pembuatnya: dilihat semua orang di company itu dan Owner. Company lain tidak bisa melihatnya.
+- Notulensi "Seluruh holding" (`visibility = holding`): dilihat semua pengguna di semua company. Hanya Owner yang boleh membuatnya. Opsi ini hanya muncul untuk Owner, dan bagi Owner menjadi pilihan awal.
+- Edit: pembuat dan Owner. Hapus: hanya Owner (tombol hanya muncul untuk Owner, dengan konfirmasi). Menghapus notulensi ikut menghapus peserta dan tindak lanjutnya.
+- Tindak lanjut: PIC boleh mengubah STATUS tugasnya sendiri. Field lain (deskripsi, PIC, tenggat) hanya bisa diubah pembuat notulensi atau Owner.
+- Peserta karyawan dan PIC harus berasal dari company yang sama dengan notulensi, kecuali Owner. Nama peserta dan PIC tersimpan sebagai salinan sehingga tetap terbaca pada notulensi holding. Tamu tanpa akun cukup diisi namanya.
+- Tidak ada kunci harian: notulensi boleh dibuat dan diedit kapan saja, karena sering ditulis setelah rapat selesai.
+
+Halaman:
+
+1. **Daftar Notulensi.** Urut tanggal terbaru. Pencarian judul, filter rentang tanggal, dan filter company (khusus Owner). Lencana "Seluruh holding" pada notulensi jenis itu. Tampilkan jumlah tindak lanjut yang belum selesai per notulensi. Tombol "Buat Notulensi".
+2. **Form Buat/Edit.** Judul (wajib); Tanggal (awal: hari ini, boleh tanggal lampau); Jam mulai dan selesai (opsional, selesai tidak boleh lebih awal dari mulai); Tempat atau link meeting; Peserta (pilih dari karyawan, ditambah tamu manual); Agenda; Pembahasan; Keputusan; Tindak lanjut (tabel: Tindak lanjut, PIC, Tenggat, Status; tambah/hapus baris); Rapat berikutnya (tanggal); Lampiran (link, maks. 20); Visibilitas (khusus Owner).
+3. **Detail Notulensi** (mode baca). Semua isi tampil rapi. Status tindak lanjut berupa dropdown yang bisa diubah PIC langsung. Tombol Edit hanya untuk pembuat dan Owner.
+4. **Tab "Tugas saya".** Semua tindak lanjut yang PIC-nya pengguna ini dan belum selesai, urut tenggat. Yang lewat tenggat diberi penanda merah. Status bisa diubah langsung dari sini.
+
+Desain: tidak ada PDF acuan untuk fitur ini. Pakai gaya yang sama dengan form harian (judul tebal, header tabel berwarna dengan teks putih, label tebal, tabel bergaris) dengan warna aksen netral biru `#2E75B6` karena tidak terikat jabatan. Mobile-first, bahasa Indonesia, zona waktu WIB.
+
 ## 6. Tahapan pembangunan (satu per satu, minta persetujuan sebelum lanjut)
 
 **M0. Persiapan.** Buat proyek Next.js, siapkan `.env.example`, hubungkan ke Supabase lewat `.env.local` (diisi sendiri oleh pemilik), inisialisasi git, buat `STATUS.md` dan `CLAUDE.md`. Pandu pemilik menyelesaikan langkah di Supabase bila belum: menjalankan skema dan membuat Owner pertama (lihat panduan bootstrap di bagian 8 file SQL).
@@ -117,6 +148,8 @@ Catatan penyimpanan: form CC hanya punya satu kotak "Insight / kendala hari ini"
 - Jika tanggal berganti saat form terbuka dan penyimpanan ditolak, tampilkan pesan ramah ("Hari sudah berganti, laporan ini terkunci") dan JANGAN menghapus teks yang sudah diketik agar bisa disalin.
 
 **M3. Riwayat laporan saya.** Daftar laporan sendiri (terbaru dulu), detail read-only (pakai form renderer yang sama dalam mode baca), penanda "Terkunci" untuk laporan lampau, dan tombol edit hanya untuk laporan hari ini.
+
+**M3b. Notulensi Meeting.** Kerjakan setelah M2, sesuai bagian 5b. Menu Notulensi tampil untuk semua peran. Urutan kerja: daftar dan form buat/edit, lalu halaman detail dan tindak lanjut, terakhir tab "Tugas saya". Jangan mengubah tabel notulensi di database tanpa izin.
 
 **M4. Dashboard Manager/SPV dan Owner.** Pilih tanggal (default hari ini). Tampilkan: daftar yang belum mengisi (`get_missing_reports`), laporan yang sudah masuk, dan rekap kepatuhan minggu berjalan (`get_weekly_report_compliance`). Detail laporan anggota bersifat read-only. Owner mendapat filter company.
 
@@ -142,6 +175,12 @@ Buat panduan membuat akun uji: 2 company, 1 Owner, 1 Manager per company, minima
 7. Employee tidak melihat dashboard kepatuhan.
 8. Untuk setiap jabatan (RND, ADV_MH, ADV, AM, CC, SPV), form yang tampil sama dengan PDF contoh di `referensi-form/`: judul, warna, urutan bagian, nama dan urutan kolom. Data tersimpan ke kolom yang benar (aktivitas, metrik, insight/kendala/rencana, bukti) dan tampil kembali dengan benar saat dibuka lagi.
 9. Service role key tidak muncul di kode browser, repositori git, atau log.
+10. Notulensi: karyawan company A tidak melihat notulensi company B (dan sebaliknya), tetapi semua orang melihat notulensi "Seluruh holding".
+11. Karyawan dan Manager tidak melihat opsi "Seluruh holding"; upaya membuatnya lewat manipulasi permintaan ditolak.
+12. Hanya pembuat dan Owner yang bisa mengedit notulensi; hanya Owner yang bisa menghapus.
+13. PIC bisa mengubah status tindak lanjutnya, tetapi tidak bisa mengubah deskripsi, tenggat, atau PIC-nya.
+14. Memilih peserta atau PIC dari company lain ditolak (kecuali Owner), dan nama peserta tidak bisa dipalsukan.
+15. Akun tanpa profil tidak melihat notulensi apa pun, termasuk yang "Seluruh holding".
 
 ## 8. Di luar cakupan (jangan dikerjakan dulu)
 
@@ -151,6 +190,7 @@ Buat panduan membuat akun uji: 2 company, 1 Owner, 1 Manager per company, minima
 - Analisis AI di dalam aplikasi (analisis dilakukan di luar, lewat prompt mingguan).
 - Aplikasi mobile native.
 - Tarikan otomatis hari Sabtu (dikerjakan terpisah setelah aplikasi stabil).
+- Notulensi: unggah file lampiran (hanya link), pengingat atau notifikasi tenggat, rekaman dan transkripsi otomatis, serta persetujuan atau tanda tangan peserta.
 
 ## 9. Keputusan yang masih terbuka (tanyakan ke pemilik saat relevan)
 
@@ -161,3 +201,4 @@ Buat panduan membuat akun uji: 2 company, 1 Owner, 1 Manager per company, minima
 - Nama, logo, dan warna aplikasi.
 - Domain sendiri atau alamat bawaan Vercel.
 - Batas waktu edit: saat ini hanya pada hari yang sama.
+- Notulensi: apakah Manager boleh mengedit notulensi anggota timnya (saat ini hanya pembuat dan Owner), apakah pembuat boleh menghapus notulensinya sendiri (saat ini hanya Owner), dan apakah Manager boleh membuat notulensi lintas company (saat ini hanya Owner).

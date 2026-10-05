@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 5 Oktober 2026_
+_Terakhir diperbarui: 5 Oktober 2026 (brief & skema ditambah fitur Notulensi)_
 
 ## Milestone
 | | Tahap | Status |
@@ -9,6 +9,7 @@ _Terakhir diperbarui: 5 Oktober 2026_
 | M1 | Login dan profil | ⬜ Belum |
 | M2 | Laporan hari ini (form per jabatan) | ⬜ Belum |
 | M3 | Riwayat laporan saya | ⬜ Belum |
+| M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
 | M5 | Panel Owner | ⬜ Belum |
 | M6 | Tayang (Vercel) | ⬜ Belum |
@@ -22,17 +23,18 @@ _Terakhir diperbarui: 5 Oktober 2026_
 - `CLAUDE.md` (ringkasan aturan) dan `STATUS.md`. Git diinisialisasi.
 
 ## Menunggu pemilik (M0)
-1. Buat proyek Supabase (region Singapore).
-2. Jalankan `schema_daily_report.sql` di SQL Editor.
-3. Isi `.env.local` dengan URL + publishable key.
+1. ✅ Buat proyek Supabase (region Singapore).
+2. ✅ Jalankan `schema_daily_report.sql` di SQL Editor (menurut pemilik, termasuk bagian 11 Notulensi).
+3. Isi `.env.local` dengan URL + publishable key. ← per 5 Okt halaman Cek Persiapan masih ❌ (kunci belum terisi).
 4. Matikan pendaftaran publik (Authentication > Sign In / Providers).
 5. Bootstrap Owner: company HOLDING + undangan Owner + buat user Owner (Add user, Auto Confirm).
-6. Buka http://localhost:3000 → semua centang hijau.
+6. Buka http://localhost:3000 → semua centang hijau (halaman ini juga mengecek tabel notulensi).
 
 ## Berikutnya
 - M1 (setelah pemilik setuju): login, atur password, lupa password, proxy penyegar sesi, tampilan profil & menu per role, pesan akun tanpa profil.
 
 ## Masalah / catatan terbuka
+- Keputusan terbuka notulensi (tanyakan saat M3b): Manager boleh edit notulensi anggota timnya? Pembuat boleh hapus notulensinya sendiri? Manager boleh buat notulensi lintas company?
 - Bagian 8 file SQL menyebut "daftar dengan email tsb di aplikasi", tetapi pendaftaran publik dimatikan. Untuk Owner pertama dipakai Supabase dashboard > Add user (Auto Confirm) — trigger tetap membuat profil.
 - Keputusan terbuka dari brief bagian 9 (opsi Status, kolom ke-4 SPV, field wajib, format Penjualan/Konten, nama/logo/warna, domain, batas edit) — tanyakan saat relevan.
 - PDF di `referensi-form/` belum dilihat; wajib dilihat sebelum M2.
