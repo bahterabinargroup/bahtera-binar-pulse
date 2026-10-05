@@ -31,7 +31,10 @@ async function runChecks(): Promise<Check[]> {
   }
 
   const supabase = await createClient();
-  // Tanpa login, RLS mengembalikan 0 baris (bukan error) jika tabel ada.
+  // Tanpa login, tabel yang ada mengembalikan 0 baris atau "permission denied"
+  // (kode 42501). Tabel yang tidak ada mengembalikan kode PGRST205.
+  const tableExists = (e: { code?: string } | null) =>
+    !e || e.code === "42501";
   const { error } = await supabase.from("roles_config").select("id").limit(1);
   const { error: meetingsError } = await supabase
     .from("meetings")
@@ -39,22 +42,22 @@ async function runChecks(): Promise<Check[]> {
     .limit(1);
   checks.push({
     label: "Koneksi ke Supabase",
-    ok: !error || !/fetch|network|Invalid API key/i.test(error.message),
-    detail: error ? error.message : "Tersambung",
+    ok: tableExists(error) || !/fetch|network|Invalid API key/i.test(error!.message),
+    detail: tableExists(error) ? "Tersambung" : error!.message,
   });
   checks.push({
     label: "Skema database sudah dijalankan",
-    ok: !error,
-    detail: error
-      ? "Tabel belum ditemukan. Ikuti panduan langkah 2."
-      : "Tabel roles_config ditemukan",
+    ok: tableExists(error),
+    detail: tableExists(error)
+      ? "Tabel roles_config ditemukan"
+      : "Tabel belum ditemukan. Ikuti panduan langkah 2.",
   });
   checks.push({
     label: "Tabel Notulensi Meeting",
-    ok: !meetingsError,
-    detail: meetingsError
-      ? "Tabel meetings belum ditemukan. Bagian 11 file SQL belum dijalankan."
-      : "Tabel meetings ditemukan",
+    ok: tableExists(meetingsError),
+    detail: tableExists(meetingsError)
+      ? "Tabel meetings ditemukan"
+      : "Tabel meetings belum ditemukan. Bagian 11 file SQL belum dijalankan.",
   });
   return checks;
 }
