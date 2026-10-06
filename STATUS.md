@@ -26,7 +26,7 @@ _Terakhir diperbarui: 5 Oktober 2026 (brief & skema ditambah fitur Notulensi)_
 1. ✅ Buat proyek Supabase (region Singapore).
 2. ✅ Jalankan `schema_daily_report.sql` di SQL Editor (menurut pemilik, termasuk bagian 11 Notulensi).
 3. ✅ Isi `.env.local` dengan URL + publishable key. Halaman Cek Persiapan semua ✅ (5 Okt).
-4. Matikan pendaftaran publik (Authentication > Sign In / Providers).
+4. ✅ Matikan pendaftaran publik (Authentication > Sign In / Providers).
 5. ✅ Bootstrap Owner (2 akun owner terdaftar: Admin Bahtera Binar Abadi, Raka Ghani Irsyadi Binar): company HOLDING + undangan Owner + buat user Owner (Add user, Auto Confirm).
 6. ✅ Halaman Cek Persiapan semua centang hijau.
 7. Jalankan kueri cek hak akses tabel (lihat catatan terbuka) dan laporkan hasilnya.
