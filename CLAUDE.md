@@ -63,6 +63,10 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Validasi ramah berbahasa Indonesia; simpan sebagian boleh; field `required` kosong ditandai "Belum lengkap" tanpa memblokir simpan.
 - Bila hari berganti dan simpan ditolak: "Hari sudah berganti, laporan ini terkunci" — JANGAN hapus teks yang sudah diketik.
 
+## Peta kode
+- Form harian: `src/lib/report/` (tipe + konversi) dan `src/components/report/` (FormRenderer, ReportForm). Pratinjau lokal tanpa login: `npm run dev` lalu `/dev/pratinjau/ADV` (dst.).
+- Menu per role: `src/lib/menu.ts`. Profil login: `src/lib/profile.ts`. Tanggal WIB: `src/lib/date.ts`.
+
 ## Notulensi Meeting (milestone M3b — dikerjakan SETELAH M2, jangan lebih awal)
 - Menu "Notulensi" untuk semua peran. Semua aturan akses ditegakkan database (RLS + trigger); aplikasi hanya menampilkan/menyembunyikan tombol.
 - Notulensi company: dilihat se-company + Owner. "Seluruh holding" (`visibility = holding`): dilihat semua; hanya Owner yang membuat — opsi hanya tampil untuk Owner dan jadi pilihan awalnya.

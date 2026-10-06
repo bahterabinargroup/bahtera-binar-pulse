@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-5xl items-start justify-between gap-3 px-4 py-3">
           <Link href="/" className="min-w-0">
             <p className="text-xs font-bold tracking-widest text-accent">DAILY REPORT</p>
             <p className="truncate font-bold">{profile.full_name}</p>
@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           {logoutButton}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
     </>
   );
 }

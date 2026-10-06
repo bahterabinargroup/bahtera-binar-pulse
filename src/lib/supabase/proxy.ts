@@ -6,7 +6,9 @@ import { getSupabaseEnv } from "./env";
 const PUBLIC_PATHS = ["/login", "/lupa-password", "/auth", "/cek-persiapan"];
 
 function isPublic(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // /dev hanya ada saat pengembangan lokal (halaman itu sendiri menolak di versi tayang).
+  const paths = process.env.NODE_ENV === "development" ? [...PUBLIC_PATHS, "/dev"] : PUBLIC_PATHS;
+  return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 // Menyegarkan sesi login di cookie pada setiap permintaan, lalu mengarahkan

@@ -1,13 +1,13 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M1 selesai, M2 dimulai_
+_Terakhir diperbarui: 6 Oktober 2026 — M2 dibangun, menunggu uji pemilik_
 
 ## Milestone
 | | Tahap | Status |
 |---|---|---|
 | M0 | Persiapan | ✅ Selesai (6 Okt 2026) |
 | M1 | Login dan profil | ✅ Selesai (6 Okt 2026) |
-| M2 | Laporan hari ini (form per jabatan) | 🟡 Sedang dikerjakan |
+| M2 | Laporan hari ini (form per jabatan) | 🟡 Kode selesai; menunggu uji pemilik |
 | M3 | Riwayat laporan saya | ⬜ Belum |
 | M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
@@ -49,8 +49,21 @@ _Terakhir diperbarui: 6 Oktober 2026 — M1 selesai, M2 dimulai_
 2. ✅ Lupa password → atur password → masuk sebagai Owner (Admin Bahtera Binar Abadi) berhasil (6 Okt).
 3. ✅ Akun tanpa undangan (uji-tanpa-undangan@example.com) → hanya melihat pesan terkunci. Akun uji ini boleh dihapus pemilik dari Supabase > Users.
 
+## Sudah selesai (M2, kode)
+- Keenam PDF di `referensi-form/` sudah dilihat dan dicocokkan (6 Okt).
+- `src/lib/report/template.ts`: tipe form_template. `src/lib/report/form-state.ts`: FormState <-> kolom daily_reports, validasi (angka gaya Indonesia "1.500.000"/"Rp", link boleh tanpa https), penanda wajib, konversi simpan.
+- `src/components/report/FormRenderer.tsx`: SATU renderer generik semua jabatan (tema warna dari template, SPV polos, tabel → kartu di ponsel, chip Status "?", baris tetap, matrix Toko 1/2, label_rows, bukti).
+- `src/components/report/ReportForm.tsx`: status simpan, tombol Simpan menempel di bawah, peringatan saat menutup halaman sebelum simpan, mode terkunci (teks tetap ada & bisa disalin), mode pratinjau.
+- `src/app/(app)/laporan/page.tsx` + `actions.ts` (`saveReport`): insert/update; cek tanggal WIB; 0 baris ter-update = terkunci; 23505 = laporan hari ini sudah ada (pesan jelas). Jabatan diambil dari laporan yang sudah ada (snapshot) atau profil.
+- `/laporan/pratinjau` (khusus Owner): lihat form tiap jabatan tanpa menyimpan. Ditambah ke menu Owner.
+- `/dev/pratinjau/[KODE]`: HANYA saat `npm run dev`, tanpa login, template dibaca langsung dari schema SQL — untuk mencocokkan tampilan dengan PDF.
+- Uji logika (30 kasus, skrip sementara) lolos. Tampilan desktop & ponsel keenam form sudah dicek terhadap PDF.
+
+## Menunggu pemilik (M2)
+- Uji simpan sungguhan butuh akun dengan jabatan. Usulan: beri akun Owner rakaghani.business@gmail.com jabatan ADV lewat SQL (role tetap owner).
+
 ## Berikutnya
-- M2 (setelah pemilik setuju): form Laporan Hari Ini. WAJIB lihat PDF di `referensi-form/` dulu.
+- M3 Riwayat laporan saya (setelah pemilik setuju).
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.
