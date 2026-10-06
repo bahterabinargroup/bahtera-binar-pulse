@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M3b: menunggu pemilik menjalankan 002_
+_Terakhir diperbarui: 6 Oktober 2026 — M3b dibangun, menunggu uji pemilik_
 
 ## Milestone
 | | Tahap | Status |
@@ -9,7 +9,7 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3b: menunggu pemilik menjalankan 002_
 | M1 | Login dan profil | ✅ Selesai (6 Okt 2026) |
 | M2 | Laporan hari ini (form per jabatan) | ✅ Selesai (6 Okt 2026); uji "terkunci besok" menyusul |
 | M3 | Riwayat laporan saya | ✅ Selesai (6 Okt 2026) |
-| M3b | Notulensi Meeting | 🟡 Desain disepakati; menunggu `002` dijalankan |
+| M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
 | M5 | Panel Owner | ⬜ Belum |
 | M6 | Tayang (Vercel) | ⬜ Belum |
@@ -74,10 +74,21 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3b: menunggu pemilik menjalankan 002_
 
 ## M3b Notulensi — keputusan & persiapan
 - Keputusan pemilik 6 Okt (lihat CLAUDE.md bagian Notulensi): hanya Owner/Manager(company-nya)/pembuat yang melihat; draft→submit terkunci; auto save; lokasi Kantor 1/Kantor 2/Online; permintaan hapus perlu persetujuan Owner; PIC karyawan lewat "Tugas saya"; Download PDF.
-- Perubahan database disetujui pemilik: `supabase/002_notulensi_submit_dan_hapus.sql` (= bagian 13 schema). ⏳ Menunggu dijalankan pemilik di SQL Editor.
+- ✅ `supabase/002_notulensi_submit_dan_hapus.sql` (= bagian 13 schema) sudah dijalankan pemilik (4 kolom baru terverifikasi).
+
+## Sudah selesai (M3b, kode)
+- `src/lib/meetings.ts` (tipe, form↔DB, validasi, diff baris anak agar status PIC tak tertimpa), `src/lib/meetings-server.ts` (loadMeeting, loadPeople, loadCompaniesForOwner).
+- `src/app/(app)/notulensi/actions.ts`: saveMeeting (insert/update + peserta/tindak lanjut; hasil parsial dikembalikan agar tak ganda), submitMeeting, updateActionStatus, requestDeletion/cancelDeletion (RPC), deleteMeeting (Owner).
+- `src/components/meetings/MeetingEditor.tsx`: form + AUTO SAVE 2,5 detik setelah berhenti mengetik (mulai setelah judul diisi), tombol Simpan & Submit (konfirmasi), Owner pilih company saat membuat. Halaman `/notulensi/baru`, `/notulensi/[id]/edit` (yang tak berhak → dialihkan ke detail).
+- `/notulensi`: daftar + cari judul, rentang tanggal, status (draft/submit/permintaan hapus), filter company (Owner), jumlah tindak lanjut terbuka.
+- `/notulensi/[id]`: detail baca; tombol Lanjutkan menulis/Koreksi (Owner), Download PDF, Ajukan hapus (+alasan)/Batalkan, Owner: Setujui hapus/Tolak/Hapus. Status tindak lanjut bisa diubah langsung (PIC/pembuat-draft/Owner).
+- `/notulensi/[id]/pdf`: unduh PDF (@react-pdf/renderer, MIT, gratis) — data via sesi pengguna (RLS).
+- `/tugas` (Tugas saya): RPC get_my_action_items, lewat tenggat merah, ubah status langsung, opsi tampilkan yang selesai.
+- Menu: Notulensi & Tugas Saya untuk semua role.
+- Pratinjau lokal tanpa login: `/dev/notulensi` (form), `/dev/pdf` (contoh PDF). Auto save terbukti berjalan (ditolak karena tak login, sesuai harapan).
 
 ## Berikutnya
-- Setelah 002 jalan: bangun M3b (daftar + form/auto save → detail, submit, PDF, permintaan hapus → Tugas saya).
+- M4 Dashboard Manager/SPV dan Owner (setelah pemilik setuju).
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.

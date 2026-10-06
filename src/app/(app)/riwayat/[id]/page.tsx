@@ -6,15 +6,14 @@ import { getCurrentUser } from "@/lib/profile";
 import type { ReportData } from "@/lib/report/form-state";
 import type { FormTemplate } from "@/lib/report/template";
 import { createClient } from "@/lib/supabase/server";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from "@/lib/uuid";
 
 // Detail laporan sendiri, hanya baca. Form digambar dengan renderer yang sama.
 export default async function RiwayatDetailPage({ params }: PageProps<"/riwayat/[id]">) {
   const { profile } = await getCurrentUser();
   if (!profile) return null;
   const { id } = await params;
-  if (!UUID.test(id)) notFound();
+  if (!isUuid(id)) notFound();
 
   const supabase = await createClient();
   const { data: report, error } = await supabase
