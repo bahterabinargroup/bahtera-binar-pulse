@@ -19,7 +19,7 @@ _Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
 - Proyek Next.js 16 + TypeScript + Tailwind dibuat; paket `@supabase/supabase-js` dan `@supabase/ssr` terpasang.
 - `.env.example` (template kunci publik). `.env.local` diabaikan git.
 - Helper Supabase: `src/lib/supabase/client.ts` (browser), `server.ts` (server), `env.ts`.
-- Halaman sementara `/` = "Cek Persiapan": memeriksa kunci di `.env.local`, koneksi, dan apakah skema sudah dijalankan.
+- Halaman sementara "Cek Persiapan" (kini `/cek-persiapan`): memeriksa kunci di `.env.local`, koneksi, dan apakah skema sudah dijalankan.
 - `CLAUDE.md` (ringkasan aturan) dan `STATUS.md`. Git diinisialisasi.
 
 ## Langkah Supabase oleh pemilik (M0) — semua selesai
@@ -31,9 +31,24 @@ _Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
 6. ✅ Halaman Cek Persiapan semua centang hijau.
 7. ✅ `supabase/001_hak_akses.sql` dijalankan; hasil cek hak akses sesuai (anon tanpa hak; authenticated sesuai rencana).
 
+## Sudah selesai (M1, kode)
+- `src/proxy.ts` + `src/lib/supabase/proxy.ts`: menyegarkan sesi; yang belum login diarahkan ke `/login?next=...`. Halaman publik: /login, /lupa-password, /auth/*, /cek-persiapan.
+- `/login`, `/lupa-password` (pesan sama untuk email terdaftar/tidak), `/atur-password` (min. 8 karakter, diulang), `/auth/confirm` (token_hash/code → sesi; gagal → `/login?error=tautan`).
+- Server actions: `src/app/auth-actions.ts`. Pesan error Indonesia: `src/lib/auth-errors.ts`.
+- `src/app/(app)/layout.tsx`: kepala halaman (nama, jabatan · company, role, Keluar). Tanpa profil → "Akun Anda belum terdaftar. Hubungi admin."
+- Beranda `src/app/(app)/page.tsx`: menu per role dari `src/lib/menu.ts` (semua "Segera hadir"; set `ready: true` saat halamannya dibangun).
+- Halaman cek koneksi dipindah ke `/cek-persiapan`.
+- Template email Supabase TIDAK bisa diubah tanpa SMTP sendiri (paket Free), jadi aplikasi menangani tautan bawaan:
+  - Undangan dari dashboard & lupa password (alur implicit) → tautan `#access_token=...&type=invite|recovery` → `src/components/EmailLinkHandler.tsx` (root layout) menyimpan sesi lalu membuka `/atur-password`. Bisa dibuka di browser/HP mana pun. Error di `#` → `/login?error=tautan`.
+  - Template Indonesia di `supabase/email-templates/` disimpan untuk nanti jika SMTP sendiri dipasang.
+- Teruji otomatis: pengalihan ke login, tautan palsu/kedaluwarsa → pesan jelas, `next=//evil.com` diabaikan. Login sungguhan diuji pemilik (Claude tidak mengetik password).
+
+## Menunggu pemilik (M1)
+1. ✅ URL Configuration: Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`.
+2. ⏳ Uji: password belum pernah dibuat untuk akun Owner → pakai "Lupa password?" untuk membuatnya, lalu login, Keluar, akun tanpa undangan.
+
 ## Berikutnya
-- Menunggu kata "lanjut" dari pemilik untuk M1.
-- M1: login, atur password, lupa password, proxy penyegar sesi, tampilan profil & menu per role, pesan akun tanpa profil.
+- M2 (setelah pemilik setuju): form Laporan Hari Ini. WAJIB lihat PDF di `referensi-form/` dulu.
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.
