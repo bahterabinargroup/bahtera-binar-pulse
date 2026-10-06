@@ -1,13 +1,13 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
+_Terakhir diperbarui: 6 Oktober 2026 — M1 selesai, M2 dimulai_
 
 ## Milestone
 | | Tahap | Status |
 |---|---|---|
 | M0 | Persiapan | ✅ Selesai (6 Okt 2026) |
-| M1 | Login dan profil | 🟡 Kode selesai; menunggu pemilik mengatur Supabase & menguji |
-| M2 | Laporan hari ini (form per jabatan) | ⬜ Belum |
+| M1 | Login dan profil | ✅ Selesai (6 Okt 2026) |
+| M2 | Laporan hari ini (form per jabatan) | 🟡 Sedang dikerjakan |
 | M3 | Riwayat laporan saya | ⬜ Belum |
 | M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
@@ -44,10 +44,10 @@ _Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
 - Tombol mata (tampilkan/sembunyikan password) di halaman Masuk dan Atur password: `src/components/PasswordInput.tsx` (permintaan pemilik).
 - Teruji otomatis: pengalihan ke login, tautan palsu/kedaluwarsa → pesan jelas, `next=//evil.com` diabaikan. Login sungguhan diuji pemilik (Claude tidak mengetik password).
 
-## Menunggu pemilik (M1)
+## Uji pemilik (M1) — selesai
 1. ✅ URL Configuration: Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`.
 2. ✅ Lupa password → atur password → masuk sebagai Owner (Admin Bahtera Binar Abadi) berhasil (6 Okt).
-3. ⏳ Uji Keluar dan akun tanpa undangan (opsional).
+3. ✅ Akun tanpa undangan (uji-tanpa-undangan@example.com) → hanya melihat pesan terkunci. Akun uji ini boleh dihapus pemilik dari Supabase > Users.
 
 ## Berikutnya
 - M2 (setelah pemilik setuju): form Laporan Hari Ini. WAJIB lihat PDF di `referensi-form/` dulu.
