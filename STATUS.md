@@ -41,11 +41,13 @@ _Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
 - Template email Supabase TIDAK bisa diubah tanpa SMTP sendiri (paket Free), jadi aplikasi menangani tautan bawaan:
   - Undangan dari dashboard & lupa password (alur implicit) → tautan `#access_token=...&type=invite|recovery` → `src/components/EmailLinkHandler.tsx` (root layout) menyimpan sesi lalu membuka `/atur-password`. Bisa dibuka di browser/HP mana pun. Error di `#` → `/login?error=tautan`.
   - Template Indonesia di `supabase/email-templates/` disimpan untuk nanti jika SMTP sendiri dipasang.
+- Tombol mata (tampilkan/sembunyikan password) di halaman Masuk dan Atur password: `src/components/PasswordInput.tsx` (permintaan pemilik).
 - Teruji otomatis: pengalihan ke login, tautan palsu/kedaluwarsa → pesan jelas, `next=//evil.com` diabaikan. Login sungguhan diuji pemilik (Claude tidak mengetik password).
 
 ## Menunggu pemilik (M1)
 1. ✅ URL Configuration: Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`.
-2. ⏳ Uji: password belum pernah dibuat untuk akun Owner → pakai "Lupa password?" untuk membuatnya, lalu login, Keluar, akun tanpa undangan.
+2. ✅ Lupa password → atur password → masuk sebagai Owner (Admin Bahtera Binar Abadi) berhasil (6 Okt).
+3. ⏳ Uji Keluar dan akun tanpa undangan (opsional).
 
 ## Berikutnya
 - M2 (setelah pemilik setuju): form Laporan Hari Ini. WAJIB lihat PDF di `referensi-form/` dulu.

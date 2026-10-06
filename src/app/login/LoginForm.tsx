@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "@/app/auth-actions";
 import { buttonClass, FormMessage, inputClass } from "@/components/AuthCard";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
   const [state, action, pending] = useActionState(signIn, null);
@@ -26,12 +27,10 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
       </label>
       <label className="block text-sm font-bold">
         Password
-        <input
+        <PasswordInput
           name="password"
-          type="password"
           autoComplete="current-password"
           required
-          className={inputClass}
         />
       </label>
       <button type="submit" disabled={pending} className={buttonClass}>

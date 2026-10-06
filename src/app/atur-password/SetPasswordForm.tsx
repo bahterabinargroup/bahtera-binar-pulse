@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { setPassword } from "@/app/auth-actions";
-import { buttonClass, FormMessage, inputClass } from "@/components/AuthCard";
+import { buttonClass, FormMessage } from "@/components/AuthCard";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function SetPasswordForm() {
   const [state, action, pending] = useActionState(setPassword, null);
@@ -12,25 +13,21 @@ export function SetPasswordForm() {
       {state?.error && <FormMessage type="error">{state.error}</FormMessage>}
       <label className="block text-sm font-bold">
         Password baru
-        <input
+        <PasswordInput
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={8}
           required
-          className={inputClass}
         />
         <span className="mt-1 block text-xs font-normal text-zinc-500">Minimal 8 karakter.</span>
       </label>
       <label className="block text-sm font-bold">
         Ulangi password baru
-        <input
+        <PasswordInput
           name="confirm"
-          type="password"
           autoComplete="new-password"
           minLength={8}
           required
-          className={inputClass}
         />
       </label>
       <button type="submit" disabled={pending} className={buttonClass}>
