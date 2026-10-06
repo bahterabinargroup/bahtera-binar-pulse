@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M3b dibangun, menunggu uji pemilik_
+_Terakhir diperbarui: 6 Oktober 2026 — M4 dibangun, menunggu uji pemilik_
 
 ## Milestone
 | | Tahap | Status |
@@ -10,7 +10,7 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3b dibangun, menunggu uji pemilik_
 | M2 | Laporan hari ini (form per jabatan) | ✅ Selesai (6 Okt 2026); uji "terkunci besok" menyusul |
 | M3 | Riwayat laporan saya | ✅ Selesai (6 Okt 2026) |
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
-| M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
+| M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
 | M5 | Panel Owner | ⬜ Belum |
 | M6 | Tayang (Vercel) | ⬜ Belum |
 
@@ -87,8 +87,14 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3b dibangun, menunggu uji pemilik_
 - Menu: Notulensi & Tugas Saya untuk semua role.
 - Pratinjau lokal tanpa login: `/dev/notulensi` (form), `/dev/pdf` (contoh PDF). Auto save terbukti berjalan (ditolak karena tak login, sesuai harapan).
 
+## Sudah selesai (M4, kode)
+- `/dashboard` (Owner & Manager; karyawan dialihkan ke Beranda): pilih tanggal (maks. hari ini, tombol Kemarin/Besok/Hari ini), filter company khusus Owner. Isi: angka Laporan masuk / Belum mengisi, daftar `get_missing_reports`, daftar laporan masuk (daily_reports, RLS), tabel kepatuhan minggu dari tanggal terpilih (`get_weekly_report_compliance`, Senin–Sabtu) dengan % berwarna dan tanggal bolong.
+- `/dashboard/laporan/[id]`: detail laporan anggota, hanya baca (ReportForm mode view), label Terkunci.
+- Helper tanggal: `mondayOf`, `addDays`, `formatTanggalPendek` di `src/lib/date.ts`.
+- Relasi embed (users/roles_config/companies) terverifikasi lewat API (tidak ada PGRST200/201).
+
 ## Berikutnya
-- M4 Dashboard Manager/SPV dan Owner (setelah pemilik setuju).
+- M5 Panel Owner (setelah pemilik setuju): company, undangan, pengguna, koreksi laporan lampau, tarikan mingguan CSV/JSON.
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.

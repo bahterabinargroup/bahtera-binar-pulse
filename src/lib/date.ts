@@ -33,3 +33,23 @@ export function formatJam(iso: string): string {
     minute: "2-digit",
   }).format(new Date(iso));
 }
+
+// Senin dari minggu yang memuat tanggal "YYYY-MM-DD" (sama dengan date_trunc('week')).
+export function mondayOf(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  const dow = (d.getUTCDay() + 6) % 7; // Senin = 0
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+export function addDays(ymd: string, days: number): string {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function formatTanggalPendek(ymd: string): string {
+  return new Intl.DateTimeFormat("id-ID", { timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short" }).format(
+    dateFromYmd(ymd),
+  );
+}
