@@ -1,9 +1,11 @@
 "use server";
 
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath, translateAuthError } from "@/lib/auth-errors";
+import { requireSupabaseEnv } from "@/lib/supabase/env";
 
 export type FormState = { error?: string; success?: string; email?: string } | null;
 
@@ -28,9 +30,15 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
   const h = await headers();
   const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 
-  const supabase = await createClient();
+  // Alur "implicit": tautan di email membawa sesi di bagian # URL dan
+  // ditangani EmailLinkHandler, sehingga tautan bisa dibuka di browser/HP
+  // mana pun (alur PKCE hanya berhasil di browser tempat meminta reset).
+  const { url, key } = requireSupabaseEnv();
+  const supabase = createPlainClient(url, key, {
+    auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false },
+  });
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm?next=/atur-password`,
+    redirectTo: `${origin}/login`,
   });
   // Pesan sama untuk email terdaftar maupun tidak, agar daftar email karyawan
   // tidak bisa ditebak orang lain. Hanya batas percobaan yang diberitahukan.
