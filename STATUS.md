@@ -1,12 +1,12 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M0 selesai_
+_Terakhir diperbarui: 6 Oktober 2026 — M1 dibangun, menunggu uji pemilik_
 
 ## Milestone
 | | Tahap | Status |
 |---|---|---|
 | M0 | Persiapan | ✅ Selesai (6 Okt 2026) |
-| M1 | Login dan profil | ⬜ Belum |
+| M1 | Login dan profil | 🟡 Kode selesai; menunggu pemilik mengatur Supabase & menguji |
 | M2 | Laporan hari ini (form per jabatan) | ⬜ Belum |
 | M3 | Riwayat laporan saya | ⬜ Belum |
 | M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
@@ -36,7 +36,8 @@ _Terakhir diperbarui: 6 Oktober 2026 — M0 selesai_
 - M1: login, atur password, lupa password, proxy penyegar sesi, tampilan profil & menu per role, pesan akun tanpa profil.
 
 ## Masalah / catatan terbuka
-- Ada 2 akun Owner (Admin Bahtera Binar Abadi, Raka Ghani Irsyadi Binar). Pemilik belum mengonfirmasi bahwa keduanya disengaja.
+- Layanan email bawaan Supabase dibatasi beberapa email per jam (cukup untuk uji). Untuk banyak karyawan nanti perlu SMTP sendiri (mungkin berbayar → tanya pemilik dulu). Saat M6, Site URL & template diganti ke alamat Vercel.
+- 2 akun Owner (Admin Bahtera Binar Abadi, Raka Ghani Irsyadi Binar) — disengaja, dikonfirmasi pemilik 6 Okt.
 - ✅ **Hak akses tabel — sudah diperbaiki 6 Okt.** Hasil cek: `authenticated` tidak punya SELECT/INSERT di tabel mana pun; `anon` punya TRUNCATE. Perbaikan: `supabase/001_hak_akses.sql` (juga bagian 12 file skema). Tanpa login, Supabase menjawab "permission denied" (kode 42501), bukan 0 baris. Artinya proyek Supabase ini tidak otomatis memberi hak akses tabel ke peran `anon`. Itu aman. Yang perlu dipastikan: apakah peran `authenticated` (pengguna yang sudah login) diberi hak SELECT/INSERT. File SQL tidak memberikannya secara eksplisit karena mengandalkan bawaan Supabase. Kalau ternyata tidak ada, perlu tambahan GRANT. Itu perubahan database, jadi harus seizin pemilik.
 - Keputusan terbuka notulensi (tanyakan saat M3b): Manager boleh edit notulensi anggota timnya? Pembuat boleh hapus notulensinya sendiri? Manager boleh buat notulensi lintas company?
 - Bagian 8 file SQL menyebut "daftar dengan email tsb di aplikasi", tetapi pendaftaran publik dimatikan. Untuk Owner pertama dipakai Supabase dashboard > Add user (Auto Confirm) — trigger tetap membuat profil.
@@ -48,4 +49,4 @@ _Terakhir diperbarui: 6 Oktober 2026 — M0 selesai_
 cd ~/Desktop/daily-report-app
 npm run dev
 ```
-Lalu buka http://localhost:3000
+Lalu buka http://localhost:3000 (halaman cek koneksi: http://localhost:3000/cek-persiapan)
