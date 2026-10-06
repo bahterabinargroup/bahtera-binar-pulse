@@ -37,6 +37,10 @@ export type ReportData = {
 
 export const MAX_EVIDENCE = 20;
 
+// Pilihan Status yang berarti "belum dikerjakan": tampil merah dan dihitung
+// "Belum lengkap", tetapi laporan tetap boleh disimpan (keputusan pemilik 6 Okt).
+export const NEGATIVE_STATUS = ["Belum"];
+
 const emptyRow = (columns: Column[]): Row =>
   Object.fromEntries(columns.filter((c) => c.type !== "fixed_text").map((c) => [c.key, ""]));
 
@@ -201,7 +205,10 @@ export function missingRequired(template: FormTemplate, s: FormState): Set<strin
   for (const b of allBlocks(template)) {
     if (b.type === "checklist") {
       for (const item of b.items) {
-        if (item.required && !s.checklists[item.key]?.value.trim()) missing.add(`checklists.${item.key}.value`);
+        const value = s.checklists[item.key]?.value.trim() ?? "";
+        if (item.required && (!value || (item.kind === "status" && NEGATIVE_STATUS.includes(value)))) {
+          missing.add(`checklists.${item.key}.value`);
+        }
       }
     }
     if (b.type === "matrix") {

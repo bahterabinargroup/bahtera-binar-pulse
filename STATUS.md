@@ -59,8 +59,11 @@ _Terakhir diperbarui: 6 Oktober 2026 — M2 dibangun, menunggu uji pemilik_
 - `/dev/pratinjau/[KODE]`: HANYA saat `npm run dev`, tanpa login, template dibaca langsung dari schema SQL — untuk mencocokkan tampilan dengan PDF.
 - Uji logika (30 kasus, skrip sementara) lolos. Tampilan desktop & ponsel keenam form sudah dicek terhadap PDF.
 
-## Menunggu pemilik (M2)
-- Uji simpan sungguhan butuh akun dengan jabatan. Usulan: beri akun Owner rakaghani.business@gmail.com jabatan ADV lewat SQL (role tetap owner).
+## Uji & keputusan pemilik (M2)
+- ✅ Simpan laporan sungguhan berhasil (akun rakaghani.business@gmail.com diberi jabatan ADV, role tetap owner).
+- Keputusan 6 Okt: Status "Belum" TETAP boleh disimpan, tampil merah dan dihitung "Belum lengkap" (`NEGATIVE_STATUS` di `form-state.ts`).
+- Ditambahkan tombol "← Kembali ke Beranda" di semua halaman (permintaan pemilik).
+- ⏳ Sisa uji: validasi angka (ketik `abc` di Ads spent), muat ulang halaman, dan besok: laporan kemarin terkunci.
 
 ## Berikutnya
 - M3 Riwayat laporan saya (setelah pemilik setuju).

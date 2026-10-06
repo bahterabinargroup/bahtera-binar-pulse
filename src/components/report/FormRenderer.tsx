@@ -7,7 +7,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { Errors, FormState, Row } from "@/lib/report/form-state";
-import { MAX_EVIDENCE } from "@/lib/report/form-state";
+import { MAX_EVIDENCE, NEGATIVE_STATUS } from "@/lib/report/form-state";
 import type {
   ActivitiesBlock,
   Block,
@@ -394,7 +394,11 @@ function StatusSelect({
       onChange={(e) => onChange(e.target.value)}
       disabled={ctx.readOnly}
       className={`cursor-pointer rounded-full border-0 py-1 pr-6 pl-3 text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:cursor-default disabled:opacity-100 ${
-        value ? "bg-[var(--label-bg)] font-bold" : "bg-zinc-200"
+        !value
+          ? "bg-zinc-200"
+          : NEGATIVE_STATUS.includes(value)
+            ? "bg-red-100 font-bold text-red-800"
+            : "bg-[var(--label-bg)] font-bold"
       }`}
       style={{
         appearance: "none",
