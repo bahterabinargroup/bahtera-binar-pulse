@@ -1,14 +1,14 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M2 dibangun, menunggu uji pemilik_
+_Terakhir diperbarui: 6 Oktober 2026 — M3 dibangun, menunggu uji pemilik_
 
 ## Milestone
 | | Tahap | Status |
 |---|---|---|
 | M0 | Persiapan | ✅ Selesai (6 Okt 2026) |
 | M1 | Login dan profil | ✅ Selesai (6 Okt 2026) |
-| M2 | Laporan hari ini (form per jabatan) | 🟡 Kode selesai; menunggu uji pemilik |
-| M3 | Riwayat laporan saya | ⬜ Belum |
+| M2 | Laporan hari ini (form per jabatan) | ✅ Selesai (6 Okt 2026); uji "terkunci besok" menyusul |
+| M3 | Riwayat laporan saya | 🟡 Kode selesai; menunggu uji pemilik |
 | M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
 | M5 | Panel Owner | ⬜ Belum |
@@ -66,8 +66,14 @@ _Terakhir diperbarui: 6 Oktober 2026 — M2 dibangun, menunggu uji pemilik_
 - Ditambahkan tombol "← Kembali ke Beranda" di semua halaman (permintaan pemilik).
 - ⏳ Sisa uji: validasi angka (ketik `abc` di Ads spent), muat ulang halaman, dan besok: laporan kemarin terkunci.
 
+## Sudah selesai (M3, kode)
+- `/riwayat`: laporan milik sendiri, terbaru dulu, 30 per halaman (Lebih baru/Lebih lama). Lencana "Hari ini · bisa diedit" atau "🔒 Terkunci".
+- `/riwayat/[id]`: detail hanya-baca memakai ReportForm `mode="view"` (renderer sama; tanpa tombol, penanda, atau placeholder). Query dibatasi `user_id` = pengguna login → laporan orang lain = 404 (RLS juga menolak). Tombol "Edit laporan hari ini" hanya untuk laporan hari ini (menuju /laporan).
+- Template diambil dari jabatan saat laporan dibuat (`daily_reports.position_id`).
+- Pratinjau lokal hanya-baca: `/dev/pratinjau/ADV?mode=view`.
+
 ## Berikutnya
-- M3 Riwayat laporan saya (setelah pemilik setuju).
+- M3b Notulensi Meeting (setelah pemilik setuju). Tanyakan dulu 3 keputusan terbuka notulensi.
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.

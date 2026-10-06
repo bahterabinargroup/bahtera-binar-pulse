@@ -22,7 +22,7 @@ type Status =
   | { kind: "locked"; message: string };
 
 // Form "Laporan Hari Ini": menyimpan isian dan menampilkan status simpan.
-// mode "preview" = pratinjau tanpa tombol simpan.
+// mode "preview" = pratinjau tanpa tombol simpan; "view" = hanya baca (riwayat).
 export function ReportForm({
   template,
   name,
@@ -36,7 +36,7 @@ export function ReportForm({
   dateLabel: string;
   reportDate: string;
   initialReport: (ReportData & { id: string; updated_at: string }) | null;
-  mode?: "edit" | "preview";
+  mode?: "edit" | "preview" | "view";
 }) {
   const [state, setState] = useState<FormState>(() => buildFormState(template, initialReport));
   const [reportId, setReportId] = useState<string | null>(initialReport?.id ?? null);
@@ -56,7 +56,7 @@ export function ReportForm({
 
   // Peringatkan bila halaman ditutup sebelum disimpan.
   useEffect(() => {
-    if (!dirty || mode === "preview") return;
+    if (!dirty || mode !== "edit") return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
@@ -102,7 +102,7 @@ export function ReportForm({
         set={set}
         errors={errors}
         missing={missing}
-        readOnly={locked}
+        readOnly={locked || mode === "view"}
         name={name}
         dateLabel={dateLabel}
       />

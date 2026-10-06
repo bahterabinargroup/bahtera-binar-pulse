@@ -181,7 +181,7 @@ function CellInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           readOnly={ctx.readOnly}
-          placeholder={placeholder}
+          placeholder={ctx.readOnly ? undefined : placeholder}
           rows={2}
           className={`${cls} field-sizing-content min-h-[2.75rem] resize-none`}
         />
@@ -191,7 +191,7 @@ function CellInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           readOnly={ctx.readOnly}
-          placeholder={placeholder}
+          placeholder={ctx.readOnly ? undefined : placeholder}
           inputMode={type === "number" ? "decimal" : type === "url" ? "url" : undefined}
           className={cls}
         />

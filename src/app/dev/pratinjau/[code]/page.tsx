@@ -9,9 +9,10 @@ import type { FormTemplate } from "@/lib/report/template";
 // HANYA untuk pengembangan di komputer lokal (tidak ada di versi tayang):
 // menampilkan form langsung dari schema_daily_report.sql tanpa login,
 // agar tampilan bisa dicocokkan dengan PDF.
-export default async function DevPratinjauPage({ params }: PageProps<"/dev/pratinjau/[code]">) {
+export default async function DevPratinjauPage({ params, searchParams }: PageProps<"/dev/pratinjau/[code]">) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { code } = await params;
+  const view = (await searchParams).mode === "view"; // ?mode=view = tampilan hanya baca
 
   const sql = await readFile(path.join(process.cwd(), "schema_daily_report.sql"), "utf8");
   const templates = [...sql.matchAll(/\('([A-Z_]+)',\s*'[^']*',\s*'[^']*',\s*\d+,\s*\$json\$([\s\S]*?)\$json\$/g)].map(
@@ -36,7 +37,7 @@ export default async function DevPratinjauPage({ params }: PageProps<"/dev/prati
         dateLabel={formatHariTanggal(dateFromYmd(todayJakarta()))}
         reportDate={todayJakarta()}
         initialReport={null}
-        mode="preview"
+        mode={view ? "view" : "preview"}
       />
     </main>
   );
