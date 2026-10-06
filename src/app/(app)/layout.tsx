@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
+import { BackToHome } from "@/components/BackToHome";
 import { getCurrentUser, ROLE_LABEL } from "@/lib/profile";
 
 // Bingkai semua halaman setelah login: kepala halaman berisi identitas
@@ -50,7 +51,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           {logoutButton}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        <BackToHome />
+        {children}
+      </main>
     </>
   );
 }
