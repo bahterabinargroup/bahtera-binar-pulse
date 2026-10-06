@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M3 dibangun, menunggu uji pemilik_
+_Terakhir diperbarui: 6 Oktober 2026 — M3b: menunggu pemilik menjalankan 002_
 
 ## Milestone
 | | Tahap | Status |
@@ -8,8 +8,8 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3 dibangun, menunggu uji pemilik_
 | M0 | Persiapan | ✅ Selesai (6 Okt 2026) |
 | M1 | Login dan profil | ✅ Selesai (6 Okt 2026) |
 | M2 | Laporan hari ini (form per jabatan) | ✅ Selesai (6 Okt 2026); uji "terkunci besok" menyusul |
-| M3 | Riwayat laporan saya | 🟡 Kode selesai; menunggu uji pemilik |
-| M3b | Notulensi Meeting (setelah M2) | ⬜ Belum — tabel database sudah terpasang |
+| M3 | Riwayat laporan saya | ✅ Selesai (6 Okt 2026) |
+| M3b | Notulensi Meeting | 🟡 Desain disepakati; menunggu `002` dijalankan |
 | M4 | Dashboard Manager/SPV dan Owner | ⬜ Belum |
 | M5 | Panel Owner | ⬜ Belum |
 | M6 | Tayang (Vercel) | ⬜ Belum |
@@ -72,15 +72,19 @@ _Terakhir diperbarui: 6 Oktober 2026 — M3 dibangun, menunggu uji pemilik_
 - Template diambil dari jabatan saat laporan dibuat (`daily_reports.position_id`).
 - Pratinjau lokal hanya-baca: `/dev/pratinjau/ADV?mode=view`.
 
+## M3b Notulensi — keputusan & persiapan
+- Keputusan pemilik 6 Okt (lihat CLAUDE.md bagian Notulensi): hanya Owner/Manager(company-nya)/pembuat yang melihat; draft→submit terkunci; auto save; lokasi Kantor 1/Kantor 2/Online; permintaan hapus perlu persetujuan Owner; PIC karyawan lewat "Tugas saya"; Download PDF.
+- Perubahan database disetujui pemilik: `supabase/002_notulensi_submit_dan_hapus.sql` (= bagian 13 schema). ⏳ Menunggu dijalankan pemilik di SQL Editor.
+
 ## Berikutnya
-- M3b Notulensi Meeting (setelah pemilik setuju). Tanyakan dulu 3 keputusan terbuka notulensi.
+- Setelah 002 jalan: bangun M3b (daftar + form/auto save → detail, submit, PDF, permintaan hapus → Tugas saya).
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.
 - Layanan email bawaan Supabase dibatasi beberapa email per jam (cukup untuk uji). Untuk banyak karyawan nanti perlu SMTP sendiri (mungkin berbayar → tanya pemilik dulu). Saat M6, Site URL & template diganti ke alamat Vercel.
 - 2 akun Owner (Admin Bahtera Binar Abadi, Raka Ghani Irsyadi Binar) — disengaja, dikonfirmasi pemilik 6 Okt.
 - ✅ **Hak akses tabel — sudah diperbaiki 6 Okt.** Hasil cek: `authenticated` tidak punya SELECT/INSERT di tabel mana pun; `anon` punya TRUNCATE. Perbaikan: `supabase/001_hak_akses.sql` (juga bagian 12 file skema). Tanpa login, Supabase menjawab "permission denied" (kode 42501), bukan 0 baris. Artinya proyek Supabase ini tidak otomatis memberi hak akses tabel ke peran `anon`. Itu aman. Yang perlu dipastikan: apakah peran `authenticated` (pengguna yang sudah login) diberi hak SELECT/INSERT. File SQL tidak memberikannya secara eksplisit karena mengandalkan bawaan Supabase. Kalau ternyata tidak ada, perlu tambahan GRANT. Itu perubahan database, jadi harus seizin pemilik.
-- Keputusan terbuka notulensi (tanyakan saat M3b): Manager boleh edit notulensi anggota timnya? Pembuat boleh hapus notulensinya sendiri? Manager boleh buat notulensi lintas company?
+- ✅ Keputusan terbuka notulensi sudah dijawab 6 Okt (Manager tidak edit milik orang lain; hapus lewat permintaan + persetujuan Owner; tidak ada notulensi lintas company selain Owner).
 - Bagian 8 file SQL menyebut "daftar dengan email tsb di aplikasi", tetapi pendaftaran publik dimatikan. Untuk Owner pertama dipakai Supabase dashboard > Add user (Auto Confirm) — trigger tetap membuat profil.
 - Keputusan terbuka dari brief bagian 9 (opsi Status, kolom ke-4 SPV, field wajib, format Penjualan/Konten, nama/logo/warna, domain, batas edit) — tanyakan saat relevan.
 - PDF di `referensi-form/` belum dilihat; wajib dilihat sebelum M2.
