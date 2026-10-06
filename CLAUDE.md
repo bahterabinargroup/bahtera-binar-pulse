@@ -24,7 +24,8 @@ Kemajuan & langkah berikutnya: `STATUS.md` — baca di awal setiap sesi, perbaru
 - Tabel: `companies`, `roles_config` (jabatan + `form_template` JSON), `users` (role = hak akses, position_id = jabatan), `daily_reports`, `user_invites`.
 - Notulensi: `meetings` (visibility `company`/`holding`), `meeting_attendees`, `meeting_action_items` (status `open`/`in_progress`/`done`).
 - RPC/View: `get_missing_reports`, `get_weekly_report_compliance`, `get_weekly_team_reports`, `v_weekly_team_reports`.
-- **Keamanan ada di RLS.** Aplikasi hanya memakai kunci publik (publishable/anon) + sesi login. DILARANG service role key di kode browser/komponen client. Tidak ada jalan pintas melewati RLS.
+- **Keamanan ada di RLS.** Aplikasi memakai kunci publik (publishable/anon) + sesi login. DILARANG service role key di kode browser/komponen client. Tidak ada jalan pintas melewati RLS.
+- Pengecualian yang DISETUJUI pemilik (6 Okt): kirim email undangan lewat Auth Admin API dengan `SUPABASE_SECRET_KEY` — HANYA di `src/lib/supabase/admin.ts` (server-only) dan HANYA setelah `requireOwnerAction()`. Jangan pakai client admin untuk hal lain tanpa izin.
 - Satu laporan per karyawan per hari. Buat/edit hanya untuk hari ini (WIB); laporan lampau read-only (tampilkan "Terkunci"). Hanya Owner bisa mengoreksi laporan lampau. Database yang menegakkan.
 - Kolom yang boleh di-update: `activities`, `performance_metrics`, `obstacles`, `insights`, `next_plan`, `evidence_links`. `report_date`, `company_id`, `user_id`, `position_id` tidak bisa diubah.
 - Insert: `user_id` = pengguna login, `company_id` = company-nya; `report_date` default hari ini, `position_id` terisi otomatis oleh trigger.

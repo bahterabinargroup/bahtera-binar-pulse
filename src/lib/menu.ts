@@ -18,10 +18,10 @@ export const MENU: MenuItem[] = [
   { label: "Notulensi", description: "Catatan meeting dan tindak lanjut", href: "/notulensi", roles: ALL, ready: true },
   { label: "Tugas Saya", description: "Tindak lanjut meeting yang ditugaskan ke Anda", href: "/tugas", roles: ALL, ready: true },
   { label: "Dashboard Tim", description: "Siapa yang belum mengisi dan rekap kepatuhan", href: "/dashboard", roles: ["owner", "manager"], ready: true },
-  { label: "Company", description: "Kelola holding dan anak usaha", href: "/owner/company", roles: ["owner"], ready: false },
-  { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: false },
-  { label: "Pengguna", description: "Aktifkan, nonaktifkan, ubah role dan jabatan", href: "/owner/pengguna", roles: ["owner"], ready: false },
-  { label: "Tarikan Mingguan", description: "Tabel dan unduh laporan satu minggu", href: "/owner/tarikan", roles: ["owner"], ready: false },
+  { label: "Company", description: "Kelola holding dan anak usaha", href: "/owner/company", roles: ["owner"], ready: true },
+  { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: true },
+  { label: "Pengguna", description: "Aktifkan, nonaktifkan, ubah role dan jabatan", href: "/owner/pengguna", roles: ["owner"], ready: true },
+  { label: "Tarikan Mingguan", description: "Tabel dan unduh laporan satu minggu", href: "/owner/tarikan", roles: ["owner"], ready: true },
 ];
 
 export function menuFor(role: UserRole) {

@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M4 dibangun, menunggu uji pemilik_
+_Terakhir diperbarui: 6 Oktober 2026 — M5 dibangun, menunggu pemilik mengisi SUPABASE_SECRET_KEY & menguji_
 
 ## Milestone
 | | Tahap | Status |
@@ -11,7 +11,7 @@ _Terakhir diperbarui: 6 Oktober 2026 — M4 dibangun, menunggu uji pemilik_
 | M3 | Riwayat laporan saya | ✅ Selesai (6 Okt 2026) |
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
-| M5 | Panel Owner | ⬜ Belum |
+| M5 | Panel Owner | 🟡 Kode selesai; menunggu secret key & uji pemilik |
 | M6 | Tayang (Vercel) | ⬜ Belum |
 
 ## Sudah selesai (M0)
@@ -93,8 +93,21 @@ _Terakhir diperbarui: 6 Oktober 2026 — M4 dibangun, menunggu uji pemilik_
 - Helper tanggal: `mondayOf`, `addDays`, `formatTanggalPendek` di `src/lib/date.ts`.
 - Relasi embed (users/roles_config/companies) terverifikasi lewat API (tidak ada PGRST200/201).
 
+## Sudah selesai (M5, kode)
+- Keputusan pemilik 6 Okt: email undangan dikirim OTOMATIS dari aplikasi (Supabase Auth Admin API) → disetujui memakai secret key, HANYA di server.
+  - `src/lib/supabase/admin.ts` (`import "server-only"`), env `SUPABASE_SECRET_KEY` (tanpa NEXT_PUBLIC_). Setiap pemakaian didahului `requireOwnerAction()` (`src/lib/owner.ts`, profil via getUser + RLS).
+  - Dicek: kunci tidak ada di `.next/static` maupun di git (hanya kode pustaka yang memeriksa awalan `sb_secret_`).
+- Link undangan → `/login#access_token...&type=invite` → EmailLinkHandler → `/atur-password?jenis=undangan` (judul "Buat password", tanpa perlu Lupa password).
+- Server actions Owner: `src/app/(app)/owner/actions.ts` (saveCompany, setCompanyActive, createInvite [insert user_invites lalu kirim email], resendInvite, cancelInvite, updateUser [tak bisa menurunkan/menonaktifkan diri sendiri]).
+- Halaman: `/owner/company` (tambah, ubah, nonaktifkan), `/owner/undangan` (form + daftar terbuka/diklaim, kirim ulang, batalkan), `/owner/pengguna` (role, jabatan, aktif; filter company), `/owner/tarikan` (+ `/owner/tarikan/unduh?format=csv|json`, CSV UTF-8 BOM untuk Excel).
+- Koreksi laporan lampau: tombol "Koreksi (Owner)" di `/dashboard/laporan/[id]` → ReportForm `mode="correct"` → `correctReport`.
+
+## Menunggu pemilik (M5)
+1. Isi `SUPABASE_SECRET_KEY` di `.env.local` (Project Settings > API Keys > Secret keys).
+2. Uji: company baru, undangan ke alamat Gmail "+" (mis. nama+karyawan1@gmail.com), klik link → Buat password, pengguna, koreksi, tarikan.
+
 ## Berikutnya
-- M5 Panel Owner (setelah pemilik setuju): company, undangan, pengguna, koreksi laporan lampau, tarikan mingguan CSV/JSON.
+- M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.

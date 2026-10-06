@@ -5,13 +5,20 @@ import { SetPasswordForm } from "./SetPasswordForm";
 
 // Dibuka dari tautan undangan atau lupa password (sudah login lewat tautan),
 // atau oleh pengguna yang ingin mengganti password.
-export default async function AturPasswordPage() {
+export default async function AturPasswordPage({ searchParams }: PageProps<"/atur-password">) {
   const { user } = await getCurrentUser();
+  const isInvite = (await searchParams).jenis === "undangan";
 
   return (
     <AuthCard
-      title="Atur password"
-      subtitle={user?.email ? `Untuk akun ${user.email}.` : undefined}
+      title={isInvite ? "Buat password" : "Atur password"}
+      subtitle={
+        isInvite
+          ? `Selamat datang! Buat password untuk akun ${user?.email ?? "Anda"}. Password ini dipakai setiap kali masuk.`
+          : user?.email
+            ? `Untuk akun ${user.email}.`
+            : undefined
+      }
     >
       <SetPasswordForm />
       <p className="mt-4 text-center text-sm">

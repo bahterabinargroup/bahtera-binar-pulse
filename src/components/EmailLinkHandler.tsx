@@ -29,7 +29,9 @@ export function EmailLinkHandler() {
       .then(({ error }) => {
         if (error) {
           window.location.replace("/login?error=tautan");
-        } else if (type === "invite" || type === "recovery") {
+        } else if (type === "invite") {
+          window.location.replace("/atur-password?jenis=undangan");
+        } else if (type === "recovery") {
           window.location.replace("/atur-password");
         } else {
           window.location.replace("/");

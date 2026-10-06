@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { saveReport } from "@/app/(app)/laporan/actions";
+import { correctReport, saveReport } from "@/app/(app)/laporan/actions";
 import { formatJam } from "@/lib/date";
 import {
   buildFormState,
@@ -22,7 +22,8 @@ type Status =
   | { kind: "locked"; message: string };
 
 // Form "Laporan Hari Ini": menyimpan isian dan menampilkan status simpan.
-// mode "preview" = pratinjau tanpa tombol simpan; "view" = hanya baca (riwayat).
+// mode "preview" = pratinjau tanpa tombol simpan; "view" = hanya baca (riwayat);
+// "correct" = koreksi Owner untuk laporan tanggal berapa pun.
 export function ReportForm({
   template,
   name,
@@ -36,7 +37,7 @@ export function ReportForm({
   dateLabel: string;
   reportDate: string;
   initialReport: (ReportData & { id: string; updated_at: string }) | null;
-  mode?: "edit" | "preview" | "view";
+  mode?: "edit" | "preview" | "view" | "correct";
 }) {
   const [state, setState] = useState<FormState>(() => buildFormState(template, initialReport));
   const [reportId, setReportId] = useState<string | null>(initialReport?.id ?? null);
@@ -56,7 +57,7 @@ export function ReportForm({
 
   // Peringatkan bila halaman ditutup sebelum disimpan.
   useEffect(() => {
-    if (!dirty || mode !== "edit") return;
+    if (!dirty || (mode !== "edit" && mode !== "correct")) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
@@ -74,7 +75,11 @@ export function ReportForm({
     const snapshot = JSON.stringify(state);
     startTransition(async () => {
       try {
-        const res = await saveReport({ reportId, reportDate, data: toReportData(template, state) });
+        const data = toReportData(template, state);
+        const res =
+          mode === "correct" && reportId
+            ? await correctReport({ reportId, data })
+            : await saveReport({ reportId, reportDate, data });
         if (res.ok) {
           setReportId(res.reportId);
           setSavedSnapshot(snapshot);
@@ -107,7 +112,7 @@ export function ReportForm({
         dateLabel={dateLabel}
       />
 
-      {mode === "edit" && !locked && (
+      {(mode === "edit" || mode === "correct") && !locked && (
         <div className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-200 bg-white/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3">
             <div className="min-w-0 flex-1 text-sm">

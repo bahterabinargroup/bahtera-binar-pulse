@@ -79,3 +79,26 @@ function describe(error: { code?: string; message: string }): string {
     return "Tidak dapat terhubung ke server. Periksa koneksi internet, lalu tekan Simpan lagi.";
   return `Laporan gagal disimpan. Coba lagi. (${error.message})`;
 }
+
+// Owner: koreksi laporan tanggal berapa pun (RLS daily_reports_owner_all).
+export async function correctReport(input: { reportId: string; data: ReportData }): Promise<SaveResult> {
+  const { profile } = await getCurrentUser();
+  if (profile?.role !== "owner") return { ok: false, error: "Hanya Owner yang bisa mengoreksi laporan lampau." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .update({
+      activities: input.data.activities,
+      performance_metrics: input.data.performance_metrics,
+      insights: input.data.insights,
+      obstacles: input.data.obstacles,
+      next_plan: input.data.next_plan,
+      evidence_links: input.data.evidence_links,
+    })
+    .eq("id", input.reportId)
+    .select("id, updated_at");
+  if (error) return { ok: false, error: describe(error) };
+  if (!data?.length) return { ok: false, error: "Laporan tidak ditemukan." };
+  revalidatePath("/dashboard");
+  return { ok: true, reportId: data[0].id, savedAt: data[0].updated_at };
+}
