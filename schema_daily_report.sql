@@ -3,7 +3,7 @@
 -- Skema PostgreSQL untuk Supabase
 -- Urutan: 0 Enum & Helper -> 1 companies -> 2 roles_config -> 3 users
 --         -> 4 daily_reports -> 5 RLS -> 6 Column privilege -> 7 Seed
---         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian -> 11 Notulensi meeting
+--         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian -> 11 Notulensi meeting -> 12 Hak akses tabel
 -- Aman dijalankan di Supabase SQL Editor (jalankan sekali, berurutan).
 -- =====================================================================
 
@@ -1919,3 +1919,47 @@ grant update (user_id, name)
   on public.meeting_attendees to authenticated;
 grant update (description, assignee_id, assignee_name, due_date, status)
   on public.meeting_action_items to authenticated;
+
+
+-- =====================================================================
+-- 12. HAK AKSES TABEL (GRANT)
+-- =====================================================================
+
+-- Proyek Supabase baru tidak otomatis memberi hak akses tabel ke peran API
+-- (anon, authenticated). Bagian ini memberikannya secara eksplisit.
+-- RLS (bagian 5, 6, 8, 11) tetap menentukan BARIS mana yang boleh disentuh.
+-- Aman dijalankan ulang.
+
+-- Pengunjung yang belum login: tidak punya hak tabel apa pun.
+revoke all on all tables in schema public from anon;
+
+-- Pengguna login: cabut hak yang tidak dipakai aplikasi.
+revoke truncate, trigger, references on all tables in schema public from authenticated;
+
+grant select on public.companies, public.roles_config, public.users,
+  public.daily_reports, public.user_invites,
+  public.meetings, public.meeting_attendees, public.meeting_action_items
+  to authenticated;
+grant select on public.v_weekly_team_reports to authenticated;
+
+grant insert on public.companies, public.daily_reports, public.user_invites,
+  public.meetings, public.meeting_attendees, public.meeting_action_items
+  to authenticated;
+
+-- Hanya Owner yang lolos RLS untuk tiga tabel ini.
+grant update on public.companies, public.users, public.user_invites to authenticated;
+
+-- Kolom yang boleh diedit (sama dengan bagian 6 dan 11f).
+grant update (activities, performance_metrics, obstacles, insights, next_plan, evidence_links)
+  on public.daily_reports to authenticated;
+grant update (title, meeting_date, start_time, end_time, location, agenda, discussion,
+              decisions, next_meeting_date, attachment_links, visibility)
+  on public.meetings to authenticated;
+grant update (user_id, name) on public.meeting_attendees to authenticated;
+grant update (description, assignee_id, assignee_name, due_date, status)
+  on public.meeting_action_items to authenticated;
+
+-- Hapus: batalkan undangan, hapus notulensi (Owner), edit daftar
+-- peserta/tindak lanjut (pembuat atau Owner).
+grant delete on public.user_invites, public.meetings,
+  public.meeting_attendees, public.meeting_action_items to authenticated;

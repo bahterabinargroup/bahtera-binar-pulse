@@ -29,13 +29,13 @@ _Terakhir diperbarui: 5 Oktober 2026 (brief & skema ditambah fitur Notulensi)_
 4. ✅ Matikan pendaftaran publik (Authentication > Sign In / Providers).
 5. ✅ Bootstrap Owner (2 akun owner terdaftar: Admin Bahtera Binar Abadi, Raka Ghani Irsyadi Binar): company HOLDING + undangan Owner + buat user Owner (Add user, Auto Confirm).
 6. ✅ Halaman Cek Persiapan semua centang hijau.
-7. Jalankan kueri cek hak akses tabel (lihat catatan terbuka) dan laporkan hasilnya.
+7. ⏳ Jalankan `supabase/001_hak_akses.sql` di SQL Editor (disetujui pemilik 6 Okt), lalu cek hasilnya.
 
 ## Berikutnya
 - M1 (setelah pemilik setuju): login, atur password, lupa password, proxy penyegar sesi, tampilan profil & menu per role, pesan akun tanpa profil.
 
 ## Masalah / catatan terbuka
-- **Hak akses tabel (perlu dicek sebelum M1).** Tanpa login, Supabase menjawab "permission denied" (kode 42501), bukan 0 baris. Artinya proyek Supabase ini tidak otomatis memberi hak akses tabel ke peran `anon`. Itu aman. Yang perlu dipastikan: apakah peran `authenticated` (pengguna yang sudah login) diberi hak SELECT/INSERT. File SQL tidak memberikannya secara eksplisit karena mengandalkan bawaan Supabase. Kalau ternyata tidak ada, perlu tambahan GRANT. Itu perubahan database, jadi harus seizin pemilik.
+- **Hak akses tabel — disetujui pemilik, menunggu dijalankan.** Hasil cek: `authenticated` tidak punya SELECT/INSERT di tabel mana pun; `anon` punya TRUNCATE. Perbaikan: `supabase/001_hak_akses.sql` (juga bagian 12 file skema). Tanpa login, Supabase menjawab "permission denied" (kode 42501), bukan 0 baris. Artinya proyek Supabase ini tidak otomatis memberi hak akses tabel ke peran `anon`. Itu aman. Yang perlu dipastikan: apakah peran `authenticated` (pengguna yang sudah login) diberi hak SELECT/INSERT. File SQL tidak memberikannya secara eksplisit karena mengandalkan bawaan Supabase. Kalau ternyata tidak ada, perlu tambahan GRANT. Itu perubahan database, jadi harus seizin pemilik.
 - Keputusan terbuka notulensi (tanyakan saat M3b): Manager boleh edit notulensi anggota timnya? Pembuat boleh hapus notulensinya sendiri? Manager boleh buat notulensi lintas company?
 - Bagian 8 file SQL menyebut "daftar dengan email tsb di aplikasi", tetapi pendaftaran publik dimatikan. Untuk Owner pertama dipakai Supabase dashboard > Add user (Auto Confirm) — trigger tetap membuat profil.
 - Keputusan terbuka dari brief bagian 9 (opsi Status, kolom ke-4 SPV, field wajib, format Penjualan/Konten, nama/logo/warna, domain, batas edit) — tanyakan saat relevan.
