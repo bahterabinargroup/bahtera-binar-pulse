@@ -525,10 +525,13 @@ function MatrixView({ block, ctx }: { block: MatrixBlock; ctx: Ctx }) {
       {/* Ponsel: nama entitas diisi di atas tabel */}
       <div className="mb-2 space-y-1 sm:hidden">
         {entities.map((_, i) => (
-          <label key={i} className="flex items-center gap-2 text-sm font-bold">
-            {block.entity_label} {i + 1}:
-            {nameInput(i, "min-w-0 flex-1 border-b border-zinc-400 px-1 py-0.5 outline-none focus:border-[var(--primary)]")}
-          </label>
+          <div key={i}>
+            <label className="flex items-center gap-2 text-sm font-bold">
+              {block.entity_label} {i + 1}:
+              {nameInput(i, "min-w-0 flex-1 border-b border-zinc-400 px-1 py-0.5 outline-none focus:border-[var(--primary)]")}
+            </label>
+            <FieldNote path={`matrices.${block.key}.${i}.nama`} ctx={ctx} />
+          </div>
         ))}
       </div>
 
@@ -545,6 +548,11 @@ function MatrixView({ block, ctx }: { block: MatrixBlock; ctx: Ctx }) {
                     "min-w-0 flex-1 border-b border-current bg-transparent px-1 font-bold text-inherit outline-none placeholder:text-current/70",
                   )}
                 </span>
+                {ctx.missing.has(`matrices.${block.key}.${i}.nama`) && !ctx.readOnly && (
+                  <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 text-xs font-bold text-amber-800">
+                    Belum lengkap
+                  </span>
+                )}
               </Th>
             ))}
           </tr>

@@ -216,6 +216,8 @@ export function missingRequired(template: FormTemplate, s: FormState): Set<strin
         // Toko pertama selalu wajib; toko berikutnya wajib jika mulai diisi.
         const used = i === 0 || Object.values(entity).some((v) => v.trim());
         if (!used) return;
+        // Nama toko wajib agar data per toko jelas (keputusan pemilik 6 Okt).
+        if (!entity.nama?.trim()) missing.add(`matrices.${b.key}.${i}.nama`);
         for (const row of b.rows) {
           if (row.required && !entity[row.key]?.trim()) missing.add(`matrices.${b.key}.${i}.${row.key}`);
         }

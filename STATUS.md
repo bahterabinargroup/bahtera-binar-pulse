@@ -62,6 +62,7 @@ _Terakhir diperbarui: 6 Oktober 2026 — M2 dibangun, menunggu uji pemilik_
 ## Uji & keputusan pemilik (M2)
 - ✅ Simpan laporan sungguhan berhasil (akun rakaghani.business@gmail.com diberi jabatan ADV, role tetap owner).
 - Keputusan 6 Okt: Status "Belum" TETAP boleh disimpan, tampil merah dan dihitung "Belum lengkap" (`NEGATIVE_STATUS` di `form-state.ts`).
+- Keputusan 6 Okt: nama toko (Toko 1, dan Toko 2 bila dipakai) wajib → penanda "Belum lengkap" (di kode `missingRequired`, bukan di template database).
 - Ditambahkan tombol "← Kembali ke Beranda" di semua halaman (permintaan pemilik).
 - ⏳ Sisa uji: validasi angka (ketik `abc` di Ads spent), muat ulang halaman, dan besok: laporan kemarin terkunci.
 
