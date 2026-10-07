@@ -168,6 +168,35 @@ export async function getInviteLink(inviteId: string): Promise<LinkResult> {
   return { ok: true, link: gen.properties.action_link };
 }
 
+// Link "atur password" (pemulihan) untuk akun yang sudah terbentuk tetapi belum bisa masuk.
+// Dibagikan lewat halaman konfirmasi aplikasi, sama seperti link undangan.
+export async function getPasswordLink(inviteId: string): Promise<LinkResult> {
+  if (!(await requireOwnerAction())) return { ok: false, error: "Hanya Owner yang boleh melakukan ini." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("user_invites")
+    .select("email, claimed_at")
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (error) return { ok: false, error: dbError(error) };
+  if (!data?.claimed_at) return { ok: false, error: "Akun ini belum terbentuk. Gunakan link undangan." };
+
+  const admin = createAdminClient();
+  if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY belum diisi di server." };
+  const { data: gen, error: genError } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: data.email,
+    options: { redirectTo: `${await siteOrigin()}/login` },
+  });
+  if (genError || !gen?.properties?.hashed_token) {
+    return { ok: false, error: `Gagal membuat link: ${genError?.message ?? "tidak ada link"}` };
+  }
+  return {
+    ok: true,
+    link: `${await siteOrigin()}/terima-undangan?token_hash=${encodeURIComponent(gen.properties.hashed_token)}&jenis=pemulihan`,
+  };
+}
+
 export async function cancelInvite(inviteId: string): Promise<ActionResult> {
   if (!(await requireOwnerAction())) return NOT_OWNER;
   const supabase = await createClient();

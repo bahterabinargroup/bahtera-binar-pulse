@@ -78,12 +78,14 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   if (!/^[A-Za-z0-9_-]{10,200}$/.test(tokenHash)) {
     return { error: "Link tidak lengkap. Minta admin mengirim link undangan baru." };
   }
+  // Hanya dua jenis yang diizinkan: undangan baru, atau atur password untuk akun yang sudah terbentuk.
+  const type = String(formData.get("jenis") ?? "") === "pemulihan" ? "recovery" : "invite";
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ type: "invite", token_hash: tokenHash });
+  const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) {
     return {
       error:
-        "Link undangan sudah kedaluwarsa atau sudah pernah dipakai. Minta admin membuat link undangan baru.",
+        "Link sudah kedaluwarsa atau sudah pernah dipakai. Minta admin membuat link baru.",
     };
   }
   redirect("/atur-password?jenis=undangan");

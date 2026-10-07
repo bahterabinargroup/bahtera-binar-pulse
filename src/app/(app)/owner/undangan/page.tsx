@@ -5,6 +5,7 @@ import { InviteLinkButton } from "@/components/owner/InviteLinkButton";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
 import { formatHariTanggal } from "@/lib/date";
 import { requireOwnerPage } from "@/lib/owner";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLE_LABEL, type UserRole } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,6 +16,7 @@ type Invite = {
   role: UserRole;
   employee_code: string | null;
   claimed_at: string | null;
+  claimed_by: string | null;
   created_at: string;
   company: { name: string } | null;
   position: { name: string } | null;
@@ -26,7 +28,7 @@ export default async function OwnerUndanganPage() {
   const [inv, comp, pos] = await Promise.all([
     supabase
       .from("user_invites")
-      .select("id, email, full_name, role, employee_code, claimed_at, created_at, company:companies(name), position:roles_config(name)")
+      .select("id, email, full_name, role, employee_code, claimed_at, claimed_by, created_at, company:companies(name), position:roles_config(name)")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("companies").select("id, name").eq("is_active", true).order("name"),
@@ -37,6 +39,18 @@ export default async function OwnerUndanganPage() {
   const emailReady = !!process.env.SUPABASE_SECRET_KEY;
   const pending = invites.filter((i) => !i.claimed_at);
   const claimed = invites.filter((i) => i.claimed_at);
+
+  // Waktu masuk terakhir tiap akun (khusus Owner, hanya dibaca). Kosong = belum pernah masuk.
+  const lastSignIn = new Map<string, string | null>();
+  let signInKnown = false;
+  const admin = createAdminClient();
+  if (admin && claimed.length) {
+    const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (list?.users) {
+      signInKnown = true;
+      for (const u of list.users) lastSignIn.set(u.id, u.last_sign_in_at ?? null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -140,26 +154,45 @@ export default async function OwnerUndanganPage() {
       </section>
 
       <section className={cardCls}>
-        <h2 className="mb-3 font-bold">Sudah diklaim ({claimed.length})</h2>
+        <h2 className="mb-1 font-bold">Akun sudah terbentuk ({claimed.length})</h2>
+        <p className="mb-2 text-sm text-zinc-600">
+          Akun terbentuk saat link undangan dibuka. Yang berlabel <b>Belum pernah masuk</b> kemungkinan belum membuat
+          password: klik <b>Salin link atur password</b> lalu kirim lewat WhatsApp.
+        </p>
         {claimed.length === 0 && <p className="text-sm text-zinc-500">Belum ada.</p>}
         <ul className="divide-y divide-zinc-100">
-          {claimed.map((i) => (
-            <li key={i.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
-              <div className="min-w-0">
-                <p className="font-bold">
-                  {i.full_name} <span className="font-normal text-zinc-600">· {i.email}</span>
-                </p>
-                <p className="text-sm text-zinc-600">
-                  {i.company?.name} · {ROLE_LABEL[i.role]}
-                  {i.position ? ` · ${i.position.name}` : ""}
-                  {i.employee_code ? ` · ${i.employee_code}` : ""}
-                </p>
-              </div>
-              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
-                Diklaim {i.claimed_at ? formatHariTanggal(new Date(i.claimed_at)) : ""}
-              </span>
-            </li>
-          ))}
+          {claimed.map((i) => {
+            const last = i.claimed_by ? lastSignIn.get(i.claimed_by) : undefined;
+            const never = signInKnown && !last;
+            return (
+              <li key={i.id} className="py-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold">
+                      {i.full_name} <span className="font-normal text-zinc-600">· {i.email}</span>
+                    </p>
+                    <p className="text-sm text-zinc-600">
+                      {i.company?.name} · {ROLE_LABEL[i.role]}
+                      {i.position ? ` · ${i.position.name}` : ""}
+                      {i.employee_code ? ` · ${i.employee_code}` : ""}
+                    </p>
+                  </div>
+                  {!signInKnown ? (
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600">Akun terbentuk</span>
+                  ) : never ? (
+                    <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800">Belum pernah masuk</span>
+                  ) : (
+                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
+                      Sudah pernah masuk · {formatHariTanggal(new Date(last!))}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <InviteLinkButton inviteId={i.id} name={i.full_name} kind="password" />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
     </div>
