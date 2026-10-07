@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 7 Oktober 2026 — M5 selesai, M6 dimulai_
+_Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase & uji akhir_
 
 ## Milestone
 | | Tahap | Status |
@@ -12,7 +12,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — M5 selesai, M6 dimulai_
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
 | M5 | Panel Owner | ✅ Selesai (7 Okt 2026): undangan terkirim, link → Buat password, status Diklaim, muncul di Pengguna |
-| M6 | Tayang (Vercel) | 🟡 Dimulai; menunggu keputusan hosting & domain |
+| M6 | Tayang (Vercel) | 🟡 Sudah tayang di https://daily-report-app-roan-seven.vercel.app; menunggu pendaftaran URL di Supabase & pengujian akhir |
 
 ## Sudah selesai (M0)
 - Node.js dipasang di Mac (via Homebrew).
@@ -110,6 +110,14 @@ _Terakhir diperbarui: 7 Oktober 2026 — M5 selesai, M6 dimulai_
 - Hosting: Vercel **Hobby (gratis)**, dipilih pemilik dengan sadar bahwa syaratnya non-komersial (risiko akun ditutup; bisa naik ke Pro tanpa mengubah aplikasi). Alamat: bawaan `*.vercel.app` dulu; domain sendiri nanti.
 - Rencana: deploy via Vercel CLI dari folder lokal (tanpa GitHub). Pemilik: daftar Vercel + `npx vercel login`; env var diisi pemilik sendiri di dashboard Vercel (3 nilai dari .env.local; secret key TIDAK lewat chat). Lalu Supabase > URL Configuration: tambahkan alamat Vercel (Site URL + Redirect URLs). Lalu pengujian akhir brief bagian 7 di alamat sungguhan.
 - Rute `/dev/*` mati di produksi (NODE_ENV). Build produksi lolos.
+
+## M6 progres (7 Okt)
+- Akun Vercel Hobby (tim "Bahtera Binar"); proyek `daily-report-app` terhubung lewat Vercel CLI (`.vercel/` di-ignore git). 3 env var Production diisi pemilik: 2 `NEXT_PUBLIC_*` bertipe Config, `SUPABASE_SECRET_KEY` bertipe Secret (aturan Vercel: NEXT_PUBLIC tidak boleh Secret).
+- `.vercelignore` memakai jalur berawalan `/` (awal tanpa `/` ikut mengecualikan `src/lib/supabase`, deploy pertama gagal karenanya).
+- Deploy produksi: `npx vercel@62.7.0 deploy --prod --yes` dari folder proyek. Alamat: https://daily-report-app-roan-seven.vercel.app
+- Terverifikasi: /login 200, /cek-persiapan semua ✅ (kunci terbaca, database tersambung), /dev/* diarahkan ke login (mati di produksi).
+- ⏳ Pemilik: Supabase > Authentication > URL Configuration: Site URL = alamat Vercel; Redirect URLs tambah `https://daily-report-app-roan-seven.vercel.app/**` (pertahankan localhost untuk pengembangan).
+- Setelah itu: pengujian akhir brief bagian 7 di alamat sungguhan (butuh akun uji: 2 company, Owner, 1 Manager/company, 2 Employee/company termasuk RND). Pertimbangkan menutup `/cek-persiapan` untuk publik.
 
 ## Berikutnya
 - M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
