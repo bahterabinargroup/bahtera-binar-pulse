@@ -3,7 +3,7 @@
 -- Skema PostgreSQL untuk Supabase
 -- Urutan: 0 Enum & Helper -> 1 companies -> 2 roles_config -> 3 users
 --         -> 4 daily_reports -> 5 RLS -> 6 Column privilege -> 7 Seed
---         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian -> 11 Notulensi meeting -> 12 Hak akses tabel -> 13 Notulensi: submit & hapus
+--         -> 8 Undangan karyawan & auto-profil -> 9 View/RPC tarikan mingguan -> 10 Kepatuhan pengisian -> 11 Notulensi meeting -> 12 Hak akses tabel -> 13 Notulensi: submit & hapus -> 14 Batasi roles_config
 -- Aman dijalankan di Supabase SQL Editor (jalankan sekali, berurutan).
 -- =====================================================================
 
@@ -2221,3 +2221,14 @@ grant execute on function public.cancel_meeting_deletion(uuid) to authenticated;
 -- delete_requested_at / delete_request_reason sengaja TIDAK dibuka untuk
 -- update langsung: hanya lewat fungsi di atas (atau Owner lewat fungsi batal).
 grant update (submitted_at, meeting_link) on public.meetings to authenticated;
+
+
+-- =====================================================================
+-- 14. BATASI AKSES BACA roles_config (hanya pengguna berprofil aktif)
+--     (sama dengan supabase/003_batasi_roles_config.sql)
+-- =====================================================================
+
+drop policy if exists roles_config_select on public.roles_config;
+create policy roles_config_select on public.roles_config
+  for select to authenticated
+  using ((select public.current_user_role()) is not null);

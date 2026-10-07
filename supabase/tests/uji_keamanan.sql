@@ -227,7 +227,7 @@ begin
   perform pg_temp.t_as(gh);
   select count(*) into n from public.roles_config;
   reset role;
-  res := res || format('06 | INFO | Akun tanpa undangan bisa membaca daftar jabatan/template form (roles_config) | terbaca=%s baris (bukan data karyawan; keputusan: dibiarkan atau dibatasi)', n) || E'\n';
+  res := res || pg_temp.t_line(6, 'Akun tanpa undangan tidak bisa membaca daftar jabatan/template form', n = 0, format('terbaca=%s baris', n));
 
   -- 07. Karyawan tidak melihat dashboard kepatuhan; Manager hanya company-nya
   perform pg_temp.t_as(ea1);
