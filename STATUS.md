@@ -106,6 +106,11 @@ _Terakhir diperbarui: 7 Oktober 2026 — M5 selesai, M6 dimulai_
 1. Isi `SUPABASE_SECRET_KEY` di `.env.local` (Project Settings > API Keys > Secret keys).
 2. Uji: company baru, undangan ke alamat Gmail "+" (mis. nama+karyawan1@gmail.com), klik link → Buat password, pengguna, koreksi, tarikan.
 
+## M6 Tayang — keputusan pemilik (7 Okt)
+- Hosting: Vercel **Hobby (gratis)**, dipilih pemilik dengan sadar bahwa syaratnya non-komersial (risiko akun ditutup; bisa naik ke Pro tanpa mengubah aplikasi). Alamat: bawaan `*.vercel.app` dulu; domain sendiri nanti.
+- Rencana: deploy via Vercel CLI dari folder lokal (tanpa GitHub). Pemilik: daftar Vercel + `npx vercel login`; env var diisi pemilik sendiri di dashboard Vercel (3 nilai dari .env.local; secret key TIDAK lewat chat). Lalu Supabase > URL Configuration: tambahkan alamat Vercel (Site URL + Redirect URLs). Lalu pengujian akhir brief bagian 7 di alamat sungguhan.
+- Rute `/dev/*` mati di produksi (NODE_ENV). Build produksi lolos.
+
 ## Berikutnya
 - M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
 
