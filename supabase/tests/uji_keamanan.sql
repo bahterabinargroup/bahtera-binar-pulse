@@ -293,8 +293,12 @@ begin
 
   perform pg_temp.t_as(ma);
   select count(*) into n from public.user_invites;
-  update public.roles_config set name = name where code = 'ADV';
-  get diagnostics n2 = row_count;
+  begin
+    update public.roles_config set name = name where code = 'ADV';
+    get diagnostics n2 = row_count;
+  exception when others then
+    n2 := case when sqlstate = '42501' then 0 else -1 end;   -- ditolak = aman
+  end;
   reset role;
   res := res || pg_temp.t_line(8, 'Manager tidak melihat daftar undangan dan tidak bisa mengubah template form (jabatan)', n = 0 and n2 = 0, format('undangan terlihat=%s, template terubah=%s baris', n, n2));
 
