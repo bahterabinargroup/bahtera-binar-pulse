@@ -1,4 +1,4 @@
-# Brief Aplikasi: Daily Report Holding
+# Brief Aplikasi: Bahtera Binar Pulse
 
 Dokumen ini adalah spesifikasi untuk Claude Code. Baca seluruhnya sebelum mulai bekerja, dan baca juga `schema_daily_report.sql` di folder yang sama.
 
@@ -98,7 +98,7 @@ Isi form per jabatan. Sumber kebenaran tetap `roles_config.form_template`; tabel
 |---|---|---|---|---|
 | RND | (tidak ada) | Jam, Kegiatan, Deskripsi Kegiatan, Bukti Realisasi | Presensi Mandiri (Form); tabel Meeting (Meeting, Dengan siapa, Hasil/keputusan); Riset (Topik riset, Progres hari ini, Link); Output/Tracker (Produk, Tahap, Progres hari ini) | Insight dari data (sumber datanya apa); Kendala; Rencana besok |
 | ADV_MH | Toko / Akun, Mentor | 4 kolom seperti RND | Presensi Mandiri; Belajar apa hari ini; Upload konten apa & ke akun mana (+ link); Jumlah pesanan; Omset harian | Yang belum dipahami / kendala; Rencana besok |
-| ADV | Toko | Jam, Kegiatan, Deskripsi Kegiatan (tanpa Bukti) | Presensi Mandiri (keterangan tetap: bit.ly/bahteraisreadytowork); Tarik Data Penjualan (Maksimal jam 10 pagi); Input Tracker H+1 & Ads Spent (Maks H+1); Brief Konten, QC, Upload (+ link); Data Harian per Toko, kolom Toko 1 dan Toko 2 (Impresi harian, Penjualan (pesanan / GMV), Ads spent, Campaign, Kendala) | Insight hari ini; Kendala & butuh bantuan siapa; Rencana besok |
+| ADV | Toko | Jam, Kegiatan, Deskripsi Kegiatan (tanpa Bukti) | Presensi Mandiri (keterangan tetap: bit.ly/bahteraisreadytowork); Tarik Data Penjualan (Maksimal jam 10 pagi); Input Tracker H+1 & Ads Spent (Maks H+1); Brief Konten, QC, Upload (+ link); Data Harian per Toko, kolom Toko 1 dan Toko 2 (Impresi harian, Jumlah pesanan, GMV (nilai penjualan; dua angka terpisah sejak 7 Okt 2026), Ads spent, Campaign, Kendala) | Insight hari ini; Kendala & butuh bantuan siapa; Rencana besok |
 | AM | ADV / Tim | 4 kolom seperti RND | Presensi Mandiri; Ringkasan akun hari ini (Akun, Followers, Konten diupload) | Insight hari ini; Kendala hari ini; Rencana besok |
 | CC | ADV / Tim | 4 kolom, awalnya 3 baris | Presensi Mandiri; Konten dibuat hari ini (No otomatis, Akun tujuan, Jenis konten, Link) | Insight / kendala hari ini; Rencana besok |
 | SPV | (tanpa Nama) | Tidak ada | Tabel Daily Meeting: No, Kegiatan (baris tetap: Review Kegiatan Kemarin; Target Harian Individu; SOP (absensi, daily report, data transaksi); Fakta lain2), Review, dan satu kolom keempat tanpa judul; di bawahnya "Bukti" (link) | Tidak ada |
@@ -197,7 +197,7 @@ Buat panduan membuat akun uji: 2 company, 1 Owner, 1 Manager per company, minima
 - Pilihan dropdown Status. Di PDF hanya tampil "?"; saat ini diisi Sudah/Belum.
 - Kolom keempat tanpa judul pada tabel Daily Meeting SPV. Saat ini disediakan sebagai kolom isian opsional tanpa judul.
 - Field wajib dan opsional. Saat ini: semua baris checklist Bagian II wajib; Data Harian per Toko wajib kecuali Kendala; Bagian I dan III opsional.
-- "Penjualan (pesanan / GMV)" pada form ADV saat ini teks bebas; bisa dipecah menjadi dua angka agar lebih mudah dianalisis. "Konten diupload" pada form AM juga teks bebas (jumlah atau judul).
+- ~~"Penjualan (pesanan / GMV)" pada form ADV~~ — diputuskan pemilik 7 Okt 2026: dipecah menjadi dua angka (Jumlah pesanan dan GMV). "Konten diupload" pada form AM juga teks bebas (jumlah atau judul).
 - Nama, logo, dan warna aplikasi.
 - Domain sendiri atau alamat bawaan Vercel.
 - Batas waktu edit: saat ini hanya pada hari yang sama.

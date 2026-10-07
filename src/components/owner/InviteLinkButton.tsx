@@ -20,7 +20,7 @@ export function InviteLinkButton({
   const [copied, setCopied] = useState<"link" | "pesan" | null>(null);
 
   const whatsappText = (l: string) =>
-    `Halo ${name}, ${kind === "password" ? "ini link untuk membuat password" : "Anda diundang memakai aplikasi Daily Report. Buka link ini untuk membuat password"} dan mulai memakai aplikasi:\n${l}\n\nLink hanya bisa dipakai sekali dan ada batas waktunya.`;
+    `Halo ${name}, ${kind === "password" ? "ini link untuk membuat password" : "Anda diundang memakai aplikasi Bahtera Binar Pulse. Buka link ini untuk membuat password"} dan mulai memakai aplikasi:\n${l}\n\nLink hanya bisa dipakai sekali dan ada batas waktunya.`;
 
   async function copy(text: string, kind: "link" | "pesan") {
     try {

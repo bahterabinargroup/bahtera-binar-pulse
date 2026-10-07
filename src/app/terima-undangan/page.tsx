@@ -9,7 +9,7 @@ export default async function TerimaUndanganPage({ searchParams }: PageProps<"/t
   const jenis = (await searchParams).jenis === "pemulihan" ? "pemulihan" : "undangan";
 
   return (
-    <AuthCard title={jenis === "pemulihan" ? "Buat password Daily Report" : "Undangan Daily Report"} subtitle="Selamat datang di aplikasi laporan harian. Klik tombol di bawah untuk membuat password dan mulai.">
+    <AuthCard title={jenis === "pemulihan" ? "Buat password Bahtera Binar Pulse" : "Undangan Bahtera Binar Pulse"} subtitle="Selamat datang di Bahtera Binar Pulse. Klik tombol di bawah untuk membuat password dan mulai.">
       {token ? (
         <AcceptForm tokenHash={token} jenis={jenis} />
       ) : (

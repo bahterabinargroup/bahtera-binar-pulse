@@ -445,7 +445,8 @@ insert into public.roles_config (code, name, description, sort_order, form_templ
   ]
 }$json$::jsonb),
   ('ADV', 'Advertiser', 'Advertiser (Digital ADV) Tera Digilab', 2,
-   $json${
+   $json$
+{
   "title": "DAILY REPORT DIGITAL ADV - TERA DIGILAB",
   "theme": {
     "title_color": "#1F3864",
@@ -572,11 +573,17 @@ insert into public.roles_config (code, name, description, sort_order, form_templ
               "required": true
             },
             {
-              "key": "penjualan",
-              "label": "Penjualan (pesanan / GMV)",
-              "type": "text",
-              "required": true,
-              "placeholder": "mis. 12 pesanan / Rp 1.500.000"
+              "key": "jumlah_pesanan",
+              "label": "Jumlah pesanan",
+              "type": "number",
+              "required": true
+            },
+            {
+              "key": "gmv",
+              "label": "GMV (nilai penjualan)",
+              "type": "number",
+              "unit": "Rp",
+              "required": true
             },
             {
               "key": "ads_spent",

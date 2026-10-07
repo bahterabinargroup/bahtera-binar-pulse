@@ -6,8 +6,8 @@ import "./globals.css";
 const lora = Lora({ variable: "--font-lora", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Daily Report · Bahtera Binar Group",
-  description: "Laporan harian karyawan Bahtera Binar Group",
+  title: "Bahtera Binar Pulse",
+  description: "Laporan harian, notulensi, dan tugas tim Bahtera Binar Group",
 };
 
 export const viewport: Viewport = {

@@ -1,4 +1,4 @@
-# Daily Report Holding
+# Bahtera Binar Pulse
 
 Aplikasi laporan harian karyawan (Next.js + Supabase). Lihat `BRIEF_APLIKASI.md`, `CLAUDE.md`, dan `STATUS.md`.
 

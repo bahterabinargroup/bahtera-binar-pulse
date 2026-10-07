@@ -68,7 +68,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Daily Report — Cek Persiapan</h1>
+      <h1 className="text-2xl font-bold">Bahtera Binar Pulse — Cek Persiapan</h1>
       <p className="mt-1 text-sm text-zinc-600">
         Halaman sementara untuk memastikan aplikasi tersambung ke database.
       </p>

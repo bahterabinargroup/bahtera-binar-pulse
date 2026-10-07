@@ -21,7 +21,7 @@ export function AuthCard({
           priority
           className="mx-auto h-28 w-auto"
         />
-        <p className="mt-1 text-center text-xs font-bold tracking-[0.3em] text-gold">DAILY REPORT</p>
+        <p className="mt-1 text-center text-xs font-bold tracking-[0.25em] text-gold">BAHTERA BINAR PULSE</p>
         <div className="mx-auto my-4 h-px w-16 bg-gold" />
         <h1 className="text-2xl font-bold text-accent">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-zinc-600">{subtitle}</p>}
