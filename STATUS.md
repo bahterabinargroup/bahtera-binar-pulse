@@ -12,7 +12,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
 | M5 | Panel Owner | ✅ Selesai (7 Okt 2026): undangan terkirim, link → Buat password, status Diklaim, muncul di Pengguna |
-| M6 | Tayang (Vercel) | 🟡 Sudah tayang di https://daily-report-app-roan-seven.vercel.app; menunggu pendaftaran URL di Supabase & pengujian akhir |
+| M6 | Tayang (Vercel) | ✅ Tayang di https://daily-report-app-roan-seven.vercel.app; uji keamanan RLS 58/58 lulus (7 Okt); tinggal 1 keputusan kecil (roles_config) & uji akun asli |
 
 ## Sudah selesai (M0)
 - Node.js dipasang di Mac (via Homebrew).
@@ -131,6 +131,13 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 - `supabase/tests/uji_keamanan.sql`: satu blok DO yang membuat company/akun REKAAN (2 company, Owner, 2 Manager, 4 karyawan, akun tanpa undangan), meniru tiap peran via `set local role authenticated` + klaim JWT, memeriksa ±58 skenario (brief bagian 7 poin 1–7 + aturan notulensi baru), lalu berakhir dengan `raise exception` agar semuanya dibatalkan otomatis. Hasil tampil sebagai pesan error berisi daftar LULUS/GAGAL.
 - Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
 - Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
+
+## HASIL PENGUJIAN AKHIR (7 Okt 2026)
+- `supabase/tests/uji_keamanan.sql`: **58 pemeriksaan, 0 GAGAL**. Mencakup brief bagian 7 poin 1–7 dan aturan notulensi (visibilitas, draft→submit→terkunci, hapus dengan persetujuan Owner, PIC, peserta/PIC lintas company, nama tak bisa dipalsukan, akun tanpa undangan, kenaikan role, penghapusan laporan).
+- Poin 9 (secret key tidak di browser/git/log): git tidak melacak .env.local; nilai kunci rahasia tidak ada di riwayat git, file terlacak, bundel browser lokal, maupun JS produksi Vercel; admin.ts tidak diimpor komponen client. Log Vercel belum diperiksa (aplikasi tidak mencetak kunci).
+- Poin 8 (form = PDF): dicek visual saat M2 (desktop & ponsel).
+- INFO: akun tanpa undangan masih bisa membaca `roles_config` (6 jabatan + template form). Usulan: batasi hanya untuk pengguna berprofil (perubahan kecil di database, menunggu izin pemilik).
+- Belum: uji akun asli (Manager Septian/Berdikari, karyawan Indah/Kevin) setelah mereka membuat password.
 
 ## Berikutnya
 - M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
