@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 6 Oktober 2026 — M5 dibangun, menunggu pemilik mengisi SUPABASE_SECRET_KEY & menguji_
+_Terakhir diperbarui: 7 Oktober 2026 — M5 selesai, M6 dimulai_
 
 ## Milestone
 | | Tahap | Status |
@@ -11,8 +11,8 @@ _Terakhir diperbarui: 6 Oktober 2026 — M5 dibangun, menunggu pemilik mengisi S
 | M3 | Riwayat laporan saya | ✅ Selesai (6 Okt 2026) |
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
-| M5 | Panel Owner | 🟡 Kode selesai; menunggu secret key & uji pemilik |
-| M6 | Tayang (Vercel) | ⬜ Belum |
+| M5 | Panel Owner | ✅ Selesai (7 Okt 2026): undangan terkirim, link → Buat password, status Diklaim, muncul di Pengguna |
+| M6 | Tayang (Vercel) | 🟡 Dimulai; menunggu keputusan hosting & domain |
 
 ## Sudah selesai (M0)
 - Node.js dipasang di Mac (via Homebrew).
