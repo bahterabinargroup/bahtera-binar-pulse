@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 // Bingkai sederhana untuk halaman login, lupa password, dan atur password.
 export function AuthCard({
   title,
@@ -10,9 +12,18 @@ export function AuthCard({
 }) {
   return (
     <main className="flex flex-1 items-start justify-center px-4 py-10 sm:items-center">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-bold tracking-widest text-accent">DAILY REPORT</p>
-        <h1 className="mt-1 text-2xl font-bold">{title}</h1>
+      <div className="w-full max-w-sm rounded-xl border border-zinc-200 border-t-4 border-t-gold bg-white p-6 shadow-sm">
+        <Image
+          src="/brand/logo-utama.png"
+          alt="Bahtera Binar Group"
+          width={1144}
+          height={746}
+          priority
+          className="mx-auto h-28 w-auto"
+        />
+        <p className="mt-1 text-center text-xs font-bold tracking-[0.3em] text-gold">DAILY REPORT</p>
+        <div className="mx-auto my-4 h-px w-16 bg-gold" />
+        <h1 className="text-2xl font-bold text-accent">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-zinc-600">{subtitle}</p>}
         <div className="mt-6">{children}</div>
       </div>

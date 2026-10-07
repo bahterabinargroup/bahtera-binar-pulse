@@ -17,7 +17,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         </p>
       )}
       <p className="text-sm text-zinc-600">{formatHariTanggal()}</p>
-      <h1 className="text-2xl font-bold">Halo, {profile.full_name.split(" ")[0]}</h1>
+      <h1 className="text-2xl font-bold text-accent">Halo, {profile.full_name.split(" ")[0]}</h1>
       {!profile.position && profile.role !== "owner" && (
         <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Jabatan Anda belum diatur, sehingga form laporan belum bisa ditampilkan. Hubungi admin.
@@ -44,7 +44,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
               {item.ready ? (
                 <Link
                   href={item.href}
-                  className="block h-full rounded-xl border border-zinc-200 bg-white p-4 shadow-sm hover:border-accent"
+                  className="block h-full rounded-xl border border-zinc-200 bg-white p-4 shadow-sm hover:border-gold hover:shadow-md"
                 >
                   {body}
                 </Link>

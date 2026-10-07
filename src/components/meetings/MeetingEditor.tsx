@@ -206,7 +206,7 @@ export function MeetingEditor({
 
   return (
     <div className="pb-28" style={{ "--accent-m": MEETING_ACCENT } as React.CSSProperties}>
-      <div className="rounded-xl bg-white p-4 text-[15px] text-black shadow-sm sm:p-8" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+      <div className="rounded-xl bg-white p-4 text-[15px] text-black shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h1 className="text-xl font-bold text-[var(--accent-m)] uppercase sm:text-2xl">Notulensi Meeting</h1>
           <span

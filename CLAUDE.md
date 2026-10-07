@@ -67,6 +67,12 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Form harian: `src/lib/report/` (tipe + konversi) dan `src/components/report/` (FormRenderer, ReportForm). Pratinjau lokal tanpa login: `npm run dev` lalu `/dev/pratinjau/ADV` (dst.).
 - Menu per role: `src/lib/menu.ts`. Profil login: `src/lib/profile.ts`. Tanggal WIB: `src/lib/date.ts`.
 
+## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
+- Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
+- PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).
+- Logo di `public/brand/`: `logo-utama.png` (vertikal navy+emas; halaman Masuk/Atur password), `logo-horizontal.png` (tulisan ke kanan; header aplikasi), `logo-2warna.png` (ubin navy putih; cadangan, mis. cetak/OG). Ikon tab/ponsel: `src/app/icon.png` & `apple-icon.png` (hanya gambar layar perahu di latar navy).
+- Referensi brand (tidak ditayangkan): `aset-brand/warna-brand.webp`, `aset-brand/tipografi-brand.webp`. Jika pemilik punya file logo asli beresolusi tinggi/SVG, ganti file di `public/brand/` dengan nama yang sama.
+
 ## Notulensi Meeting (milestone M3b — setelah M2)
 KEPUTUSAN PEMILIK 6 Okt 2026 MENGGANTIKAN brief 5b di poin-poin berikut (database: bagian 13 schema / `supabase/002_...sql`):
 - Visibilitas: Owner semua; Manager company-nya saja; karyawan hanya notulensi buatannya. Opsi "Seluruh holding" TIDAK dipakai (sembunyikan di UI; kolom visibility tetap 'company').

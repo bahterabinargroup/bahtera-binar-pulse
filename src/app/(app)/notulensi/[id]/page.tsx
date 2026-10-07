@@ -53,7 +53,7 @@ export default async function NotulensiDetailPage({ params, searchParams }: Page
         />
       </div>
 
-      <article className="rounded-xl bg-white p-4 text-[15px] shadow-sm sm:p-8" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+      <article className="rounded-xl bg-white p-4 text-[15px] shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h1 className="text-xl font-bold text-[var(--accent-m)] uppercase sm:text-2xl">Notulensi Meeting</h1>
           <span

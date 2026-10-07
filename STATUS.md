@@ -132,6 +132,10 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
 - Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
 
+## Penerapan brand (7 Okt 2026)
+- Logo, warna navy/gold, font Lora diterapkan (lihat CLAUDE.md bagian Brand): halaman Masuk/Lupa/Atur password (logo vertikal + garis emas), header aplikasi (logo horizontal + garis emas + nama/jabatan/role), ikon tab & ponsel, judul tab "Daily Report · Bahtera Binar Group", tombol & tabel navy. Form harian tetap Arial & warna per jabatan.
+- Belum: logo di PDF notulensi; domain sendiri; email undangan berbahasa Indonesia (butuh SMTP).
+
 ## HASIL PENGUJIAN AKHIR (7 Okt 2026)
 - `supabase/tests/uji_keamanan.sql`: **58 pemeriksaan, 0 GAGAL**. Mencakup brief bagian 7 poin 1–7 dan aturan notulensi (visibilitas, draft→submit→terkunci, hapus dengan persetujuan Owner, PIC, peserta/PIC lintas company, nama tak bisa dipalsukan, akun tanpa undangan, kenaikan role, penghapusan laporan).
 - Poin 9 (secret key tidak di browser/git/log): git tidak melacak .env.local; nilai kunci rahasia tidak ada di riwayat git, file terlacak, bundel browser lokal, maupun JS produksi Vercel; admin.ts tidak diimpor komponen client. Log Vercel belum diperiksa (aplikasi tidak mencetak kunci).

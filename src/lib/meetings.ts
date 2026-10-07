@@ -5,7 +5,7 @@
 import { normalizeUrl } from "@/lib/report/form-state";
 import type { UserRole } from "@/lib/profile";
 
-export const MEETING_ACCENT = "#2E75B6";
+export const MEETING_ACCENT = "#012C4E"; // navy brand (sebelumnya biru netral)
 export const LOCATIONS = ["Kantor 1", "Kantor 2", "Online"] as const;
 export const MAX_ATTACHMENTS = 20;
 
