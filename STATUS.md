@@ -1,6 +1,6 @@
 # STATUS Proyek
 
-_Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase & uji akhir_
+_Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tinggal uji akun asli & keputusan terbuka_
 
 ## Milestone
 | | Tahap | Status |
@@ -12,7 +12,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 | M3b | Notulensi Meeting | 🟡 Kode selesai; menunggu uji pemilik |
 | M4 | Dashboard Manager/SPV dan Owner | 🟡 Kode selesai; menunggu uji pemilik |
 | M5 | Panel Owner | ✅ Selesai (7 Okt 2026): undangan terkirim, link → Buat password, status Diklaim, muncul di Pengguna |
-| M6 | Tayang (Vercel) | ✅ Tayang di https://daily-report-app-roan-seven.vercel.app; uji keamanan RLS 58/58 lulus (7 Okt); tinggal 1 keputusan kecil (roles_config) & uji akun asli |
+| M6 | Tayang (Vercel) | ✅ Tayang di https://daily-report-app-roan-seven.vercel.app; uji keamanan RLS 58/58 lulus + roles_config dibatasi (7 Okt); tinggal uji akun asli |
 
 ## Sudah selesai (M0)
 - Node.js dipasang di Mac (via Homebrew).
@@ -136,11 +136,13 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 - `supabase/tests/uji_keamanan.sql`: **58 pemeriksaan, 0 GAGAL**. Mencakup brief bagian 7 poin 1–7 dan aturan notulensi (visibilitas, draft→submit→terkunci, hapus dengan persetujuan Owner, PIC, peserta/PIC lintas company, nama tak bisa dipalsukan, akun tanpa undangan, kenaikan role, penghapusan laporan).
 - Poin 9 (secret key tidak di browser/git/log): git tidak melacak .env.local; nilai kunci rahasia tidak ada di riwayat git, file terlacak, bundel browser lokal, maupun JS produksi Vercel; admin.ts tidak diimpor komponen client. Log Vercel belum diperiksa (aplikasi tidak mencetak kunci).
 - Poin 8 (form = PDF): dicek visual saat M2 (desktop & ponsel).
-- INFO: akun tanpa undangan masih bisa membaca `roles_config` (6 jabatan + template form). Usulan: batasi hanya untuk pengguna berprofil (perubahan kecil di database, menunggu izin pemilik).
+- ✅ Temuan INFO (akun tanpa undangan bisa membaca `roles_config`) ditutup: `supabase/003_batasi_roles_config.sql` (= bagian 14 schema) dijalankan pemilik 7 Okt; uji ulang: 0 GAGAL, baris 06 kini LULUS (terbaca=0).
 - Belum: uji akun asli (Manager Septian/Berdikari, karyawan Indah/Kevin) setelah mereka membuat password.
 
 ## Berikutnya
-- M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
+- Uji akun asli (Manager Septian/Berdikari, karyawan Indah/Kevin) setelah mereka membuat password.
+- Keputusan terbuka brief bagian 9 (opsi Status, kolom ke-4 SPV, format Penjualan/Konten, nama/logo/warna, domain sendiri, SMTP sendiri untuk email berbahasa Indonesia & tanpa batas kirim).
+- (Arsip) M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
 
 ## Masalah / catatan terbuka
 - Email undangan & reset password berbahasa Inggris (template bawaan). Bisa diubah ke bahasa Indonesia jika SMTP sendiri dipasang — keputusan pemilik.
