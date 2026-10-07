@@ -119,6 +119,13 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 - ⏳ Pemilik: Supabase > Authentication > URL Configuration: Site URL = alamat Vercel; Redirect URLs tambah `https://daily-report-app-roan-seven.vercel.app/**` (pertahankan localhost untuk pengembangan).
 - Setelah itu: pengujian akhir brief bagian 7 di alamat sungguhan (butuh akun uji: 2 company, Owner, 1 Manager/company, 2 Employee/company termasuk RND). Pertimbangkan menutup `/cek-persiapan` untuk publik.
 
+## Pengujian akhir (7 Okt)
+- Uji ponsel di alamat Vercel: undangan → Buat password → Beranda karyawan (AM) berhasil.
+- Data asli saat uji: 1 company (HOLDING = PT Bahtera Binar Abadi), 3 Owner (Admin, Masithoh Meita [RND], Raka), 2 karyawan (CC, AM), belum ada Manager.
+- `supabase/tests/uji_keamanan.sql`: satu blok DO yang membuat company/akun REKAAN (2 company, Owner, 2 Manager, 4 karyawan, akun tanpa undangan), meniru tiap peran via `set local role authenticated` + klaim JWT, memeriksa ±58 skenario (brief bagian 7 poin 1–7 + aturan notulensi baru), lalu berakhir dengan `raise exception` agar semuanya dibatalkan otomatis. Hasil tampil sebagai pesan error berisi daftar LULUS/GAGAL.
+- Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
+- Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
+
 ## Berikutnya
 - M6 Tayang (Vercel) + pengujian akhir bagian 7 (setelah pemilik setuju).
 
