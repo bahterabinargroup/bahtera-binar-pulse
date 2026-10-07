@@ -121,6 +121,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 
 ## Tambahan permintaan pemilik (7 Okt)
 - Batas kirim email Supabase per jam tercapai saat mengundang banyak orang → `/owner/undangan` kini punya tombol "🔗 Salin link undangan" per undangan terbuka (`getInviteLink` di `owner/actions.ts`, Auth Admin `generateLink` type invite, hanya Owner, hanya undangan terbuka) + "Salin pesan siap kirim (WhatsApp)". Daftar dipisah: "Undangan menunggu" (di atas) dan "Sudah diklaim". Link berlaku sekali & terbatas waktu; link baru membatalkan link lama.
+- Temuan 7 Okt: link yang ditempel ke WhatsApp "kedaluwarsa/sudah dipakai" sebelum diklik karena pratinjau link WhatsApp (dan pemindai email) membuka link Supabase sekali-pakai. Perbaikan: link yang dibagikan kini `/terima-undangan?token_hash=...` (halaman aplikasi, publik) dengan tombol "Lanjutkan & buat password"; `verifyOtp(type invite)` baru dijalankan saat tombol diklik (`acceptInvite` di `auth-actions.ts`). Masa berlaku token mengikuti Supabase (bawaan 1 jam; disarankan 24 jam: Authentication > Sign In / Providers > Email > Email OTP Expiration).
 
 ## Pengujian akhir (7 Okt)
 - Uji ponsel di alamat Vercel: undangan → Buat password → Beranda karyawan (AM) berhasil.

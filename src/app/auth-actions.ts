@@ -70,3 +70,21 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+// Menerima undangan: baru di sini token sekali-pakai dari link dipakai (setelah tombol diklik),
+// sehingga pratinjau link (WhatsApp, dll.) dan pemindai email tidak menghabiskannya.
+export async function acceptInvite(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tokenHash = String(formData.get("token_hash") ?? "");
+  if (!/^[A-Za-z0-9_-]{10,200}$/.test(tokenHash)) {
+    return { error: "Link tidak lengkap. Minta admin mengirim link undangan baru." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ type: "invite", token_hash: tokenHash });
+  if (error) {
+    return {
+      error:
+        "Link undangan sudah kedaluwarsa atau sudah pernah dipakai. Minta admin membuat link undangan baru.",
+    };
+  }
+  redirect("/atur-password?jenis=undangan");
+}

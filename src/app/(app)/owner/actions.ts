@@ -151,6 +151,11 @@ export async function getInviteLink(inviteId: string): Promise<LinkResult> {
     email: data.email,
     options: { redirectTo: `${await siteOrigin()}/login` },
   });
+  if (!genError && gen?.properties?.hashed_token) {
+    // Link ke halaman aplikasi (bukan langsung ke Supabase) agar tidak habis oleh pratinjau link.
+    const link = `${await siteOrigin()}/terima-undangan?token_hash=${encodeURIComponent(gen.properties.hashed_token)}`;
+    return { ok: true, link };
+  }
   if (genError || !gen?.properties?.action_link) {
     if (genError && /already been registered|already exists|email_exists/i.test(genError.message)) {
       return {
