@@ -127,6 +127,42 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
   return { ok: true, message: `Email undangan dikirim ulang ke ${data.email}.` };
 }
 
+export type LinkResult = { ok: true; link: string } | { ok: false; error: string };
+
+// Membuat link undangan TANPA mengirim email (untuk dibagikan lewat WhatsApp, dll.).
+// Memakai kunci rahasia di server, hanya untuk Owner, dan hanya untuk undangan yang masih terbuka.
+// Setiap kali dibuat, link sebelumnya untuk email yang sama tidak berlaku lagi.
+export async function getInviteLink(inviteId: string): Promise<LinkResult> {
+  if (!(await requireOwnerAction())) return { ok: false, error: "Hanya Owner yang boleh melakukan ini." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("user_invites")
+    .select("email, claimed_at")
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (error) return { ok: false, error: dbError(error) };
+  if (!data) return { ok: false, error: "Undangan tidak ditemukan." };
+  if (data.claimed_at) return { ok: false, error: "Undangan ini sudah diklaim." };
+
+  const admin = createAdminClient();
+  if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY belum diisi di server." };
+  const { data: gen, error: genError } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email: data.email,
+    options: { redirectTo: `${await siteOrigin()}/login` },
+  });
+  if (genError || !gen?.properties?.action_link) {
+    if (genError && /already been registered|already exists|email_exists/i.test(genError.message)) {
+      return {
+        ok: false,
+        error: "Email ini sudah punya akun login yang terkonfirmasi. Minta orangnya masuk, atau pakai Lupa password.",
+      };
+    }
+    return { ok: false, error: `Gagal membuat link: ${genError?.message ?? "tidak ada link"}` };
+  }
+  return { ok: true, link: gen.properties.action_link };
+}
+
 export async function cancelInvite(inviteId: string): Promise<ActionResult> {
   if (!(await requireOwnerAction())) return NOT_OWNER;
   const supabase = await createClient();

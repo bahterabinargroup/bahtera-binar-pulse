@@ -119,6 +119,9 @@ _Terakhir diperbarui: 7 Oktober 2026 — M6: sudah tayang, tinggal URL Supabase 
 - ⏳ Pemilik: Supabase > Authentication > URL Configuration: Site URL = alamat Vercel; Redirect URLs tambah `https://daily-report-app-roan-seven.vercel.app/**` (pertahankan localhost untuk pengembangan).
 - Setelah itu: pengujian akhir brief bagian 7 di alamat sungguhan (butuh akun uji: 2 company, Owner, 1 Manager/company, 2 Employee/company termasuk RND). Pertimbangkan menutup `/cek-persiapan` untuk publik.
 
+## Tambahan permintaan pemilik (7 Okt)
+- Batas kirim email Supabase per jam tercapai saat mengundang banyak orang → `/owner/undangan` kini punya tombol "🔗 Salin link undangan" per undangan terbuka (`getInviteLink` di `owner/actions.ts`, Auth Admin `generateLink` type invite, hanya Owner, hanya undangan terbuka) + "Salin pesan siap kirim (WhatsApp)". Daftar dipisah: "Undangan menunggu" (di atas) dan "Sudah diklaim". Link berlaku sekali & terbatas waktu; link baru membatalkan link lama.
+
 ## Pengujian akhir (7 Okt)
 - Uji ponsel di alamat Vercel: undangan → Buat password → Beranda karyawan (AM) berhasil.
 - Data asli saat uji: 1 company (HOLDING = PT Bahtera Binar Abadi), 3 Owner (Admin, Masithoh Meita [RND], Raka), 2 karyawan (CC, AM), belum ada Manager.

@@ -1,6 +1,7 @@
 import { cancelInvite, createInvite, resendInvite } from "@/app/(app)/owner/actions";
 import { ActionButton } from "@/components/owner/ActionButton";
 import { ActionForm } from "@/components/owner/ActionForm";
+import { InviteLinkButton } from "@/components/owner/InviteLinkButton";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
 import { formatHariTanggal } from "@/lib/date";
 import { requireOwnerPage } from "@/lib/owner";
@@ -34,6 +35,8 @@ export default async function OwnerUndanganPage() {
   for (const r of [inv, comp, pos]) if (r.error) throw new Error(`Gagal memuat data: ${r.error.message}`);
   const invites = (inv.data ?? []) as unknown as Invite[];
   const emailReady = !!process.env.SUPABASE_SECRET_KEY;
+  const pending = invites.filter((i) => !i.claimed_at);
+  const claimed = invites.filter((i) => i.claimed_at);
 
   return (
     <div className="space-y-6">
@@ -99,10 +102,48 @@ export default async function OwnerUndanganPage() {
       </section>
 
       <section className={cardCls}>
-        <h2 className="mb-3 font-bold">Daftar undangan ({invites.length})</h2>
-        {invites.length === 0 && <p className="text-sm text-zinc-500">Belum ada undangan.</p>}
+        <h2 className="mb-1 font-bold">Undangan menunggu ({pending.length})</h2>
+        <p className="mb-2 text-sm text-zinc-600">
+          Belum diklaim. Jika email tidak terkirim (batas kirim Supabase per jam), klik <b>Salin link undangan</b> lalu
+          kirim lewat WhatsApp.
+        </p>
+        {pending.length === 0 && <p className="text-sm text-zinc-500">Tidak ada undangan yang menunggu.</p>}
         <ul className="divide-y divide-zinc-100">
-          {invites.map((i) => (
+          {pending.map((i) => (
+            <li key={i.id} className="py-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-bold">
+                    {i.full_name} <span className="font-normal text-zinc-600">· {i.email}</span>
+                  </p>
+                  <p className="text-sm text-zinc-600">
+                    {i.company?.name} · {ROLE_LABEL[i.role]}
+                    {i.position ? ` · ${i.position.name}` : ""}
+                    {i.employee_code ? ` · ${i.employee_code}` : ""} · dibuat {formatHariTanggal(new Date(i.created_at))}
+                  </p>
+                </div>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">Terbuka</span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-start gap-2">
+                <InviteLinkButton inviteId={i.id} name={i.full_name} />
+                <ActionButton run={resendInvite.bind(null, i.id)} label="Kirim ulang email" />
+                <ActionButton
+                  run={cancelInvite.bind(null, i.id)}
+                  label="Batalkan"
+                  tone="danger"
+                  confirm={`Batalkan undangan untuk ${i.email}? Link-nya tidak akan memberi akses.`}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={cardCls}>
+        <h2 className="mb-3 font-bold">Sudah diklaim ({claimed.length})</h2>
+        {claimed.length === 0 && <p className="text-sm text-zinc-500">Belum ada.</p>}
+        <ul className="divide-y divide-zinc-100">
+          {claimed.map((i) => (
             <li key={i.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
               <div className="min-w-0">
                 <p className="font-bold">
@@ -111,25 +152,12 @@ export default async function OwnerUndanganPage() {
                 <p className="text-sm text-zinc-600">
                   {i.company?.name} · {ROLE_LABEL[i.role]}
                   {i.position ? ` · ${i.position.name}` : ""}
-                  {i.employee_code ? ` · ${i.employee_code}` : ""} · dibuat {formatHariTanggal(new Date(i.created_at))}
+                  {i.employee_code ? ` · ${i.employee_code}` : ""}
                 </p>
               </div>
-              {i.claimed_at ? (
-                <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
-                  Diklaim {formatHariTanggal(new Date(i.claimed_at))}
-                </span>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">Terbuka</span>
-                  <ActionButton run={resendInvite.bind(null, i.id)} label="Kirim ulang email" />
-                  <ActionButton
-                    run={cancelInvite.bind(null, i.id)}
-                    label="Batalkan"
-                    tone="danger"
-                    confirm={`Batalkan undangan untuk ${i.email}? Link di emailnya tidak akan memberi akses.`}
-                  />
-                </div>
-              )}
+              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
+                Diklaim {i.claimed_at ? formatHariTanggal(new Date(i.claimed_at)) : ""}
+              </span>
             </li>
           ))}
         </ul>
