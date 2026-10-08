@@ -1,3 +1,4 @@
+import { requireOwnerPage } from "@/lib/owner";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,6 +64,7 @@ async function runChecks(): Promise<Check[]> {
 }
 
 export default async function Home() {
+  await requireOwnerPage(); // halaman diagnostik: hanya Owner yang sudah login
   const checks = await runChecks();
   const allOk = checks.every((c) => c.ok);
 

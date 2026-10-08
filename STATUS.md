@@ -132,6 +132,11 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
 - Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
 
+## Poin 8 & 9 (8 Okt 2026)
+- PDF notulensi kini berlogo (logo horizontal tertanam sebagai data URI di `src/lib/brand-logo.ts`, dipotong ruang kosongnya; perbarui file itu bila logo diganti), garis emas, dan kaki halaman "Bahtera Binar Pulse".
+- `/cek-persiapan` tidak lagi publik: hanya Owner yang sudah login (dihapus dari PUBLIC_PATHS; `requireOwnerPage`).
+- Keputusan domain: belum perlu untuk mulai; dikerjakan bersamaan dengan SMTP (email Indonesia, tanpa batas kirim) karena penyedia email butuh domain terverifikasi.
+
 ## Panduan pemakaian (8 Okt 2026)
 - Halaman publik `/panduan` (`src/app/panduan/page.tsx`, tanpa login agar bisa dibagikan bersama link undangan) + kotak menu "Panduan" di Beranda untuk semua role. Isi: pertama kali masuk, laporan harian, riwayat, notulensi, tugas saya, dashboard Manager, panel Owner, FAQ. Teks saja (tangkapan layar otomatis tidak layak; tambahkan nanti dari ponsel sungguhan bila perlu).
 

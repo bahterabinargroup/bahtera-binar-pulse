@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "./env";
 
 // Halaman yang boleh dibuka tanpa login.
-const PUBLIC_PATHS = ["/login", "/lupa-password", "/auth", "/cek-persiapan", "/terima-undangan", "/panduan"];
+const PUBLIC_PATHS = ["/login", "/lupa-password", "/auth", "/terima-undangan", "/panduan"];
 
 function isPublic(pathname: string) {
   // /dev hanya ada saat pengembangan lokal (halaman itu sendiri menolak di versi tayang).

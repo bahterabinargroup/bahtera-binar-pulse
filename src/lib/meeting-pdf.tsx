@@ -1,9 +1,12 @@
-import { Document, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { LOGO_HORIZONTAL_DATA_URI, LOGO_HORIZONTAL_RATIO } from "@/lib/brand-logo";
 import { dateFromYmd, formatHariTanggal, formatJam } from "@/lib/date";
 import { ACTION_STATUS_LABEL, MEETING_ACCENT, type ActionRow, type AttendeeRow, type MeetingRow } from "@/lib/meetings";
 
 const s = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
+  logo: { height: 40, width: 40 * LOGO_HORIZONTAL_RATIO },
+  goldRule: { height: 2, backgroundColor: "#C4A251", marginTop: 6, marginBottom: 12 },
   title: { fontSize: 18, fontFamily: "Helvetica-Bold", color: MEETING_ACCENT },
   name: { fontSize: 13, fontFamily: "Helvetica-Bold", marginTop: 4 },
   status: { fontSize: 9, color: "#555", marginTop: 2 },
@@ -67,6 +70,9 @@ export function MeetingPdf({
   return (
     <Document title={`Notulensi - ${m.title}`} author={m.created_by_name ?? undefined}>
       <Page size="A4" style={s.page}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image milik react-pdf (bukan <img> HTML), tidak punya prop alt */}
+        <Image src={LOGO_HORIZONTAL_DATA_URI} style={s.logo} />
+        <View style={s.goldRule} />
         <Text style={s.title}>NOTULENSI MEETING</Text>
         <Text style={s.name}>{m.title}</Text>
         <Text style={s.status}>
@@ -137,7 +143,7 @@ export function MeetingPdf({
         <Text
           style={s.footer}
           fixed
-          render={({ pageNumber, totalPages }) => `Notulensi "${m.title}" - halaman ${pageNumber} dari ${totalPages}`}
+          render={({ pageNumber, totalPages }) => `Bahtera Binar Pulse - Notulensi "${m.title}" - halaman ${pageNumber} dari ${totalPages}`}
         />
       </Page>
     </Document>
