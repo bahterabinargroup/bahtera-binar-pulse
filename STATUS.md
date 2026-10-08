@@ -132,6 +132,9 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
 - Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
 
+## Panduan pemakaian (8 Okt 2026)
+- Halaman publik `/panduan` (`src/app/panduan/page.tsx`, tanpa login agar bisa dibagikan bersama link undangan) + kotak menu "Panduan" di Beranda untuk semua role. Isi: pertama kali masuk, laporan harian, riwayat, notulensi, tugas saya, dashboard Manager, panel Owner, FAQ. Teks saja (tangkapan layar otomatis tidak layak; tambahkan nanti dari ponsel sungguhan bila perlu).
+
 ## Nama aplikasi & form ADV (7 Okt 2026)
 - Nama aplikasi resmi: **Bahtera Binar Pulse** (judul tab, halaman Masuk/undangan, pesan WhatsApp undangan, README, template email cadangan). Judul form harian per jabatan (mis. "DAILY REPORT DIGITAL ADV - TERA DIGILAB") TIDAK diubah karena meniru PDF. Nama proyek Vercel/folder (`daily-report-app`) tetap internal.
 - Form ADV: baris "Penjualan (pesanan / GMV)" dipecah jadi **"Jumlah pesanan"** dan **"GMV (nilai penjualan)"** (keduanya angka, wajib). Perubahan di data `roles_config.form_template` (bukan skema): `supabase/004_form_adv_pecah_penjualan.sql` (= seed ADV di bagian 7 schema). ✅ Dijalankan pemilik & form ADV terverifikasi cocok (7 Okt). Isian "Penjualan" teks lama pada laporan yang sudah tersimpan tidak hilang di database, tetapi tidak tampil lagi dan terbuang bila laporan diedit ulang.
