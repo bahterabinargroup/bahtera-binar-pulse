@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ReportForm } from "@/components/report/ReportForm";
 import { dateFromYmd, formatHariTanggal, todayJakarta } from "@/lib/date";
 import { getCurrentUser } from "@/lib/profile";
-import type { ReportData } from "@/lib/report/form-state";
+import { extractPrefill, type ReportData } from "@/lib/report/form-state";
 import type { FormTemplate } from "@/lib/report/template";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,10 +48,27 @@ export default async function LaporanHariIniPage() {
     .single();
   if (posError) throw new Error(`Gagal memuat form: ${posError.message}`);
 
+  const template = position.form_template as FormTemplate;
+
+  // Laporan baru: isi otomatis kolom yang biasanya sama dari laporan terakhir.
+  let prefill = null;
+  if (!report) {
+    const { data: last } = await supabase
+      .from("daily_reports")
+      .select("performance_metrics")
+      .eq("user_id", profile.id)
+      .lt("report_date", today)
+      .order("report_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (last) prefill = extractPrefill(template, last.performance_metrics);
+  }
+
   return (
     <ReportForm
       key={report?.id ?? "baru"}
-      template={position.form_template as FormTemplate}
+      template={template}
+      prefill={prefill}
       name={profile.full_name}
       dateLabel={formatHariTanggal(dateFromYmd(today))}
       reportDate={today}

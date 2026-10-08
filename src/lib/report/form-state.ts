@@ -37,6 +37,25 @@ export type ReportData = {
 
 export const MAX_EVIDENCE = 20;
 
+// Isian yang biasanya sama setiap hari (Toko, Mentor, ADV/Tim, nama toko per kolom),
+// diambil dari laporan sebelumnya agar tidak perlu diketik ulang.
+export type Prefill = { header: Record<string, string>; matrixNames: Record<string, string[]> };
+
+export function extractPrefill(template: FormTemplate, metrics: unknown): Prefill {
+  const m = (metrics ?? {}) as Record<string, unknown>;
+  const prefill: Prefill = { header: {}, matrixNames: {} };
+  for (const f of template.header_fields) {
+    const v = toText(m[f.key]).trim();
+    if (v) prefill.header[f.key] = v;
+  }
+  for (const b of allBlocks(template)) {
+    if (b.type !== "matrix") continue;
+    const names = toRows(m[b.key]).map((r) => (r.nama ?? "").trim());
+    if (names.some(Boolean)) prefill.matrixNames[b.key] = names;
+  }
+  return prefill;
+}
+
 // Pilihan Status yang berarti "belum dikerjakan": tampil merah dan dihitung
 // "Belum lengkap", tetapi laporan tetap boleh disimpan (keputusan pemilik 6 Okt).
 export const NEGATIVE_STATUS = ["Belum"];
@@ -68,7 +87,11 @@ function toRows(v: unknown): Row[] {
 }
 
 // Form kosong (laporan baru) atau terisi dari laporan yang sudah tersimpan.
-export function buildFormState(template: FormTemplate, saved?: Partial<ReportData> | null): FormState {
+export function buildFormState(
+  template: FormTemplate,
+  saved?: Partial<ReportData> | null,
+  prefill?: Prefill | null,
+): FormState {
   const m = (saved?.performance_metrics ?? {}) as Record<string, unknown>;
   const state: FormState = {
     header: {},
@@ -84,7 +107,7 @@ export function buildFormState(template: FormTemplate, saved?: Partial<ReportDat
     evidence: [...(saved?.evidence_links ?? [])],
   };
 
-  for (const f of template.header_fields) state.header[f.key] = toText(m[f.key]);
+  for (const f of template.header_fields) state.header[f.key] = toText(m[f.key]) || (prefill?.header[f.key] ?? "");
 
   for (const b of allBlocks(template)) {
     switch (b.type) {
@@ -104,7 +127,10 @@ export function buildFormState(template: FormTemplate, saved?: Partial<ReportDat
         const rows = toRows(m[b.key]);
         const count = Math.max(b.initial_entities ?? 1, rows.length);
         const cols = [{ key: "nama" }, ...b.rows].map((r) => ({ key: r.key, label: "", type: "text" as FieldType }));
-        state.matrices[b.key] = padRows(rows, count, cols);
+        state.matrices[b.key] = padRows(rows, count, cols).map((r, i) => ({
+          ...r,
+          nama: r.nama || (prefill?.matrixNames[b.key]?.[i] ?? ""),
+        }));
         break;
       }
       case "evidence":

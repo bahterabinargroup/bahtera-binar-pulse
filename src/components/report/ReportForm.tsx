@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { correctReport, saveReport } from "@/app/(app)/laporan/actions";
 import { formatJam } from "@/lib/date";
 import {
@@ -10,14 +10,17 @@ import {
   validate,
   type Errors,
   type FormState,
+  type Prefill,
   type ReportData,
 } from "@/lib/report/form-state";
 import type { FormTemplate } from "@/lib/report/template";
 import { FormRenderer } from "./FormRenderer";
 
+const AUTOSAVE_DELAY_MS = 3000;
+
 type Status =
   | { kind: "idle" }
-  | { kind: "saved"; at: string }
+  | { kind: "saved"; at: string; auto?: boolean }
   | { kind: "error"; message: string }
   | { kind: "locked"; message: string };
 
@@ -30,6 +33,7 @@ export function ReportForm({
   dateLabel,
   reportDate,
   initialReport,
+  prefill = null,
   mode = "edit",
 }: {
   template: FormTemplate;
@@ -37,9 +41,10 @@ export function ReportForm({
   dateLabel: string;
   reportDate: string;
   initialReport: (ReportData & { id: string; updated_at: string }) | null;
+  prefill?: Prefill | null;
   mode?: "edit" | "preview" | "view" | "correct";
 }) {
-  const [state, setState] = useState<FormState>(() => buildFormState(template, initialReport));
+  const [state, setState] = useState<FormState>(() => buildFormState(template, initialReport, prefill));
   const [reportId, setReportId] = useState<string | null>(initialReport?.id ?? null);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(state));
   // Kesalahan format baru ditampilkan setelah tombol Simpan ditekan,
@@ -48,7 +53,17 @@ export function ReportForm({
   const [status, setStatus] = useState<Status>(
     initialReport ? { kind: "saved", at: initialReport.updated_at } : { kind: "idle" },
   );
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
+  // Nilai terbaru untuk dipakai di dalam save() yang dipanggil dari timer.
+  const stateRef = useRef(state);
+  const reportIdRef = useRef(reportId);
+  const busy = useRef(false);
+  const again = useRef(false);
+  useLayoutEffect(() => {
+    stateRef.current = state;
+    reportIdRef.current = reportId;
+  });
 
   const locked = status.kind === "locked";
   const dirty = JSON.stringify(state) !== savedSnapshot;
@@ -65,33 +80,59 @@ export function ReportForm({
 
   const set = (update: (s: FormState) => FormState) => setState(update);
 
-  const onSave = () => {
-    const found = validate(template, state);
-    setShowErrors(true);
-    if (Object.keys(found).length) {
-      setStatus({ kind: "error", message: "Ada isian yang formatnya belum benar (ditandai merah). Perbaiki dulu, lalu simpan lagi." });
-      return;
-    }
-    const snapshot = JSON.stringify(state);
-    startTransition(async () => {
+  // Simpan (manual = auto false; otomatis = auto true). Satu permintaan pada satu waktu.
+  const save = useCallback(
+    async (auto: boolean) => {
+      if (busy.current) {
+        again.current = true;
+        return;
+      }
+      const current = stateRef.current;
+      const found = validate(template, current);
+      if (Object.keys(found).length) {
+        if (!auto) {
+          setShowErrors(true);
+          setStatus({ kind: "error", message: "Ada isian yang formatnya belum benar (ditandai merah). Perbaiki dulu, lalu simpan lagi." });
+        }
+        return; // simpan otomatis menunggu sampai isian valid
+      }
+      busy.current = true;
+      setSaving(true);
+      const snapshot = JSON.stringify(current);
       try {
-        const data = toReportData(template, state);
+        const data = toReportData(template, current);
+        const id = reportIdRef.current;
         const res =
-          mode === "correct" && reportId
-            ? await correctReport({ reportId, data })
-            : await saveReport({ reportId, reportDate, data });
+          mode === "correct" && id ? await correctReport({ reportId: id, data }) : await saveReport({ reportId: id, reportDate, data });
         if (res.ok) {
+          reportIdRef.current = res.reportId;
           setReportId(res.reportId);
           setSavedSnapshot(snapshot);
-          setStatus({ kind: "saved", at: res.savedAt });
+          setStatus({ kind: "saved", at: res.savedAt, auto });
         } else {
           setStatus({ kind: res.locked ? "locked" : "error", message: res.error });
         }
       } catch {
         setStatus({ kind: "error", message: "Tidak dapat terhubung ke server. Periksa koneksi internet, lalu tekan Simpan lagi." });
+      } finally {
+        busy.current = false;
+        setSaving(false);
+        if (again.current) {
+          again.current = false;
+          setRetryTick((t) => t + 1);
+        }
       }
-    });
-  };
+    },
+    [template, mode, reportDate],
+  );
+
+  // Simpan otomatis beberapa detik setelah berhenti mengetik (hanya mode isi laporan hari ini).
+  useEffect(() => {
+    if (mode !== "edit" || locked || !dirty) return;
+    if (Object.keys(validate(template, state)).length) return;
+    const t = setTimeout(() => void save(true), AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [state, dirty, locked, mode, template, save, retryTick]);
 
   return (
     <div className="pb-28">
@@ -118,10 +159,16 @@ export function ReportForm({
             <div className="min-w-0 flex-1 text-sm">
               {status.kind === "error" ? (
                 <p role="alert" className="text-red-700">{status.message}</p>
+              ) : saving ? (
+                <p className="text-zinc-500">Menyimpan…</p>
               ) : dirty ? (
-                <p className="text-amber-700">Ada perubahan yang belum disimpan.</p>
+                <p className="text-amber-700">
+                  {mode === "edit" ? "Ada perubahan, akan tersimpan otomatis…" : "Ada perubahan yang belum disimpan."}
+                </p>
               ) : status.kind === "saved" ? (
-                <p className="text-green-700">✓ Tersimpan pukul {formatJam(status.at)} WIB</p>
+                <p className="text-green-700">
+                  ✓ Tersimpan{status.auto ? " otomatis" : ""} pukul {formatJam(status.at)} WIB
+                </p>
               ) : (
                 <p className="text-zinc-500">Belum disimpan.</p>
               )}
@@ -131,11 +178,11 @@ export function ReportForm({
             </div>
             <button
               type="button"
-              onClick={onSave}
-              disabled={pending}
+              onClick={() => void save(false)}
+              disabled={saving}
               className="shrink-0 rounded-lg bg-accent px-6 py-2.5 font-bold text-white hover:brightness-110 disabled:opacity-60"
             >
-              {pending ? "Menyimpan..." : "Simpan"}
+              {saving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </div>

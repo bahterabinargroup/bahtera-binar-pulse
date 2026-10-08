@@ -27,7 +27,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
         </p>
         <p className="mt-3">
           <b>Pasang di layar utama ponsel</b> supaya mudah dibuka seperti aplikasi: di Chrome (Android) ketuk menu <b>⋮</b>, lalu
-          <b> Tambahkan ke layar utama</b>. Di Safari (iPhone) ketuk tombol <b>Bagikan</b>, lalu <b>Tambah ke Layar Utama</b>.
+          <b> Tambahkan ke layar utama</b>. Di Safari (iPhone) ketuk tombol <b>Bagikan</b>, lalu <b>Tambah ke Layar Utama</b>. Setelah itu muncul ikon perahu Bahtera Binar Pulse di layar ponsel.
         </p>
       </>
     ),
@@ -40,8 +40,8 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
         <ol className="list-decimal space-y-2 pl-5">
           <li>Di Beranda, ketuk <b>Laporan Hari Ini</b>. Form yang muncul otomatis sesuai <b>jabatan</b> Anda.</li>
           <li>Isi bagian demi bagian: Aktivitas, Input Wajib Harian, lalu Review dan Kendala.</li>
-          <li>Ketuk <b>Simpan</b> di bagian bawah layar. Anda boleh menyimpan <b>berkali-kali</b> sepanjang hari, tidak perlu menunggu selesai.</li>
-          <li>Setelah tersimpan, muncul tulisan hijau <b>&quot;✓ Tersimpan pukul ...&quot;</b>.</li>
+          <li>Laporan <b>tersimpan otomatis</b> beberapa detik setelah Anda berhenti mengetik. Di bagian bawah layar muncul tulisan hijau <b>&quot;✓ Tersimpan otomatis pukul ...&quot;</b>. Anda juga bisa mengetuk <b>Simpan</b> kapan saja.</li>
+          <li>Anda boleh mengisi <b>sedikit demi sedikit</b> sepanjang hari, tidak perlu menunggu selesai.</li>
         </ol>
         <h4 className="mt-4 font-bold text-accent">Hal yang perlu diketahui</h4>
         <ul className="list-disc space-y-2 pl-5">
@@ -51,10 +51,23 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           <li><b>Angka</b> boleh ditulis seperti <code>1.500.000</code> atau <code>Rp 1.500.000</code>. <b>Link</b> boleh ditulis tanpa <code>https://</code>, misalnya <code>drive.google.com/...</code>. Kalau formatnya salah, kolomnya ditandai merah beserta penjelasannya.</li>
           <li><b>Hanya hari ini.</b> Laporan hanya bisa dibuat dan diubah pada tanggal hari ini (WIB). Mulai besok, laporan itu <b>terkunci</b>. Kalau terlupa, minta Owner mengoreksinya.</li>
           <li>Kalau tanggal berganti saat Anda masih mengetik, muncul pesan &quot;Hari sudah berganti, laporan ini terkunci&quot;. Tulisan Anda <b>tidak dihapus</b>, jadi bisa disalin dulu.</li>
-          <li>Kalau Anda menutup halaman sebelum menyimpan, browser akan mengingatkan.</li>
+          <li>Kolom yang biasanya sama setiap hari (misalnya <b>Toko</b>, <b>Mentor</b>, <b>ADV / Tim</b>, dan nama toko di tabel per toko) <b>terisi otomatis</b> dari laporan Anda sebelumnya. Cukup periksa, ubah kalau berbeda. Angka dan status tidak ikut terisi.</li>
+          <li>Kalau ada angka atau link yang formatnya salah, penyimpanan otomatis menunggu sampai Anda memperbaikinya (ketuk <b>Simpan</b> untuk melihat kolom mana yang salah).</li>
         </ul>
         <Tip>Isi laporan sedikit demi sedikit sepanjang hari lebih mudah daripada sekaligus di akhir hari.</Tip>
       </>
+    ),
+  },
+  {
+    id: "beranda",
+    title: "Beranda: ringkasan hari ini",
+    body: (
+      <ul className="list-disc space-y-2 pl-5">
+        <li><b>Laporan hari ini:</b> hijau berarti sudah tersimpan, kuning berarti belum diisi. Ketuk kartunya untuk langsung ke form.</li>
+        <li><b>Tugas saya:</b> jumlah tugas yang belum selesai; merah kalau ada yang lewat tenggat.</li>
+        <li><b>Tim hari ini</b> (Manager dan Owner): jumlah orang yang belum mengisi laporan hari ini.</li>
+        <li><b>Permintaan hapus notulensi</b> (Owner): jumlah permintaan yang menunggu persetujuan.</li>
+      </ul>
     ),
   },
   {

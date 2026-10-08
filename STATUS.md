@@ -132,6 +132,14 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Temuan awal (INFO): akun tanpa undangan masih bisa membaca `roles_config` (daftar jabatan/template form) karena policy `using (true)` untuk authenticated — bukan data karyawan; tunggu keputusan pemilik.
 - Belum diuji otomatis: poin 8 (kecocokan form dengan PDF — sudah dicek visual di M2) dan poin 9 (secret key tidak di browser/git — sudah dicek saat M5; ulangi pada build produksi).
 
+## Penyempurnaan kelompok A (8 Okt 2026)
+- **Auto save laporan harian** (`ReportForm`): 3 detik setelah berhenti mengetik, hanya mode isi hari ini (bukan koreksi Owner), menunggu sampai format valid, satu permintaan per waktu. Catatan: laporan kini bisa terbentuk begitu mulai mengetik (dihitung "sudah mengisi" di kepatuhan seperti Simpan manual).
+- **Isi otomatis dari laporan terakhir** (`extractPrefill` di `form-state.ts`, dipakai `laporan/page.tsx`): kolom header (Toko, Mentor, ADV/Tim) dan nama toko per kolom; angka/status/aktivitas tidak ikut. Diuji (10 kasus).
+- **Beranda**: kartu Laporan hari ini (sudah/belum), Tugas saya (+lewat tenggat), Tim hari ini (belum mengisi; Manager/Owner), Permintaan hapus notulensi (Owner).
+- **Bisa dipasang di ponsel**: `src/app/manifest.ts` (nama, warna, ikon 192/512/maskable di `public/icons/`), `manifest.webmanifest` dikecualikan dari proxy login. Tanpa mode offline.
+- Panduan (`/panduan`) diperbarui.
+- Belum dipilih pemilik: B (analisis Owner: CSV rata, ringkasan GMV), C (pantauan manajemen), D (notulensi).
+
 ## Status 8 Okt 2026 (sore)
 - ✅ Uji dengan akun asli selesai (dikonfirmasi pemilik). ✅ Akun uji (Dummy, Dummy 2, dll.) sudah dibersihkan.
 - Domain sendiri & SMTP: DITUNDA (keputusan pemilik) — pakai `bahterapulse.vercel.app` dulu.
