@@ -1,8 +1,16 @@
-import { categoryLabel, hostOf, LINK_CATEGORIES, type ResourceLink } from "@/lib/links";
+import { categoryLabel, hostOf, LINK_CATEGORIES, type PositionNames, type ResourceLink } from "@/lib/links";
 
 // Daftar tautan dikelompokkan per kategori. Tautan dibuka di tab baru.
 // showScope: tampilkan untuk siapa tiap tautan (dipakai Owner/Manager).
-export function LinkGroups({ links, showScope = false }: { links: ResourceLink[]; showScope?: boolean }) {
+export function LinkGroups({
+  links,
+  showScope = false,
+  positionNames = {},
+}: {
+  links: ResourceLink[];
+  showScope?: boolean;
+  positionNames?: PositionNames;
+}) {
   const groups = LINK_CATEGORIES.map((c) => ({ ...c, items: links.filter((l) => l.category === c.value) })).filter(
     (g) => g.items.length > 0,
   );
@@ -30,7 +38,15 @@ export function LinkGroups({ links, showScope = false }: { links: ResourceLink[]
                     {showScope && (
                       <span className="mt-1 flex flex-wrap gap-1 text-[11px]">
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">{l.company?.name ?? "Semua company"}</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">{l.position?.name ?? "Semua divisi"}</span>
+                        {l.position_ids.length === 0 ? (
+                          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">Semua divisi</span>
+                        ) : (
+                          l.position_ids.map((id) => (
+                            <span key={id} className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">
+                              {positionNames[id] ?? "Divisi"}
+                            </span>
+                          ))
+                        )}
                       </span>
                     )}
                   </span>

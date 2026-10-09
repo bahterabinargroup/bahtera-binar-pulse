@@ -137,6 +137,8 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Kode: `src/lib/links.ts`, `src/components/links/LinkGroups.tsx`, `src/app/(app)/tautan/{page,actions}.ts(x)`, bagian di Beranda, menu "Kelola Tautan", panduan diperbarui, `/dev/tautan` (pratinjau lokal). Skrip uji: bagian 16–17 di `supabase/tests/uji_keamanan.sql` — dijalankan pemilik 9 Okt: seluruh skrip 76 pemeriksaan, **0 GAGAL** (termasuk 17 pemeriksaan tautan).
 - Database: `supabase/005_tautan_penting.sql` (= bagian 15 schema). ✅ Dijalankan pemilik 9 Okt (Success). Sebelum itu Beranda tetap normal (bagian tautan disembunyikan) dan `/tautan` menampilkan pesan.
 
+- Perubahan 9 Okt (permintaan pemilik): satu tautan bisa untuk BEBERAPA divisi → kolom `position_id` diganti `position_ids smallint[]` (kosong = semua divisi), form memakai kotak centang. Migrasi `supabase/006_tautan_banyak_divisi.sql` (link lama dipindahkan otomatis); bagian 15 schema sudah memuat bentuk akhir. ⏳ Menunggu 006 dijalankan pemilik (kode baru butuh 006: tanpa itu tampilan tautan gagal dibaca dan disembunyikan).
+
 ## Penyempurnaan kelompok A (8 Okt 2026)
 - **Auto save laporan harian** (`ReportForm`): 3 detik setelah berhenti mengetik, hanya mode isi hari ini (bukan koreksi Owner), menunggu sampai format valid, satu permintaan per waktu. Catatan: laporan kini bisa terbentuk begitu mulai mengetik (dihitung "sudah mengisi" di kepatuhan seperti Simpan manual).
 - **Isi otomatis dari laporan terakhir** (`extractPrefill` di `form-state.ts`, dipakai `laporan/page.tsx`): kolom header (Toko, Mentor, ADV/Tim) dan nama toko per kolom; angka/status/aktivitas tidak ikut. Diuji (10 kasus).

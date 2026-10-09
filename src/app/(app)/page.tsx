@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
 import { LinkGroups } from "@/components/links/LinkGroups";
-import { LINK_SELECT, type ResourceLink } from "@/lib/links";
+import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
 import { menuFor } from "@/lib/menu";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +17,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const today = todayJakarta();
   const isLeader = profile.role !== "employee";
   const hasForm = !!profile.position;
-  const [reportRes, tasksRes, missingRes, deleteRes, linksRes] = await Promise.all([
+  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes] = await Promise.all([
     hasForm
       ? supabase.from("daily_reports").select("updated_at").eq("user_id", profile.id).eq("report_date", today).maybeSingle()
       : Promise.resolve(null),
@@ -27,6 +27,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
       ? supabase.from("meetings").select("id", { count: "exact", head: true }).not("delete_requested_at", "is", null)
       : Promise.resolve(null),
     supabase.from("resource_links").select(LINK_SELECT).order("title"),
+    isLeader ? supabase.from("roles_config").select("id, name") : Promise.resolve(null),
   ]);
   // Bila tabel tautan belum ada (atau gagal dibaca), bagian ini dilewati; Beranda tetap tampil.
   const links = linksRes.error ? null : ((linksRes.data ?? []) as unknown as ResourceLink[]);
@@ -114,7 +115,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
             )}
           </div>
           {links.length > 0 ? (
-            <LinkGroups links={links} showScope={isLeader} />
+            <LinkGroups links={links} showScope={isLeader} positionNames={positionNameMap(posRes?.data as { id: number; name: string }[] | null)} />
           ) : (
             <p className="rounded-lg border border-dashed border-zinc-300 bg-white/60 p-4 text-sm text-zinc-600">
               Belum ada tautan. Tambahkan link tracker, aset, dan SOP lewat <b>Kelola tautan</b> agar tim tidak perlu mencari-cari.

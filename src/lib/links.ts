@@ -18,13 +18,12 @@ export type ResourceLink = {
   url: string;
   description: string | null;
   company_id: string | null;
-  position_id: number | null;
+  position_ids: number[]; // kosong = semua divisi
   company: { name: string } | null;
-  position: { name: string } | null;
 };
 
 export const LINK_SELECT =
-  "id, category, title, url, description, company_id, position_id, company:companies(name), position:roles_config(name)";
+  "id, category, title, url, description, company_id, position_ids, company:companies(name)";
 
 export function hostOf(url: string): string {
   try {
@@ -33,3 +32,8 @@ export function hostOf(url: string): string {
     return "";
   }
 }
+
+// Nama divisi untuk label "untuk siapa" (position_ids -> nama), dari daftar jabatan.
+export type PositionNames = Record<number, string>;
+export const positionNameMap = (rows: { id: number; name: string }[] | null | undefined): PositionNames =>
+  Object.fromEntries((rows ?? []).map((r) => [r.id, r.name]));

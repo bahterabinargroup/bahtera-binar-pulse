@@ -2253,7 +2253,7 @@ end $mig$;
 create table if not exists public.resource_links (
   id              uuid primary key default gen_random_uuid(),
   company_id      uuid references public.companies (id) on delete cascade,
-  position_id     smallint references public.roles_config (id) on delete cascade,
+  position_ids    smallint[] not null default '{}',
   category        public.link_category not null default 'lainnya',
   title           text not null,
   url             text not null,
@@ -2265,13 +2265,13 @@ create table if not exists public.resource_links (
 
   constraint resource_links_title_ok check (btrim(title) <> '' and char_length(title) <= 120),
   constraint resource_links_url_ok   check (url ~* '^https?://[^[:space:]]+$' and char_length(url) <= 2000),
-  constraint resource_links_desc_ok  check (description is null or char_length(description) <= 300)
+  constraint resource_links_desc_ok  check (description is null or char_length(description) <= 300),
+  constraint resource_links_positions_ok check (cardinality(position_ids) <= 20)
 );
 
 create index if not exists resource_links_company_idx  on public.resource_links (company_id);
-create index if not exists resource_links_position_idx on public.resource_links (position_id);
 
-comment on table  public.resource_links is 'Inventaris tautan kerja. company_id kosong = semua company; position_id kosong = semua divisi.';
+comment on table  public.resource_links is 'Inventaris tautan kerja. company_id kosong = semua company; position_ids kosong = semua divisi (bisa beberapa divisi).';
 comment on column public.resource_links.company_id is 'Kosong = semua company (hanya Owner yang boleh membuat).';
 
 -- Jabatan pengguna yang sedang login (null bila tanpa profil aktif)
@@ -2333,7 +2333,7 @@ create policy resource_links_select on public.resource_links
     or (
       (select public.current_user_role()) = 'employee'
       and (company_id is null or company_id = (select public.current_company_id()))
-      and (position_id is null or position_id = (select public.current_position_id()))
+      and (cardinality(position_ids) = 0 or (select public.current_position_id()) = any (position_ids))
     )
   );
 
@@ -2375,5 +2375,7 @@ create policy resource_links_manager_delete on public.resource_links
 revoke all on public.resource_links from anon;
 grant select, insert, delete on public.resource_links to authenticated;
 revoke update on public.resource_links from authenticated;
-grant update (company_id, position_id, category, title, url, description)
+grant update (company_id, position_ids, category, title, url, description)
   on public.resource_links to authenticated;
+
+-- (Instalasi lama yang memakai position_id: jalankan supabase/006_tautan_banyak_divisi.sql)

@@ -3,7 +3,7 @@ import { ActionButton } from "@/components/owner/ActionButton";
 import { ActionForm } from "@/components/owner/ActionForm";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
-import { categoryLabel, hostOf, LINK_CATEGORIES, LINK_SELECT, type ResourceLink } from "@/lib/links";
+import { categoryLabel, hostOf, LINK_CATEGORIES, LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { deleteLink, saveLink } from "./actions";
@@ -55,17 +55,18 @@ function LinkFields({
         Keterangan singkat
         <input name="description" defaultValue={link?.description ?? ""} maxLength={300} placeholder="mis. Isi sebelum jam 10 pagi" className={inputCls} />
       </label>
-      <label className={labelCls}>
-        Untuk divisi
-        <select name="position_id" defaultValue={link?.position_id ?? ""} className={inputCls}>
-          <option value="">Semua divisi</option>
+      <fieldset className={`${labelCls} sm:col-span-2`}>
+        <legend>Untuk divisi (boleh pilih lebih dari satu)</legend>
+        <div className="mt-1 grid gap-x-4 gap-y-1 sm:grid-cols-3">
           {positions.map((p) => (
-            <option key={p.id} value={p.id}>
+            <label key={p.id} className="flex items-center gap-2 text-sm font-normal">
+              <input type="checkbox" name="position_ids" value={p.id} defaultChecked={link?.position_ids.includes(Number(p.id))} />
               {p.name}
-            </option>
+            </label>
           ))}
-        </select>
-      </label>
+        </div>
+        <p className="mt-1 text-xs font-normal text-zinc-500">Jangan centang apa pun = untuk <b>semua divisi</b>.</p>
+      </fieldset>
       {isOwner ? (
         <label className={labelCls}>
           Untuk company
@@ -116,6 +117,7 @@ export default async function KelolaTautanPage() {
   const companies = (compRes.data ?? []) as Option[];
   const positions = (posRes.data ?? []) as Option[];
   const ownCompany = profile.company?.name ?? "";
+  const positionNames = positionNameMap(posRes.data as { id: number; name: string }[]);
 
   return (
     <div className="space-y-6">
@@ -152,7 +154,15 @@ export default async function KelolaTautanPage() {
                   {l.description && <p className="text-sm text-zinc-600">{l.description}</p>}
                   <p className="mt-1 flex flex-wrap gap-1 text-[11px]">
                     <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">{l.company?.name ?? "Semua company"}</span>
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">{l.position?.name ?? "Semua divisi"}</span>
+                    {l.position_ids.length === 0 ? (
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">Semua divisi</span>
+                    ) : (
+                      l.position_ids.map((id) => (
+                        <span key={id} className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600">
+                          {positionNames[id] ?? "Divisi"}
+                        </span>
+                      ))
+                    )}
                   </p>
                 </div>
                 <ActionButton
@@ -176,7 +186,7 @@ export default async function KelolaTautanPage() {
       {links.length > 0 && (
         <section className={cardCls}>
           <h2 className="mb-3 font-bold">Tampilan di Beranda (contoh)</h2>
-          <LinkGroups links={links} showScope />
+          <LinkGroups links={links} showScope positionNames={positionNames} />
         </section>
       )}
     </div>

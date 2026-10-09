@@ -33,7 +33,7 @@ declare
   gh uuid := gen_random_uuid();
   p_adv int; p_rnd int; p_cc int; p_am int;
   m1 uuid; m2 uuid; m3 uuid; m4 uuid; a1 uuid; a2 uuid;
-  l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid;
+  l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid; l6 uuid;
   r_a1_today uuid; r_a1_past uuid; r_a2_past uuid; r_b1 uuid;
   n int; n2 int; n3 int; n4 int; n5 int; n6 int;
   st text; t text; ts timestamptz;
@@ -83,12 +83,13 @@ begin
   insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date) values (m1, 'Tugas uji 1', ea2, today+3) returning id into a1;
   insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date) values (m3, 'Tugas uji 2', ea2, today+5) returning id into a2;
 
-  -- Tautan penting (butuh supabase/005_tautan_penting.sql sudah dijalankan)
-  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, null,  'tracker', 'L1 company A, semua divisi', 'https://example.com/1') returning id into l1;
-  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, p_adv, 'aset',    'L2 company A, ADV',          'https://example.com/2') returning id into l2;
-  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, p_rnd, 'sop',     'L3 company A, RND',          'https://example.com/3') returning id into l3;
-  insert into public.resource_links (company_id, position_id, category, title, url) values (cb, null,  'tracker', 'L4 company B, semua divisi', 'https://example.com/4') returning id into l4;
-  insert into public.resource_links (company_id, position_id, category, title, url) values (null, null, 'lainnya', 'L5 semua company',          'https://example.com/5') returning id into l5;
+  -- Tautan penting (butuh supabase/005 dan 006 sudah dijalankan)
+  insert into public.resource_links (company_id, category, title, url) values (ca, 'tracker', 'L1 company A, semua divisi', 'https://example.com/1') returning id into l1;
+  insert into public.resource_links (company_id, position_ids, category, title, url) values (ca, array[p_adv]::smallint[], 'aset', 'L2 company A, ADV', 'https://example.com/2') returning id into l2;
+  insert into public.resource_links (company_id, position_ids, category, title, url) values (ca, array[p_rnd]::smallint[], 'sop', 'L3 company A, RND', 'https://example.com/3') returning id into l3;
+  insert into public.resource_links (company_id, category, title, url) values (cb, 'tracker', 'L4 company B, semua divisi', 'https://example.com/4') returning id into l4;
+  insert into public.resource_links (company_id, category, title, url) values (null, 'lainnya', 'L5 semua company', 'https://example.com/5') returning id into l5;
+  insert into public.resource_links (company_id, position_ids, category, title, url) values (ca, array[p_adv, p_cc]::smallint[], 'aset', 'L6 company A, ADV dan CC', 'https://example.com/6') returning id into l6;
 
   -- =====================================================================
   -- LAPORAN HARIAN
@@ -584,16 +585,16 @@ begin
 
   -- 16. Siapa melihat tautan
   perform pg_temp.t_as(ea1);
-  select count(*) into n  from public.resource_links where id in (l1, l2, l5);
+  select count(*) into n  from public.resource_links where id in (l1, l2, l5, l6);
   select count(*) into n2 from public.resource_links where id in (l3, l4);
   reset role;
-  res := res || pg_temp.t_line(16, 'Karyawan ADV (company A) melihat tautan untuk semua divisi, ADV, dan semua company; tidak melihat RND atau company lain', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+  res := res || pg_temp.t_line(16, 'Karyawan ADV (company A) melihat tautan untuk semua divisi, ADV (juga yang untuk ADV dan CC), dan semua company; tidak melihat RND atau company lain', n = 4 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
 
   perform pg_temp.t_as(ea2);
   select count(*) into n  from public.resource_links where id in (l1, l3, l5);
-  select count(*) into n2 from public.resource_links where id in (l2, l4);
+  select count(*) into n2 from public.resource_links where id in (l2, l4, l6);
   reset role;
-  res := res || pg_temp.t_line(16, 'Karyawan RND melihat tautan RND, bukan tautan ADV', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+  res := res || pg_temp.t_line(16, 'Karyawan RND melihat tautan RND, bukan tautan ADV atau ADV+CC', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
 
   perform pg_temp.t_as(eb1);
   select count(*) into n  from public.resource_links where id in (l4, l5);
@@ -602,15 +603,20 @@ begin
   res := res || pg_temp.t_line(16, 'Karyawan company B hanya melihat tautan company B dan tautan semua company', n = 2 and n2 = 0, format('terlihat=%s, company A=%s', n, n2));
 
   perform pg_temp.t_as(ma);
-  select count(*) into n  from public.resource_links where id in (l1, l2, l3, l5);
+  select count(*) into n  from public.resource_links where id in (l1, l2, l3, l5, l6);
   select count(*) into n2 from public.resource_links where id = l4;
   reset role;
-  res := res || pg_temp.t_line(16, 'Manager melihat semua tautan company-nya (semua divisi) dan tautan semua company, bukan company lain', n = 4 and n2 = 0, format('terlihat=%s, company lain=%s', n, n2));
+  res := res || pg_temp.t_line(16, 'Manager melihat semua tautan company-nya (semua divisi) dan tautan semua company, bukan company lain', n = 5 and n2 = 0, format('terlihat=%s, company lain=%s', n, n2));
 
   perform pg_temp.t_as(uo);
-  select count(*) into n from public.resource_links where id in (l1, l2, l3, l4, l5);
+  select count(*) into n from public.resource_links where id in (l1, l2, l3, l4, l5, l6);
   reset role;
-  res := res || pg_temp.t_line(16, 'Owner melihat semua tautan', n = 5, format('terlihat=%s', n));
+  res := res || pg_temp.t_line(16, 'Owner melihat semua tautan', n = 6, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(eb2);
+  select count(*) into n from public.resource_links where id = l6;
+  reset role;
+  res := res || pg_temp.t_line(16, 'Divisi yang tercantum di tautan tidak cukup: karyawan CC company B tetap tidak melihat tautan company A', n = 0, format('terlihat=%s', n));
 
   perform pg_temp.t_as(gh);
   select count(*) into n from public.resource_links;

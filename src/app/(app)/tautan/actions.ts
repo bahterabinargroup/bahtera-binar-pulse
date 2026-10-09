@@ -26,7 +26,9 @@ export async function saveLink(_prev: ActionResult | null, f: FormData): Promise
   const url = normalizeUrl(str(f, "url"));
   const category = str(f, "category");
   const description = str(f, "description");
-  const positionRaw = str(f, "position_id");
+  // Beberapa divisi dipilih lewat kotak centang; tidak ada yang dicentang = semua divisi.
+  const positionIds = [...new Set(f.getAll("position_ids").map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0))];
+  if (positionIds.length > 20) return { ok: false, error: "Terlalu banyak divisi dipilih." };
 
   if (!title) return { ok: false, error: "Judul wajib diisi." };
   if (!url) return { ok: false, error: "Alamat link tidak valid. Contoh: https://docs.google.com/spreadsheets/..." };
@@ -42,7 +44,7 @@ export async function saveLink(_prev: ActionResult | null, f: FormData): Promise
     category,
     description: description || null,
     company_id: companyId,
-    position_id: positionRaw ? Number(positionRaw) : null,
+    position_ids: positionIds,
   };
 
   const supabase = await createClient();

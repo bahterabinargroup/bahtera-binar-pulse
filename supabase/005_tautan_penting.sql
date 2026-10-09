@@ -1,3 +1,4 @@
+-- CATATAN: file ini adalah versi awal. Bentuk terbaru: lihat 006_tautan_banyak_divisi.sql (position_ids).
 -- =====================================================================
 -- 005 TAUTAN PENTING (sama dengan bagian 15 schema_daily_report.sql)
 -- Inventaris link kerja (tracker spreadsheet, aset, SOP/dokumen, dll.) yang

@@ -83,7 +83,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
         <ol className="list-decimal space-y-2 pl-5">
           <li>Ketuk <b>Kelola Tautan</b> di Beranda.</li>
           <li>Isi <b>judul</b>, <b>alamat link</b>, <b>kategori</b> (Tracker, Aset, SOP &amp; Dokumen, atau Lainnya), dan keterangan singkat bila perlu.</li>
-          <li>Pilih <b>untuk divisi</b> mana (atau Semua divisi). Owner juga memilih <b>untuk company</b> mana (atau Semua company); Manager otomatis untuk company-nya.</li>
+          <li>Centang <b>untuk divisi</b> mana saja (boleh lebih dari satu, mis. brief untuk ADV, ADV MH, CC, dan AM). Tidak mencentang apa pun berarti untuk semua divisi. Owner juga memilih <b>untuk company</b> mana (atau Semua company); Manager otomatis untuk company-nya.</li>
           <li>Ketuk <b>Tambah tautan</b>. Untuk mengubah, ketuk <b>Ubah</b> pada tautan itu; untuk menghapus, ketuk <b>Hapus</b>.</li>
         </ol>
         <Tip>
