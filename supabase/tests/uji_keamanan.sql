@@ -33,6 +33,7 @@ declare
   gh uuid := gen_random_uuid();
   p_adv int; p_rnd int; p_cc int; p_am int;
   m1 uuid; m2 uuid; m3 uuid; m4 uuid; a1 uuid; a2 uuid;
+  l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid;
   r_a1_today uuid; r_a1_past uuid; r_a2_past uuid; r_b1 uuid;
   n int; n2 int; n3 int; n4 int; n5 int; n6 int;
   st text; t text; ts timestamptz;
@@ -81,6 +82,13 @@ begin
   insert into public.meeting_attendees (meeting_id, user_id, name) values (m1, ea2, 'x'), (m3, ea2, 'x');
   insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date) values (m1, 'Tugas uji 1', ea2, today+3) returning id into a1;
   insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date) values (m3, 'Tugas uji 2', ea2, today+5) returning id into a2;
+
+  -- Tautan penting (butuh supabase/005_tautan_penting.sql sudah dijalankan)
+  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, null,  'tracker', 'L1 company A, semua divisi', 'https://example.com/1') returning id into l1;
+  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, p_adv, 'aset',    'L2 company A, ADV',          'https://example.com/2') returning id into l2;
+  insert into public.resource_links (company_id, position_id, category, title, url) values (ca, p_rnd, 'sop',     'L3 company A, RND',          'https://example.com/3') returning id into l3;
+  insert into public.resource_links (company_id, position_id, category, title, url) values (cb, null,  'tracker', 'L4 company B, semua divisi', 'https://example.com/4') returning id into l4;
+  insert into public.resource_links (company_id, position_id, category, title, url) values (null, null, 'lainnya', 'L5 semua company',          'https://example.com/5') returning id into l5;
 
   -- =====================================================================
   -- LAPORAN HARIAN
@@ -569,6 +577,132 @@ begin
   reset role;
   select count(*) into n2 from public.meetings where id = m4 and delete_requested_at is null;
   res := res || pg_temp.t_line(15, 'Pembuat bisa membatalkan; Owner bisa menolak permintaan hapus', n = 1 and n2 = 1, format('batal pembuat=%s, tolak owner=%s', n, n2));
+
+  -- =====================================================================
+  -- TAUTAN PENTING
+  -- =====================================================================
+
+  -- 16. Siapa melihat tautan
+  perform pg_temp.t_as(ea1);
+  select count(*) into n  from public.resource_links where id in (l1, l2, l5);
+  select count(*) into n2 from public.resource_links where id in (l3, l4);
+  reset role;
+  res := res || pg_temp.t_line(16, 'Karyawan ADV (company A) melihat tautan untuk semua divisi, ADV, dan semua company; tidak melihat RND atau company lain', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+
+  perform pg_temp.t_as(ea2);
+  select count(*) into n  from public.resource_links where id in (l1, l3, l5);
+  select count(*) into n2 from public.resource_links where id in (l2, l4);
+  reset role;
+  res := res || pg_temp.t_line(16, 'Karyawan RND melihat tautan RND, bukan tautan ADV', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+
+  perform pg_temp.t_as(eb1);
+  select count(*) into n  from public.resource_links where id in (l4, l5);
+  select count(*) into n2 from public.resource_links where id in (l1, l2, l3);
+  reset role;
+  res := res || pg_temp.t_line(16, 'Karyawan company B hanya melihat tautan company B dan tautan semua company', n = 2 and n2 = 0, format('terlihat=%s, company A=%s', n, n2));
+
+  perform pg_temp.t_as(ma);
+  select count(*) into n  from public.resource_links where id in (l1, l2, l3, l5);
+  select count(*) into n2 from public.resource_links where id = l4;
+  reset role;
+  res := res || pg_temp.t_line(16, 'Manager melihat semua tautan company-nya (semua divisi) dan tautan semua company, bukan company lain', n = 4 and n2 = 0, format('terlihat=%s, company lain=%s', n, n2));
+
+  perform pg_temp.t_as(uo);
+  select count(*) into n from public.resource_links where id in (l1, l2, l3, l4, l5);
+  reset role;
+  res := res || pg_temp.t_line(16, 'Owner melihat semua tautan', n = 5, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(gh);
+  select count(*) into n from public.resource_links;
+  reset role;
+  res := res || pg_temp.t_line(16, 'Akun tanpa undangan tidak melihat tautan apa pun', n = 0, format('terlihat=%s', n));
+
+  -- 17. Siapa mengelola tautan
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into public.resource_links (company_id, title, url) values (ca, 'bobol', 'https://example.com/x');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Karyawan tidak bisa menambah tautan', st = '42501', 'hasil=' || st);
+
+  perform pg_temp.t_as(ea1);
+  update public.resource_links set title = 'dibajak' where id = l1;
+  get diagnostics n = row_count;
+  delete from public.resource_links where id = l1;
+  get diagnostics n2 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Karyawan tidak bisa mengubah atau menghapus tautan', n = 0 and n2 = 0, format('ubah=%s, hapus=%s baris', n, n2));
+
+  perform pg_temp.t_as(ma);
+  insert into public.resource_links (company_id, title, url, created_by, created_by_name) values (ca, 'Link Manager A', 'https://example.com/m', ea1, 'Nama Palsu') returning created_by_name into t;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager bisa menambah tautan untuk company-nya; nama pembuat tidak bisa dipalsukan', t = 'Uji Manager A', 'nama tersimpan=' || coalesce(t, '-'));
+
+  begin
+    perform pg_temp.t_as(ma);
+    insert into public.resource_links (company_id, title, url) values (cb, 'company lain', 'https://example.com/y');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager tidak bisa menambah tautan untuk company lain', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ma);
+    insert into public.resource_links (company_id, title, url) values (null, 'semua company', 'https://example.com/z');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager tidak bisa membuat tautan "semua company" (hanya Owner)', st = '42501', 'hasil=' || st);
+
+  perform pg_temp.t_as(ma);
+  update public.resource_links set title = 'diubah manager' where id = l1;
+  get diagnostics n = row_count;
+  update public.resource_links set title = 'diubah manager' where id = l4;
+  get diagnostics n2 = row_count;
+  update public.resource_links set title = 'diubah manager' where id = l5;
+  get diagnostics n3 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager bisa mengubah tautan company-nya; tidak bisa mengubah tautan company lain atau "semua company"', n = 1 and n2 = 0 and n3 = 0, format('company sendiri=%s, company lain=%s, semua company=%s baris', n, n2, n3));
+
+  begin
+    perform pg_temp.t_as(ma);
+    update public.resource_links set company_id = cb where id = l2;
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager tidak bisa memindahkan tautan ke company lain', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ma);
+    update public.resource_links set created_by = ea1 where id = l1;
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Pembuat tautan tidak bisa diubah (kolom terkunci)', st = '42501', 'hasil=' || st);
+
+  perform pg_temp.t_as(ma);
+  delete from public.resource_links where id = l2;
+  get diagnostics n = row_count;
+  delete from public.resource_links where id = l4;
+  get diagnostics n2 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Manager bisa menghapus tautan company-nya, tidak bisa menghapus milik company lain', n = 1 and n2 = 0, format('sendiri=%s, company lain=%s baris', n, n2));
+
+  begin
+    perform pg_temp.t_as(uo);
+    insert into public.resource_links (company_id, title, url) values (null, 'alamat berbahaya', 'javascript:alert(1)');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Alamat bukan http/https ditolak (mis. javascript:)', st = '23514', 'hasil=' || st);
+
+  perform pg_temp.t_as(uo);
+  insert into public.resource_links (company_id, title, url) values (null, 'tautan owner', 'https://example.com/o');
+  update public.resource_links set title = 'diubah owner' where id = l4;
+  get diagnostics n = row_count;
+  reset role;
+  res := res || pg_temp.t_line(17, 'Owner bisa membuat tautan "semua company" dan mengubah tautan company mana pun', n = 1, format('ubah=%s baris', n));
 
   -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)

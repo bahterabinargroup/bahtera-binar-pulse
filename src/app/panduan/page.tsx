@@ -71,6 +71,29 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "tautan",
+    title: "Tautan penting (tracker, aset, SOP)",
+    body: (
+      <>
+        <p>
+          Di <b>Beranda</b>, bagian <b>Tautan penting</b> berisi link kerja yang disiapkan untuk company dan divisi Anda: tracker spreadsheet,
+          folder aset, SOP, dan lainnya. Ketuk satu link untuk membukanya di tab baru. Tidak perlu lagi mencari-cari di chat atau tempat lain.
+        </p>
+        <h4 className="mt-4 font-bold text-accent">Untuk Manager dan Owner: mengelola tautan</h4>
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>Ketuk <b>Kelola Tautan</b> di Beranda.</li>
+          <li>Isi <b>judul</b>, <b>alamat link</b>, <b>kategori</b> (Tracker, Aset, SOP &amp; Dokumen, atau Lainnya), dan keterangan singkat bila perlu.</li>
+          <li>Pilih <b>untuk divisi</b> mana (atau Semua divisi). Owner juga memilih <b>untuk company</b> mana (atau Semua company); Manager otomatis untuk company-nya.</li>
+          <li>Ketuk <b>Tambah tautan</b>. Untuk mengubah, ketuk <b>Ubah</b> pada tautan itu; untuk menghapus, ketuk <b>Hapus</b>.</li>
+        </ol>
+        <Tip>
+          Aplikasi hanya menyimpan <b>jalan pintas</b> ke file. Siapa yang boleh membuka isi file (Drive, Spreadsheet, dll.) tetap diatur di layanan
+          itu, jadi pastikan file sudah dibagikan ke tim yang membutuhkan.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: "riwayat",
     title: "3. Riwayat Laporan",
     body: (

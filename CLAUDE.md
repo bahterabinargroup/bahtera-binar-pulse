@@ -67,6 +67,11 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Form harian: `src/lib/report/` (tipe + konversi) dan `src/components/report/` (FormRenderer, ReportForm). Pratinjau lokal tanpa login: `npm run dev` lalu `/dev/pratinjau/ADV` (dst.).
 - Menu per role: `src/lib/menu.ts`. Profil login: `src/lib/profile.ts`. Tanggal WIB: `src/lib/date.ts`.
 
+## Tautan penting (inventaris link) — keputusan pemilik 9 Okt 2026
+- Tabel `resource_links` (`supabase/005_tautan_penting.sql`, bagian 15 schema): `company_id` kosong = semua company (hanya Owner), `position_id` kosong = semua divisi, kategori tetap `tracker|aset|sop|lainnya`, URL harus http/https.
+- Lihat: Owner semua; Manager link company-nya + "semua company"; Karyawan link company-nya/semua company yang untuk jabatannya/semua divisi. Kelola: Owner semua; Manager semua link company-nya. Pembuat diisi trigger.
+- UI: bagian "Tautan penting" di Beranda (`LinkGroups`), halaman `/tautan` (Owner/Manager). Fungsi `public.current_position_id()`.
+
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).
