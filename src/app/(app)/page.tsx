@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { DashboardSection } from "@/components/dashboard/DashboardSection";
+import { parsePeriode } from "@/lib/dashboard";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
@@ -104,8 +107,24 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         )}
       </div>
 
+      <div className="mt-6">
+        <Suspense
+          fallback={
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500 shadow-sm">
+              Memuat dashboard…
+            </div>
+          }
+        >
+          <DashboardSection
+            profile={profile}
+            periode={parsePeriode(params.periode)}
+            company={typeof params.company === "string" ? params.company : ""}
+          />
+        </Suspense>
+      </div>
+
       {links && (links.length > 0 || isLeader) && (
-        <section className="mt-6">
+        <section id="tautan" className="mt-6 scroll-mt-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-accent">Tautan penting</h2>
             {isLeader && (

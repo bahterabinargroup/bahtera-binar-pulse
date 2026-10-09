@@ -71,6 +71,32 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "dashboard",
+    title: "Dashboard di Beranda",
+    body: (
+      <>
+        <p>
+          Di bawah kartu ringkasan hari ini, Beranda menampilkan <b>dashboard</b>: kartu angka di kiri dan grafik di kanan. Pilih periode lewat tombol
+          <b> Hari ini / 7 hari / 30 hari / Bulan ini</b>. Owner juga bisa memilih company.
+        </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          <li><b>Manager dan Owner</b> melihat angka tim: kepatuhan pengisian (per hari dan per divisi), kendala yang ditulis, tugas lewat tenggat, dan presensi mandiri. Manager hanya melihat company-nya.</li>
+          <li><b>Karyawan</b> melihat versi pribadi: berapa hari kerja yang sudah terisi (kotak hijau/merah per hari), kepatuhan sendiri, dan tugas sendiri.</li>
+          <li><b>Divisi ADV:</b> GMV, ads spent, <b>CAC</b>, peringkat dan porsi per toko, serta kerapian checklist harian. Angkanya diambil dari form laporan ADV.</li>
+        </ul>
+        <h4 className="mt-4 font-bold text-accent">Arti angka</h4>
+        <ul className="list-disc space-y-2 pl-5">
+          <li><b>Kepatuhan</b> = laporan yang sudah masuk dibagi laporan yang seharusnya masuk (hari kerja Senin–Sabtu).</li>
+          <li><b>CAC (%)</b> = ads spent dibagi GMV. Makin kecil makin hemat. Cara hitung ini sama dengan &quot;CAC TikTok&quot; di dashboard mitra. <b>ROAS</b> = GMV dibagi ads spent (kebalikannya).</li>
+        </ul>
+        <Tip>
+          Omset dan target resmi mitra tetap ada di spreadsheet Dashboard Mitra (lihat bagian Tautan penting). Dashboard aplikasi menghitung dari
+          laporan harian yang diisi di sini, jadi angkanya bisa berbeda jika isian belum lengkap.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: "tautan",
     title: "Tautan penting (tracker, aset, SOP)",
     body: (

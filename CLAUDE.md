@@ -72,6 +72,12 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Lihat: Owner semua; Manager link company-nya + "semua company"; Karyawan link company-nya/semua company yang untuk jabatannya/semua divisi. Kelola: Owner semua; Manager semua link company-nya. Pembuat diisi trigger.
 - UI: bagian "Tautan penting" di Beranda (`LinkGroups`), halaman `/tautan` (Owner/Manager). Fungsi `public.current_position_id()`.
 
+## Dashboard utama (Beranda) — 10 Okt 2026
+- Keputusan pemilik: tahap 1 = kepatuhan semua divisi + ADV, dihitung dari data aplikasi (tanpa ubah database). ADV mengisi GMV/pesanan/ads di aplikasi DAN di spreadsheet mitra. Target & omset resmi ada di spreadsheet "DASHBOARD MITRA - BAHTERA" (link berganti tiap bulan; dibuka lewat Tautan penting). Sambungan baca langsung ke spreadsheet = TAHAP 2 (belum; butuh Google Cloud/akun layanan + kerja sama pemilik sheet).
+- Kode: `src/lib/dashboard.ts` (hitungan murni, sudah diuji), `src/lib/format.ts`, `src/components/dashboard/` (`DashboardSection` mengambil data & Suspense di `(app)/page.tsx`; `DashboardView` tampilan; `charts.tsx` grafik SVG tanpa pustaka). Pratinjau lokal: `/dev/dashboard` (+ `?mode=saya`).
+- Definisi: kepatuhan = laporan masuk ÷ wajib (employee & manager aktif, Senin–Sabtu, mulai hari akun dibuat). CAC% = ads spent ÷ GMV (sama dengan "CAC TIKTOK" di sheet mitra), ROAS = GMV ÷ ads. Nama toko dari `data_toko[].nama` digabung tanpa beda huruf/spasi.
+- Form tidak dibakukan dulu (keputusan pemilik): pelajari pola isian nyata (nama toko, jenis konten, akun, tim, tahap) sebelum menambah dropdown.
+
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).
