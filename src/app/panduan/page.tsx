@@ -89,6 +89,12 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           <li><b>Kepatuhan</b> = laporan yang sudah masuk dibagi laporan yang seharusnya masuk (hari kerja Senin–Sabtu).</li>
           <li><b>CAC (%)</b> = ads spent dibagi GMV. Makin kecil makin hemat. Cara hitung ini sama dengan &quot;CAC TikTok&quot; di dashboard mitra. <b>ROAS</b> = GMV dibagi ads spent (kebalikannya).</li>
         </ul>
+        <h4 className="mt-4 font-bold text-accent">Target omzet</h4>
+        <ul className="list-disc space-y-2 pl-5">
+          <li><b>Owner</b> menetapkan target omzet bulanan tiap ADV lewat <b>Atur Target</b>. Target harian = target bulan dibagi jumlah hari kerja (Senin–Sabtu). Tersedia tombol <b>Salin target bulan lalu</b>.</li>
+          <li>Dashboard menampilkan <b>Omzet hari ini</b> (persen dari target harian), <b>Omzet bulan ini</b> (persen dari target bulan, dan berapa persen yang seharusnya sudah tercapai hari ini), grafik realisasi kumulatif dibanding garis target, dan pencapaian tiap ADV.</li>
+          <li>Realisasi diambil dari baris <b>GMV (nilai penjualan)</b> di laporan harian ADV, jumlah semua toko. ADV hanya melihat targetnya sendiri; Manager melihat target ADV di company-nya.</li>
+        </ul>
         <Tip>
           Omset dan target resmi mitra tetap ada di spreadsheet Dashboard Mitra (lihat bagian Tautan penting). Dashboard aplikasi menghitung dari
           laporan harian yang diisi di sini, jadi angkanya bisa berbeda jika isian belum lengkap.

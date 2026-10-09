@@ -20,6 +20,7 @@ export const MENU: MenuItem[] = [
   { label: "Panduan", description: "Cara memakai aplikasi, langkah demi langkah", href: "/panduan", roles: ALL, ready: true },
   { label: "Kelola Tautan", description: "Kumpulkan link tracker, aset, dan SOP untuk tim", href: "/tautan", roles: ["owner", "manager"], ready: true },
   { label: "Dashboard Tim", description: "Siapa yang belum mengisi dan rekap kepatuhan", href: "/dashboard", roles: ["owner", "manager"], ready: true },
+  { label: "Atur Target", description: "Tetapkan target omzet bulanan tiap ADV", href: "/target", roles: ["owner"], ready: true },
   { label: "Company", description: "Kelola holding dan anak usaha", href: "/owner/company", roles: ["owner"], ready: true },
   { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: true },
   { label: "Pengguna", description: "Aktifkan, nonaktifkan, ubah role dan jabatan", href: "/owner/pengguna", roles: ["owner"], ready: true },

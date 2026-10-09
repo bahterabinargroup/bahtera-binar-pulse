@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fmtInt, fmtPct, fmtRp, fmtRpFull } from "@/lib/format";
 import { cacPct, PERIODE_LABEL, roas, type AdvAgg, type DayCompliance, type GroupCompliance, type Periode } from "@/lib/dashboard";
+import type { TargetProgress } from "@/lib/target";
 import { BarList, COLORS, DayStrip, Donut, LineChart } from "./charts";
 
 export type DashboardData = {
@@ -13,6 +14,7 @@ export type DashboardData = {
   byPosition: GroupCompliance[];
   presence: { sudah: number; total: number };
   adv: AdvAgg | null;
+  target: { monthLabel: string; progress: TargetProgress; advCount: number; perAdv: { name: string; actual: number; target: number; pct: number }[] } | null;
   kendala: number;
   overdue: number;
   myDays?: { day: string; label: string; state: "ok" | "miss" | "off" }[];
@@ -77,7 +79,7 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-6 text-center text-sm text-zinc-500">{children}</p>;
 }
 
-export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.ReactNode }) {
+export function DashboardView({ d, filter, canSetTarget = false }: { d: DashboardData; filter?: React.ReactNode; canSetTarget?: boolean }) {
   const tim = d.scope === "tim";
   const adv = d.adv && d.adv.reports > 0 ? d.adv : null;
   const money = adv?.hasMoney ? adv : null;
@@ -90,8 +92,25 @@ export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.
   if (tim && d.today) tiles.push({ icon: "orang", value: `${d.today.filled}/${d.today.expected}`, label: "Laporan masuk hari ini", sub: "orang sudah melapor" });
   if (!tim) tiles.push({ icon: "orang", value: `${d.compliance.total.filled}/${d.compliance.total.expected}`, label: "Hari kerja terisi", sub: periodeText });
   tiles.push({ icon: "centang", value: pct === null ? "—" : fmtPct(pct, 0), label: tim ? "Kepatuhan pengisian" : "Kepatuhan saya", sub: periodeText });
+  const tg = d.target?.progress ?? null;
+  if (tg) {
+    tiles.push({
+      icon: "uang",
+      value: fmtRp(tg.todayActual),
+      label: "Omzet hari ini",
+      sub: tg.todayPct === null ? "Hari libur, tanpa target harian" : `${fmtPct(tg.todayPct, 0)} dari target harian ${fmtRp(tg.dailyTarget ?? 0)}`,
+      title: fmtRpFull(tg.todayActual),
+    });
+    tiles.push({
+      icon: "centang",
+      value: tg.mtdPct === null ? "—" : fmtPct(tg.mtdPct, 0),
+      label: "Omzet bulan ini",
+      sub: `${fmtRp(tg.mtdActual)} dari ${fmtRp(tg.monthlyTarget)}${tg.pacePct === null ? "" : ` · seharusnya ±${fmtPct(tg.pacePct, 0)}`}`,
+      title: fmtRpFull(tg.mtdActual),
+    });
+  }
   if (money) {
-    tiles.push({ icon: "uang", value: fmtRp(money.total.gmv), label: "GMV (ADV)", sub: `${fmtInt(money.total.pesanan)} pesanan`, title: fmtRpFull(money.total.gmv) });
+    if (!tg) tiles.push({ icon: "uang", value: fmtRp(money.total.gmv), label: "GMV (ADV)", sub: `${fmtInt(money.total.pesanan)} pesanan`, title: fmtRpFull(money.total.gmv) });
     tiles.push({ icon: "persen", value: cac === null ? "—" : fmtPct(cac), label: "CAC (ads ÷ GMV)", sub: `Ads ${fmtRp(money.total.ads)}${rs ? ` · ROAS ${rs.toFixed(1).replace(".", ",")}` : ""}`, title: fmtRpFull(money.total.ads) });
   }
   tiles.push({ icon: "tanda", value: fmtInt(d.kendala), label: "Kendala ditulis", sub: periodeText });
@@ -118,6 +137,49 @@ export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
+          {canSetTarget && !d.target && (
+            <section className="rounded-xl border border-dashed border-gold bg-white/70 p-4 text-sm md:col-span-2">
+              <p className="font-bold text-accent">Target omzet bulan ini belum ditetapkan</p>
+              <p className="mt-1 text-zinc-600">
+                Tetapkan target tiap ADV agar dashboard menampilkan persentase omzet hari ini dan bulan ini terhadap target.{" "}
+                <Link href="/target" className="font-bold text-accent underline decoration-gold underline-offset-2">Atur target →</Link>
+              </p>
+            </section>
+          )}
+
+          {d.target && (
+            <Card
+              title={`Omzet bulan ini vs target (${d.target.monthLabel})`}
+              sub={`Realisasi kumulatif (GMV form ADV) dibanding target kumulatif yang dibagi rata per hari kerja · ${d.target.advCount} ADV bertarget`}
+              className={d.target.perAdv.length ? "" : "md:col-span-2"}
+            >
+              <LineChart
+                labels={d.target.progress.series.map((x) => String(Number(x.day.slice(8))))}
+                series={[
+                  { name: "Realisasi", color: COLORS.navy, values: d.target.progress.series.map((x) => x.actual) },
+                  { name: "Target (kumulatif)", color: COLORS.gold, values: d.target.progress.series.map((x) => x.target), dashed: true },
+                ]}
+                fmtY={(v) => fmtRp(v)}
+                fmtTip={(v) => fmtRpFull(v)}
+              />
+            </Card>
+          )}
+
+          {d.target && d.target.perAdv.length > 0 && (
+            <Card title="Pencapaian per ADV bulan ini" sub="Persen realisasi terhadap target bulanan masing-masing">
+              <BarList
+                max={Math.max(100, ...d.target.perAdv.map((a) => a.pct))}
+                color={COLORS.navy2}
+                items={d.target.perAdv.map((a) => ({
+                  label: a.name,
+                  value: a.pct,
+                  display: fmtPct(a.pct, 0),
+                  note: `${fmtRp(a.actual)} dari ${fmtRp(a.target)}`,
+                }))}
+              />
+            </Card>
+          )}
+
           {!tim && d.myDays && (
             <Card title="Riwayat pengisian laporan" sub="Hijau = sudah melapor, merah muda = belum, abu = bukan hari kerja" className="md:col-span-2">
               <DayStrip days={d.myDays} />

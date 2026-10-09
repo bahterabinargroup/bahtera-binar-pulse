@@ -26,7 +26,7 @@ export const isWorkday = (ymd: string) => new Date(`${ymd}T00:00:00Z`).getUTCDay
 
 // ---------- Kepatuhan ----------
 
-export type UserLite = { id: string; role: string; is_active: boolean; created_at: string; position_id: number | null };
+export type UserLite = { id: string; role: string; is_active: boolean; created_at: string; position_id: number | null; full_name?: string };
 export type ReportLite = { user_id: string; report_date: string; position_id: number | null; presensi: string | null };
 
 const mustReport = (u: UserLite) => u.is_active && (u.role === "employee" || u.role === "manager");
@@ -168,4 +168,10 @@ export function aggregateAdv(rows: AdvRow[], days: string[]): AdvAgg {
     ],
     hasMoney,
   };
+}
+
+// Jumlah GMV (nilai penjualan) dari satu laporan ADV: semua toko di data_toko.
+export function gmvOfReport(dataToko: unknown): number {
+  if (!Array.isArray(dataToko)) return 0;
+  return dataToko.reduce((sum: number, e) => sum + (e && typeof e === "object" ? num((e as Record<string, unknown>).gmv) : 0), 0);
 }

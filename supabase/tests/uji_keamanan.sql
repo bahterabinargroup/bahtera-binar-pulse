@@ -33,9 +33,9 @@ declare
   gh uuid := gen_random_uuid();
   p_adv int; p_rnd int; p_cc int; p_am int;
   m1 uuid; m2 uuid; m3 uuid; m4 uuid; a1 uuid; a2 uuid;
-  l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid; l6 uuid;
+  l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid; l6 uuid; t1 uuid;
   r_a1_today uuid; r_a1_past uuid; r_a2_past uuid; r_b1 uuid;
-  n int; n2 int; n3 int; n4 int; n5 int; n6 int;
+  n int; n2 int; n3 bigint; n4 int; n5 int; n6 int;
   st text; t text; ts timestamptz;
   res text := '';
 begin
@@ -90,6 +90,11 @@ begin
   insert into public.resource_links (company_id, category, title, url) values (cb, 'tracker', 'L4 company B, semua divisi', 'https://example.com/4') returning id into l4;
   insert into public.resource_links (company_id, category, title, url) values (null, 'lainnya', 'L5 semua company', 'https://example.com/5') returning id into l5;
   insert into public.resource_links (company_id, position_ids, category, title, url) values (ca, array[p_adv, p_cc]::smallint[], 'aset', 'L6 company A, ADV dan CC', 'https://example.com/6') returning id into l6;
+
+  -- Target omzet (butuh supabase/007_target_omzet.sql sudah dijalankan)
+  insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea1, date_trunc('month', today)::date, 50000000) returning id into t1;
+  insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea2, date_trunc('month', today)::date, 30000000);
+  insert into public.omzet_targets (company_id, user_id, month, amount) values (cb, eb1, date_trunc('month', today)::date, 40000000);
 
   -- =====================================================================
   -- LAPORAN HARIAN
@@ -709,6 +714,105 @@ begin
   get diagnostics n = row_count;
   reset role;
   res := res || pg_temp.t_line(17, 'Owner bisa membuat tautan "semua company" dan mengubah tautan company mana pun', n = 1, format('ubah=%s baris', n));
+
+  -- =====================================================================
+  -- TARGET OMZET
+  -- =====================================================================
+
+  -- 18. Siapa melihat target
+  perform pg_temp.t_as(ea1);
+  select count(*) into n from public.omzet_targets;
+  select count(*) into n2 from public.omzet_targets where user_id = ea1;
+  reset role;
+  res := res || pg_temp.t_line(18, 'Karyawan hanya melihat target milik dirinya sendiri', n = 1 and n2 = 1, format('terlihat=%s, milik sendiri=%s', n, n2));
+
+  perform pg_temp.t_as(ma);
+  select count(*) into n from public.omzet_targets where company_id = ca;
+  select count(*) into n2 from public.omzet_targets where company_id = cb;
+  reset role;
+  res := res || pg_temp.t_line(18, 'Manager melihat semua target di company-nya, tidak company lain', n = 2 and n2 = 0, format('company sendiri=%s, company lain=%s', n, n2));
+
+  perform pg_temp.t_as(uo);
+  select count(*) into n from public.omzet_targets where company_id in (ca, cb);
+  reset role;
+  res := res || pg_temp.t_line(18, 'Owner melihat semua target', n = 3, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(gh);
+  select count(*) into n from public.omzet_targets;
+  reset role;
+  res := res || pg_temp.t_line(18, 'Akun tanpa undangan tidak melihat target', n = 0, format('terlihat=%s', n));
+
+  -- 19. Siapa menetapkan target
+  begin
+    perform pg_temp.t_as(ma);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ma, date_trunc('month', today + 40)::date, 1000);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Manager tidak bisa menetapkan target', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea1, date_trunc('month', today + 40)::date, 1000);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Karyawan tidak bisa menetapkan target untuk dirinya', st = '42501', 'hasil=' || st);
+
+  perform pg_temp.t_as(ea1);
+  update public.omzet_targets set amount = 999999999 where id = t1;
+  get diagnostics n = row_count;
+  delete from public.omzet_targets where id = t1;
+  get diagnostics n2 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Karyawan tidak bisa mengubah atau menghapus targetnya', n = 0 and n2 = 0, format('ubah=%s, hapus=%s baris', n, n2));
+
+  perform pg_temp.t_as(ma);
+  update public.omzet_targets set amount = 1 where id = t1;
+  get diagnostics n = row_count;
+  delete from public.omzet_targets where id = t1;
+  get diagnostics n2 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Manager tidak bisa mengubah atau menghapus target', n = 0 and n2 = 0, format('ubah=%s, hapus=%s baris', n, n2));
+
+  perform pg_temp.t_as(uo);
+  update public.omzet_targets set amount = 55000000 where id = t1;
+  get diagnostics n = row_count;
+  reset role;
+  select amount::bigint into n3 from public.omzet_targets where id = t1;
+  res := res || pg_temp.t_line(19, 'Owner bisa mengubah target', n = 1 and n3 = 55000000, format('ubah=%s, nilai=%s', n, n3));
+
+  begin
+    perform pg_temp.t_as(uo);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea1, date_trunc('month', today)::date, 1);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Satu ADV hanya punya satu target per bulan', st = '23505', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(uo);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (cb, ea2, date_trunc('month', today + 40)::date, 1);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Target tidak bisa memakai company yang berbeda dari company ADV-nya', st = '23503', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(uo);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea2, date_trunc('month', today + 40)::date + 5, 1);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Bulan target harus tanggal 1', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(uo);
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea2, date_trunc('month', today + 40)::date, -5);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(19, 'Target negatif ditolak', st = '23514', 'hasil=' || st);
 
   -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)

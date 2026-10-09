@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DashboardView, type DashboardData } from "@/components/dashboard/DashboardView";
+import { targetProgress } from "@/lib/target";
 import { aggregateAdv, complianceByDay, complianceByPosition, complianceTotal, eachDay, isWorkday, periodRange, presenceRate, type AdvRow, type ReportLite, type UserLite } from "@/lib/dashboard";
 
 // HANYA pengembangan lokal: dashboard dengan data rekaan (angka bukan data asli).
@@ -47,6 +48,11 @@ export default async function DevDashboardPage({ searchParams }: PageProps<"/dev
     byPosition: complianceByPosition(users, reports, days, { 2: "Advertiser", 4: "Content Creator", 5: "Affiliate Manajemen", 6: "Research & Development" }),
     presence: presenceRate(reports),
     adv,
+    target: (() => {
+      const daily: Record<string, number> = {};
+      for (const r of advRows) { if (r.report_date >= "2026-10-01" && r.report_date <= "2026-10-09") daily[r.report_date] = (daily[r.report_date] ?? 0) + (r.data_toko as { gmv: number }[]).reduce((s, e) => s + e.gmv, 0); }
+      return { monthLabel: "Oktober 2026", progress: targetProgress(180000000, daily, "2026-10-09"), advCount: 3, perAdv: saya ? [] : [{ name: "Alvian", actual: 21500000, target: 60000000, pct: 35.8 }, { name: "Alam", actual: 18200000, target: 50000000, pct: 36.4 }, { name: "Tian", actual: 9100000, target: 70000000, pct: 13 }].sort((a, b) => b.pct - a.pct) };
+    })(),
     kendala: 14,
     overdue: 2,
     myDays: saya ? days.map((day) => ({ day, label: String(Number(day.slice(8))), state: !isWorkday(day) ? "off" : mine.has(day) ? "ok" : "miss" })) : undefined,
