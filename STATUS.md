@@ -135,7 +135,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 ## Tautan penting (9 Okt 2026)
 - Permintaan pemilik: inventaris link (tracker spreadsheet semua divisi, aset CC, dll.) di dashboard awal; Owner/Manager yang mengelola. Keputusan: visibilitas per company + per divisi, kategori tetap, Manager kelola semua link company-nya.
 - Kode: `src/lib/links.ts`, `src/components/links/LinkGroups.tsx`, `src/app/(app)/tautan/{page,actions}.ts(x)`, bagian di Beranda, menu "Kelola Tautan", panduan diperbarui, `/dev/tautan` (pratinjau lokal). Skrip uji: bagian 16–17 (±17 pemeriksaan) di `supabase/tests/uji_keamanan.sql`.
-- Database: `supabase/005_tautan_penting.sql` (= bagian 15 schema). ⏳ Menunggu dijalankan pemilik. Sebelum itu Beranda tetap normal (bagian tautan disembunyikan) dan `/tautan` menampilkan pesan.
+- Database: `supabase/005_tautan_penting.sql` (= bagian 15 schema). ✅ Dijalankan pemilik 9 Okt (Success). Sebelum itu Beranda tetap normal (bagian tautan disembunyikan) dan `/tautan` menampilkan pesan.
 
 ## Penyempurnaan kelompok A (8 Okt 2026)
 - **Auto save laporan harian** (`ReportForm`): 3 detik setelah berhenti mengetik, hanya mode isi hari ini (bukan koreksi Owner), menunggu sampai format valid, satu permintaan per waktu. Catatan: laporan kini bisa terbentuk begitu mulai mengetik (dihitung "sudah mengisi" di kepatuhan seperti Simpan manual).
