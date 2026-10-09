@@ -134,7 +134,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 
 ## Tautan penting (9 Okt 2026)
 - Permintaan pemilik: inventaris link (tracker spreadsheet semua divisi, aset CC, dll.) di dashboard awal; Owner/Manager yang mengelola. Keputusan: visibilitas per company + per divisi, kategori tetap, Manager kelola semua link company-nya.
-- Kode: `src/lib/links.ts`, `src/components/links/LinkGroups.tsx`, `src/app/(app)/tautan/{page,actions}.ts(x)`, bagian di Beranda, menu "Kelola Tautan", panduan diperbarui, `/dev/tautan` (pratinjau lokal). Skrip uji: bagian 16–17 di `supabase/tests/uji_keamanan.sql` — dijalankan pemilik 9 Okt: seluruh skrip 76 pemeriksaan, **0 GAGAL** (termasuk 17 pemeriksaan tautan).
+- Kode: `src/lib/links.ts`, `src/components/links/LinkGroups.tsx`, `src/app/(app)/tautan/{page,actions}.ts(x)`, bagian di Beranda, menu "Kelola Tautan", panduan diperbarui, `/dev/tautan` (pratinjau lokal). Skrip uji: bagian 16–17 di `supabase/tests/uji_keamanan.sql` — dijalankan pemilik 9 Okt: seluruh skrip 77 pemeriksaan, **0 GAGAL** (termasuk pemeriksaan tautan; diulang setelah migrasi 006 multi-divisi: tetap 0 GAGAL).
 - Database: `supabase/005_tautan_penting.sql` (= bagian 15 schema). ✅ Dijalankan pemilik 9 Okt (Success). Sebelum itu Beranda tetap normal (bagian tautan disembunyikan) dan `/tautan` menampilkan pesan.
 
 - Perubahan 9 Okt (permintaan pemilik): satu tautan bisa untuk BEBERAPA divisi → kolom `position_id` diganti `position_ids smallint[]` (kosong = semua divisi), form memakai kotak centang. Migrasi `supabase/006_tautan_banyak_divisi.sql` (link lama dipindahkan otomatis); bagian 15 schema sudah memuat bentuk akhir. ✅ 006 dijalankan pemilik & kode ditayangkan (9 Okt).
