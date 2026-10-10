@@ -140,7 +140,7 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 ## Target omzet (10 Okt 2026)
 - Klarifikasi pemilik: target omzet ditetapkan Owner di aplikasi; spreadsheet mitra hanya proyeksi. Keputusan: target per ADV (+total company otomatis), bulanan dengan target harian = bulan ÷ hari kerja, realisasi = GMV form ADV.
 - Kode: `src/lib/target.ts` (15 uji lolos), `/target` (Atur Target, Owner: isi per ADV, salin bulan lalu), dashboard: kartu "Omzet hari ini" & "Omzet bulan ini", grafik kumulatif vs target, pencapaian per ADV, petunjuk bagi Owner bila target kosong. Skrip uji bagian 18–19 ditambahkan.
-- Database: `supabase/007_target_omzet.sql` (= bagian 16 schema). ⏳ Menunggu dijalankan pemilik; sebelum itu dashboard tetap normal tanpa bagian target.
+- Database: `supabase/007_target_omzet.sql` (= bagian 16 schema). ✅ Dijalankan pemilik 10 Okt (Success). Uji keamanan diulang: 87 pemeriksaan (termasuk bagian 18–19 target), **0 GAGAL**. Berikutnya: Owner mengisi target Oktober di Atur Target.
 - Tahap 2 (nanti): proyeksi omzet dari spreadsheet mitra dapat ditampilkan berdampingan.
 
 ## Tautan penting (9 Okt 2026)
