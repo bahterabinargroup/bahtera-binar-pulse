@@ -43,20 +43,34 @@ async function buildData(sb: Sb, profile: Profile, periode: Periode, company: st
   const days = eachDay(range.from, range.to);
   const companyFilter = profile.role === "owner" && company ? company : null;
 
-  const { data: positions, error: posErr } = await sb.from("roles_config").select("id, code, name");
-  if (posErr) throw new Error(posErr.message);
-  const names = Object.fromEntries((positions ?? []).map((p) => [p.id as number, p.name as string]));
-  const advId = (positions ?? []).find((p) => p.code === "ADV")?.id as number | undefined;
+  const monthFrom = monthStart(today);
 
-  // Pengguna yang dihitung wajib lapor. Karyawan: hanya dirinya sendiri.
-  const users = await fetchAll<UserLite>((a, b) => {
-    let q = sb.from("users").select("id, role, is_active, created_at, position_id, full_name").order("id").range(a, b);
-    q = tim ? (companyFilter ? q.eq("company_id", companyFilter) : q) : q.eq("id", profile.id);
-    return q as unknown as PromiseLike<{ data: UserLite[] | null; error: { message: string } | null }>;
-  });
+  // Semua pertanyaan yang tidak saling bergantung dijalankan bersamaan (bukan satu per satu) supaya Beranda cepat.
+  const kq0 = sb
+    .from("daily_reports")
+    .select("id", { count: "exact", head: true })
+    .gte("report_date", range.from)
+    .lte("report_date", range.to)
+    .not("obstacles", "is", null)
+    .neq("obstacles", "");
+  const kq = companyFilter ? kq0.eq("company_id", companyFilter) : kq0;
+  const oq = sb
+    .from("meeting_action_items")
+    .select("id", { count: "exact", head: true })
+    .neq("status", "done")
+    .lt("due_date", today);
+  const tq0 = sb.from("omzet_targets").select("user_id, amount").eq("month", monthFrom);
+  const tq = companyFilter ? tq0.eq("company_id", companyFilter) : tq0;
 
-  const reports = (
-    await fetchAll<{ user_id: string; report_date: string; position_id: number | null; presensi: string | null }>((a, b) => {
+  const [posRes, users, reportsRaw, kRes, oRes, tRes] = await Promise.all([
+    sb.from("roles_config").select("id, code, name"),
+    // Pengguna yang dihitung wajib lapor. Karyawan: hanya dirinya sendiri.
+    fetchAll<UserLite>((a, b) => {
+      let q = sb.from("users").select("id, role, is_active, created_at, position_id, full_name").order("id").range(a, b);
+      q = tim ? (companyFilter ? q.eq("company_id", companyFilter) : q) : q.eq("id", profile.id);
+      return q as unknown as PromiseLike<{ data: UserLite[] | null; error: { message: string } | null }>;
+    }),
+    fetchAll<{ user_id: string; report_date: string; position_id: number | null; presensi: string | null }>((a, b) => {
       let q = sb
         .from("daily_reports")
         .select("user_id, report_date, position_id, presensi:performance_metrics->presensi_mandiri->>value")
@@ -67,68 +81,63 @@ async function buildData(sb: Sb, profile: Profile, periode: Periode, company: st
         .range(a, b);
       if (companyFilter) q = q.eq("company_id", companyFilter);
       return q as unknown as PromiseLike<{ data: { user_id: string; report_date: string; position_id: number | null; presensi: string | null }[] | null; error: { message: string } | null }>;
-    })
-  ).map((r): ReportLite => ({ ...r }));
-
-  const advRows = advId
-    ? await fetchAll<AdvRow>((a, b) => {
-        let q = sb
-          .from("daily_reports")
-          .select(
-            "user_id, report_date, toko:performance_metrics->>toko, data_toko:performance_metrics->data_toko, tarik:performance_metrics->tarik_data_penjualan->>value, tracker:performance_metrics->input_tracker_ads->>value, brief:performance_metrics->brief_qc_upload->>value, presensi:performance_metrics->presensi_mandiri->>value",
-          )
-          .eq("position_id", advId)
-          .gte("report_date", range.from)
-          .lte("report_date", range.to)
-          .order("report_date")
-          .order("user_id")
-          .range(a, b);
-        if (companyFilter) q = q.eq("company_id", companyFilter);
-        return q as unknown as PromiseLike<{ data: AdvRow[] | null; error: { message: string } | null }>;
-      })
-    : [];
-
-  let kq = sb
-    .from("daily_reports")
-    .select("id", { count: "exact", head: true })
-    .gte("report_date", range.from)
-    .lte("report_date", range.to)
-    .not("obstacles", "is", null)
-    .neq("obstacles", "");
-  if (companyFilter) kq = kq.eq("company_id", companyFilter);
-  const oq = sb
-    .from("meeting_action_items")
-    .select("id", { count: "exact", head: true })
-    .neq("status", "done")
-    .lt("due_date", today);
-  const [kRes, oRes] = await Promise.all([kq, oq]);
+    }),
+    kq,
+    oq,
+    tq,
+  ]);
+  if (posRes.error) throw new Error(posRes.error.message);
   if (kRes.error) throw new Error(kRes.error.message);
   if (oRes.error) throw new Error(oRes.error.message);
+  const positions = posRes.data;
+  const names = Object.fromEntries((positions ?? []).map((p) => [p.id as number, p.name as string]));
+  const advId = (positions ?? []).find((p) => p.code === "ADV")?.id as number | undefined;
+  const reports = reportsRaw.map((r): ReportLite => ({ ...r }));
 
-  // ---- Target omzet bulan ini vs realisasi (GMV form ADV) ----
-  let target: DashboardData["target"] = null;
-  const monthFrom = monthStart(today);
-  let tq = sb.from("omzet_targets").select("user_id, amount").eq("month", monthFrom);
-  if (companyFilter) tq = tq.eq("company_id", companyFilter);
-  const tRes = await tq;
   const tableMissing = tRes.error?.code === "42P01" || tRes.error?.code === "PGRST205";
   if (tRes.error && !tableMissing) throw new Error(tRes.error.message);
   const targets = tableMissing ? [] : (tRes.data ?? []).filter((t) => Number(t.amount) > 0);
+
+  // Tahap kedua (butuh id jabatan ADV): data ADV periode ini dan realisasi bulan ini, bersamaan.
+  const [advRows, monthRows] = await Promise.all([
+    advId
+      ? fetchAll<AdvRow>((a, b) => {
+          let q = sb
+            .from("daily_reports")
+            .select(
+              "user_id, report_date, toko:performance_metrics->>toko, data_toko:performance_metrics->data_toko, tarik:performance_metrics->tarik_data_penjualan->>value, tracker:performance_metrics->input_tracker_ads->>value, brief:performance_metrics->brief_qc_upload->>value, presensi:performance_metrics->presensi_mandiri->>value",
+            )
+            .eq("position_id", advId)
+            .gte("report_date", range.from)
+            .lte("report_date", range.to)
+            .order("report_date")
+            .order("user_id")
+            .range(a, b);
+          if (companyFilter) q = q.eq("company_id", companyFilter);
+          return q as unknown as PromiseLike<{ data: AdvRow[] | null; error: { message: string } | null }>;
+        })
+      : Promise.resolve([] as AdvRow[]),
+    targets.length && advId
+      ? fetchAll<{ user_id: string; report_date: string; data_toko: unknown }>((a, b) => {
+          let q = sb
+            .from("daily_reports")
+            .select("user_id, report_date, data_toko:performance_metrics->data_toko")
+            .eq("position_id", advId)
+            .gte("report_date", monthFrom)
+            .lte("report_date", today)
+            .order("report_date")
+            .order("user_id")
+            .range(a, b);
+          if (companyFilter) q = q.eq("company_id", companyFilter);
+          return q as unknown as PromiseLike<{ data: { user_id: string; report_date: string; data_toko: unknown }[] | null; error: { message: string } | null }>;
+        })
+      : Promise.resolve([] as { user_id: string; report_date: string; data_toko: unknown }[]),
+  ]);
+
+  // ---- Target omzet bulan ini vs realisasi (GMV form ADV) ----
+  let target: DashboardData["target"] = null;
   if (targets.length && advId) {
     const targeted = new Set(targets.map((t) => t.user_id as string));
-    const monthRows = await fetchAll<{ user_id: string; report_date: string; data_toko: unknown }>((a, b) => {
-      let q = sb
-        .from("daily_reports")
-        .select("user_id, report_date, data_toko:performance_metrics->data_toko")
-        .eq("position_id", advId)
-        .gte("report_date", monthFrom)
-        .lte("report_date", today)
-        .order("report_date")
-        .order("user_id")
-        .range(a, b);
-      if (companyFilter) q = q.eq("company_id", companyFilter);
-      return q as unknown as PromiseLike<{ data: { user_id: string; report_date: string; data_toko: unknown }[] | null; error: { message: string } | null }>;
-    });
     const dailyActual: Record<string, number> = {};
     const perUser = new Map<string, number>();
     for (const r of monthRows) {
