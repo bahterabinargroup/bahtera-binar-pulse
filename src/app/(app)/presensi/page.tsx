@@ -1,4 +1,5 @@
 import { CheckInForm } from "@/components/presensi/CheckInForm";
+import { CheckOutForm } from "@/components/presensi/CheckOutForm";
 import { cardCls } from "@/components/owner/ui";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
@@ -12,6 +13,10 @@ type Row = {
   check_in_lat: number | null;
   check_in_lng: number | null;
   check_in_photo_path: string | null;
+  check_out_at: string | null;
+  check_out_lat: number | null;
+  check_out_lng: number | null;
+  check_out_photo_path: string | null;
 };
 
 // Presensi harian. Data identitas (nama, company, jabatan, tanggal) otomatis; karyawan hanya mengisi status dan bukti.
@@ -24,7 +29,7 @@ export default async function PresensiPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("presensi")
-    .select("status, note, check_in_at, check_in_lat, check_in_lng, check_in_photo_path")
+    .select("status, note, check_in_at, check_in_lat, check_in_lng, check_in_photo_path, check_out_at, check_out_lat, check_out_lng, check_out_photo_path")
     .eq("user_id", profile.id)
     .eq("attendance_date", today)
     .maybeSingle();
@@ -32,11 +37,14 @@ export default async function PresensiPage() {
   if (error && !tableMissing) throw new Error(`Gagal memuat presensi: ${error.message}`);
   const row = (data as Row | null) ?? null;
 
-  let photoUrl: string | null = null;
-  if (row?.check_in_photo_path) {
-    const { data: signed } = await supabase.storage.from(PRESENSI_BUCKET).createSignedUrl(row.check_in_photo_path, 600);
-    photoUrl = signed?.signedUrl ?? null;
-  }
+  const sign = async (path: string | null) => {
+    if (!path) return null;
+    const { data: signed } = await supabase.storage.from(PRESENSI_BUCKET).createSignedUrl(path, 600);
+    return signed?.signedUrl ?? null;
+  };
+  const [photoUrl, outPhotoUrl] = row ? await Promise.all([sign(row.check_in_photo_path), sign(row.check_out_photo_path)]) : [null, null];
+  // Izin dan Sakit tidak perlu pulang (tidak masuk kerja).
+  const needCheckOut = !!row && !row.check_out_at && row.status !== "izin" && row.status !== "sakit";
 
   return (
     <div>
@@ -75,11 +83,31 @@ export default async function PresensiPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photoUrl} alt="Foto Check-In" className="mt-2 max-h-48 rounded-lg border border-zinc-200" />
           )}
-          <p className="mt-3 text-xs text-zinc-600">Check-Out (pulang) akan tersedia di tahap berikutnya.</p>
         </div>
       ) : (
         <CheckInForm companyId={profile.company.id} userId={profile.id} today={today} />
       )}
+
+      {row?.check_out_at && (
+        <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4 text-sm">
+          <p className="font-bold text-green-800">✓ Sudah Check-Out pukul {formatJam(row.check_out_at)} WIB</p>
+          {row.check_out_lat !== null && row.check_out_lng !== null ? (
+            <p className="mt-1">
+              <a href={mapsUrl(row.check_out_lat, row.check_out_lng)} target="_blank" rel="noopener noreferrer" className="font-bold text-accent underline">
+                Lihat lokasi pulang di Google Maps
+              </a>
+            </p>
+          ) : (
+            <p className="mt-1 text-amber-800">Lokasi pulang tidak tercatat.</p>
+          )}
+          {outPhotoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={outPhotoUrl} alt="Foto Check-Out" className="mt-2 max-h-48 rounded-lg border border-zinc-200" />
+          )}
+        </div>
+      )}
+      {needCheckOut && <CheckOutForm companyId={profile.company.id} userId={profile.id} today={today} />}
+      {row && !row.check_out_at && !needCheckOut && <p className="mt-3 text-xs text-zinc-600">Status {statusLabel(row.status)} tidak perlu Check-Out.</p>}
     </div>
   );
 }
