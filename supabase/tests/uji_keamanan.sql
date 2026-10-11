@@ -1013,12 +1013,16 @@ begin
   reset role;
   res := res || pg_temp.t_line(23, 'Karyawan lain tidak melihat foto orang lain', n = 0, format('terlihat=%s', n));
 
+  -- Supabase menolak DELETE langsung ke storage.objects (42501) bagi siapa pun; 0 baris terhapus juga dianggap aman.
   perform pg_temp.t_as(ea1);
   select count(*) into n from storage.objects where bucket_id = 'presensi';
-  delete from storage.objects where bucket_id = 'presensi';
-  get diagnostics n2 = row_count;
+  begin
+    delete from storage.objects where bucket_id = 'presensi';
+    get diagnostics n2 = row_count;
+    st := 'OK';
+  exception when others then st := sqlstate; n2 := 0; end;
   reset role;
-  res := res || pg_temp.t_line(23, 'Pemilik melihat fotonya sendiri tetapi tidak bisa menghapus', n = 1 and n2 = 0, format('terlihat=%s, terhapus=%s', n, n2));
+  res := res || pg_temp.t_line(23, 'Pemilik melihat fotonya sendiri tetapi tidak bisa menghapus', n = 1 and n2 = 0 and st in ('OK', '42501'), format('terlihat=%s, terhapus=%s, hasil=%s', n, n2, st));
 
   perform pg_temp.t_as(ma);
   select count(*) into n from storage.objects where bucket_id = 'presensi';
