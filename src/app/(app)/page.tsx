@@ -163,21 +163,23 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         )}
       </div>
 
-      <div className="mt-6">
-        <Suspense
-          fallback={
-            <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500 shadow-sm">
-              Memuat dashboard…
-            </div>
-          }
-        >
-          <DashboardSection
-            profile={profile}
-            periode={parsePeriode(params.periode)}
-            company={typeof params.company === "string" ? params.company : ""}
-          />
-        </Suspense>
-      </div>
+      {isLeader && (
+        <div className="mt-6">
+          <Suspense
+            fallback={
+              <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500 shadow-sm">
+                Memuat dashboard…
+              </div>
+            }
+          >
+            <DashboardSection
+              profile={profile}
+              periode={parsePeriode(params.periode)}
+              company={typeof params.company === "string" ? params.company : ""}
+            />
+          </Suspense>
+        </div>
+      )}
 
       {links && (links.length > 0 || isLeader) && (
         <section id="tautan" className="mt-6 scroll-mt-4">

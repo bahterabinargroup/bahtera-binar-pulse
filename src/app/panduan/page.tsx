@@ -76,28 +76,22 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     body: (
       <>
         <p>
-          Di bawah kartu ringkasan hari ini, Beranda menampilkan <b>dashboard</b>: kartu angka di kiri dan grafik di kanan. Pilih periode lewat tombol
-          <b> Hari ini / 7 hari / 30 hari / Bulan ini</b>. Owner juga bisa memilih company.
+          <b>Hanya untuk Manager dan Owner.</b> Di bawah kartu ringkasan hari ini, Beranda menampilkan <b>dashboard</b>: kartu angka di kiri dan grafik di kanan. Pilih periode lewat tombol
+          <b> Hari ini / 7 hari / 30 hari / Bulan ini</b>. Owner juga bisa memilih company; Manager hanya melihat company-nya. Karyawan tidak memiliki dashboard (cukup kartu ringkasan hari ini).
         </p>
-        <ul className="mt-3 list-disc space-y-2 pl-5">
-          <li><b>Manager dan Owner</b> melihat angka tim: kepatuhan pengisian (per hari dan per divisi), kendala yang ditulis, tugas lewat tenggat, dan presensi mandiri. Manager hanya melihat company-nya.</li>
-          <li><b>Karyawan</b> melihat versi pribadi: berapa hari kerja yang sudah terisi (kotak hijau/merah per hari), kepatuhan sendiri, dan tugas sendiri.</li>
-          <li><b>Divisi ADV:</b> GMV, ads spent, <b>CAC</b>, peringkat dan porsi per toko, serta kerapian checklist harian. Angkanya diambil dari form laporan ADV.</li>
+        <p className="mt-2">Dashboard hanya memakai data yang diisi <b>semua divisi</b>:</p>
+        <ul className="mt-2 list-disc space-y-2 pl-5">
+          <li><b>Laporan harian:</b> berapa yang sudah melapor hari ini, kepatuhan (per hari dan per divisi), dan jumlah kendala yang ditulis.</li>
+          <li><b>Presensi:</b> berapa yang sudah Check-In hari ini (dan yang belum Check-Out), kehadiran per hari dan per divisi, serta komposisi status (WFO, Tugas Luar, Izin, Sakit).</li>
+          <li><b>Tugas dari notulensi</b> yang lewat tenggat.</li>
         </ul>
         <h4 className="mt-4 font-bold text-accent">Arti angka</h4>
         <ul className="list-disc space-y-2 pl-5">
-          <li><b>Kepatuhan</b> = laporan yang sudah masuk dibagi laporan yang seharusnya masuk (hari kerja Senin–Sabtu).</li>
-          <li><b>CAC (%)</b> = ads spent dibagi GMV. Makin kecil makin hemat. Cara hitung ini sama dengan &quot;CAC TikTok&quot; di dashboard mitra. <b>ROAS</b> = GMV dibagi ads spent (kebalikannya).</li>
-        </ul>
-        <h4 className="mt-4 font-bold text-accent">Target omzet</h4>
-        <ul className="list-disc space-y-2 pl-5">
-          <li><b>Owner</b> menetapkan target omzet bulanan tiap ADV lewat <b>Atur Target</b>. Target harian = target bulan dibagi jumlah hari kerja (Senin–Sabtu). Tersedia tombol <b>Salin target bulan lalu</b>.</li>
-          <li>Dashboard menampilkan <b>Omzet hari ini</b> (persen dari target harian), <b>Omzet bulan ini</b> (persen dari target bulan, dan berapa persen yang seharusnya sudah tercapai hari ini), grafik realisasi kumulatif dibanding garis target, dan pencapaian tiap ADV.</li>
-          <li>Realisasi diambil dari baris <b>GMV (nilai penjualan)</b> di laporan harian ADV, jumlah semua toko. ADV hanya melihat targetnya sendiri; Manager melihat target ADV di company-nya.</li>
+          <li><b>Kepatuhan laporan</b> = laporan yang sudah masuk dibagi laporan yang seharusnya masuk (hari kerja Senin–Sabtu).</li>
+          <li><b>Kehadiran (Check-In)</b> = presensi Check-In yang tercatat dibagi yang seharusnya (hari kerja Senin–Sabtu). Detail per orang, lokasi, dan foto ada di <b>Rekap Presensi</b>.</li>
         </ul>
         <Tip>
-          Omset dan target resmi mitra tetap ada di spreadsheet Dashboard Mitra (lihat bagian Tautan penting). Dashboard aplikasi menghitung dari
-          laporan harian yang diisi di sini, jadi angkanya bisa berbeda jika isian belum lengkap.
+          Angka GMV, ads spent, CAC, dan target omzet sedang tidak ditampilkan di dashboard (disederhanakan dulu). Menu <b>Atur Target</b> dan datanya tetap tersimpan.
         </Tip>
       </>
     ),

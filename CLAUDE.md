@@ -72,12 +72,15 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Lihat: Owner semua; Manager link company-nya + "semua company"; Karyawan link company-nya/semua company yang untuk jabatannya/semua divisi. Kelola: Owner semua; Manager semua link company-nya. Pembuat diisi trigger.
 - UI: bagian "Tautan penting" di Beranda (`LinkGroups`), halaman `/tautan` (Owner/Manager). Fungsi `public.current_position_id()`.
 
-## Dashboard utama (Beranda) — 10 Okt 2026
-- Keputusan pemilik: tahap 1 = kepatuhan semua divisi + ADV, dihitung dari data aplikasi (tanpa ubah database). ADV mengisi GMV/pesanan/ads di aplikasi DAN di spreadsheet mitra. Target & omset resmi ada di spreadsheet "DASHBOARD MITRA - BAHTERA" (link berganti tiap bulan; dibuka lewat Tautan penting). Sambungan baca langsung ke spreadsheet = TAHAP 2 (belum; butuh Google Cloud/akun layanan + kerja sama pemilik sheet).
-- Kode: `src/lib/dashboard.ts` (hitungan murni, sudah diuji), `src/lib/format.ts`, `src/components/dashboard/` (`DashboardSection` mengambil data & Suspense di `(app)/page.tsx`; `DashboardView` tampilan; `charts.tsx` grafik SVG tanpa pustaka). Pratinjau lokal: `/dev/dashboard` (+ `?mode=saya`).
-- Definisi: kepatuhan = laporan masuk ÷ wajib (employee & manager aktif, Senin–Sabtu, mulai hari akun dibuat). CAC% = ads spent ÷ GMV (sama dengan "CAC TIKTOK" di sheet mitra), ROAS = GMV ÷ ads. Nama toko dari `data_toko[].nama` digabung tanpa beda huruf/spasi.
-- TARGET OMZET (keputusan pemilik 10 Okt): ditetapkan Owner DI APLIKASI (bukan dari spreadsheet; sheet mitra hanya proyeksi). Per ADV, bulanan (tabel `omzet_targets`, `supabase/007_target_omzet.sql`, bagian 16); total company = jumlah target ADV; target harian = bulan ÷ hari kerja Senin–Sabtu (`src/lib/target.ts`). Realisasi = GMV form ADV (hanya ADV yang bertarget dihitung untuk persen target). Halaman Owner `/target` (Atur Target). Lihat: Owner semua, Manager company-nya, karyawan miliknya; tulis hanya Owner.
-- Form tidak dibakukan dulu (keputusan pemilik): pelajari pola isian nyata (nama toko, jenis konten, akun, tim, tahap) sebelum menambah dropdown.
+## Dashboard utama (Beranda) — disederhanakan 11 Okt 2026
+- Keputusan pemilik: dashboard HANYA untuk Owner & Manager (karyawan tidak punya); hanya data yang diisi SEMUA divisi: kepatuhan laporan, kendala ditulis, presensi (dari tabel `presensi`, bukan "presensi mandiri" di form), tugas lewat tenggat. Proyeksi dari spreadsheet mitra DITUNDA. Bagian ADV (GMV/ads/CAC/toko/checklist) dan omzet-vs-target disembunyikan dari dashboard (kode `aggregateAdv`, `target.ts`, halaman `/target` tetap ada untuk dipakai lagi).
+- Kode: `src/lib/dashboard.ts` (hitungan murni), `src/components/dashboard/` (`DashboardSection` ambil data bersamaan; `DashboardView` tampilan; `charts.tsx` grafik SVG). Pratinjau lokal `/dev/dashboard` sudah dihapus (bentuk datanya berubah).
+- Definisi: kepatuhan = laporan masuk ÷ wajib (employee & manager aktif, Senin–Sabtu, mulai hari akun dibuat); kehadiran = Check-In ÷ wajib (aturan sama).
+- Target omzet (tetap disimpan): ditetapkan Owner di `/target` (tabel `omzet_targets`, bagian 16).
+
+## Presensi harian — 11 Okt 2026
+- Tabel `presensi` + bucket privat `presensi` (`supabase/008`–`010`, bagian 17 schema). Status: `wfo`, `tugas_luar`, `izin`, `sakit`. Catatan wajib untuk tugas_luar/izin/sakit; foto bukti WAJIB untuk tugas_luar; Izin/Sakit otomatis Check-Out; Check-Out wajib foto selfie, sekali saja; hari lampau terkunci. Foto dikompres di browser (<200 KB, `src/lib/image-compress.ts`).
+- UI: `/presensi` (karyawan, semua peran), `/presensi/rekap` + `/presensi/rekap/unduh` (CSV bulanan; Owner/Manager).
 
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.

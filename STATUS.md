@@ -222,3 +222,6 @@ cd ~/Desktop/daily-report-app
 npm run dev
 ```
 Lalu buka http://localhost:3000 (halaman cek koneksi: http://localhost:3000/cek-persiapan)
+
+## Dashboard disederhanakan — 11 Okt 2026
+Keputusan pemilik: dashboard hanya Owner/Manager, hanya data semua divisi (kepatuhan laporan, presensi dari tabel `presensi`, kendala, tugas lewat tenggat); proyeksi spreadsheet ditunda; bagian ADV/target disembunyikan (kode tetap). Poin "presensi mandiri" = opsi A (angka presensi dari data Check-In; kolom form dibiarkan). `/dev/dashboard` dihapus. Detail di CLAUDE.md.
