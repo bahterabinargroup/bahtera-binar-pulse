@@ -1,8 +1,6 @@
 // Presensi harian: pilihan status, aturan catatan, dan link peta. Aturan sebenarnya dijaga database (supabase/008).
 export const PRESENSI_STATUS = [
-  { value: "wfo_bahtera", label: "WFO Bahtera" },
-  { value: "wfo_depkes", label: "WFO Depkes" },
-  { value: "wfo_redigma", label: "WFO Redigma" },
+  { value: "wfo", label: "WFO" },
   { value: "tugas_luar", label: "Tugas Luar" },
   { value: "izin", label: "Izin" },
   { value: "sakit", label: "Sakit" },

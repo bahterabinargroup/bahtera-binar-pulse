@@ -821,7 +821,7 @@ begin
   -- 20. Check-In
   begin
     perform pg_temp.t_as(ea1);
-    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_bahtera');
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -830,7 +830,7 @@ begin
 
   begin
     perform pg_temp.t_as(ea1);
-    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_depkes');
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -838,7 +838,7 @@ begin
 
   begin
     perform pg_temp.t_as(ea2);
-    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_bahtera');
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -846,7 +846,7 @@ begin
 
   begin
     perform pg_temp.t_as(ea2);
-    insert into public.presensi (company_id, user_id, status) values (cb, ea2, 'wfo_bahtera');
+    insert into public.presensi (company_id, user_id, status) values (cb, ea2, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -870,6 +870,14 @@ begin
 
   begin
     perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea2, 'wfo_bahtera');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Status lama WFO per tempat (wfo_bahtera) tidak berlaku lagi', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
     insert into public.presensi (company_id, user_id, status) values (ca, ea2, 'bolos');
     st := 'OK';
   exception when others then st := sqlstate; end;
@@ -878,7 +886,7 @@ begin
 
   begin
     perform pg_temp.t_as(ea2);
-    insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng) values (ca, ea2, 'wfo_redigma', 123, 10);
+    insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng) values (ca, ea2, 'wfo', 123, 10);
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -886,7 +894,7 @@ begin
 
   begin
     perform pg_temp.t_as(ea2);
-    insert into public.presensi (company_id, user_id, status, check_out_photo_path) values (ca, ea2, 'wfo_bahtera', 'x.jpg');
+    insert into public.presensi (company_id, user_id, status, check_out_photo_path) values (ca, ea2, 'wfo', 'x.jpg');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -894,7 +902,7 @@ begin
 
   begin
     perform pg_temp.t_as(gh);
-    insert into public.presensi (company_id, user_id, status) values (ca, gh, 'wfo_bahtera');
+    insert into public.presensi (company_id, user_id, status) values (ca, gh, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -931,7 +939,7 @@ begin
 
   begin
     perform pg_temp.t_as(eb2);
-    insert into public.presensi (company_id, user_id, status) values (cb, eb2, 'wfo_depkes');
+    insert into public.presensi (company_id, user_id, status) values (cb, eb2, 'wfo');
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
@@ -979,7 +987,7 @@ begin
   reset role;
   res := res || pg_temp.t_line(21, 'Data Check-In (status, jam masuk, lokasi) tidak bisa diubah', st = '42501', 'hasil=' || st);
 
-  insert into public.presensi (company_id, user_id, status, attendance_date) values (ca, ea2, 'wfo_bahtera', today - 1);
+  insert into public.presensi (company_id, user_id, status, attendance_date) values (ca, ea2, 'wfo', today - 1);
   perform pg_temp.t_as(ea2);
   update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8, check_out_photo_path = 'k.jpg'
     where user_id = ea2 and attendance_date = today - 1;
@@ -996,7 +1004,7 @@ begin
   res := res || pg_temp.t_line(21, 'Presensi tidak bisa dihapus lewat aplikasi (tidak ada hak hapus)', st = '42501', 'hasil=' || st);
 
   -- 22. Siapa melihat presensi
-  insert into public.presensi (company_id, user_id, status) values (cb, eb1, 'wfo_bahtera');
+  insert into public.presensi (company_id, user_id, status) values (cb, eb1, 'wfo');
 
   perform pg_temp.t_as(ea1);
   select count(*) into n from public.presensi;

@@ -4,7 +4,7 @@
 -- TIDAK diinput karyawan: diambil dari akun login dan jam server (WIB).
 --
 -- Keputusan pemilik (11 Okt 2026):
--- - Status: WFO Bahtera, WFO Depkes, WFO Redigma, Tugas Luar, Izin, Sakit.
+-- - Status: WFO, Tugas Luar, Izin, Sakit (WFO tidak dipecah per tempat; revisi 11 Okt = 010).
 -- - Catatan wajib bila Tugas Luar / Izin / Sakit.
 -- - Lokasi GPS dan foto hanya TERCATAT (tidak menolak berdasarkan jarak).
 -- - Check-Out wajib foto; hanya bisa setelah Check-In hari yang sama.
@@ -45,9 +45,9 @@ create table if not exists public.presensi (
   -- Isolasi company: company harus sama dengan company pemilik presensi
   constraint presensi_user_company_fk
     foreign key (user_id, company_id) references public.users (id, company_id) on delete cascade,
-  constraint presensi_status_ok check (status in ('wfo_bahtera', 'wfo_depkes', 'wfo_redigma', 'tugas_luar', 'izin', 'sakit')),
+  constraint presensi_status_ok check (status in ('wfo', 'tugas_luar', 'izin', 'sakit')),
   constraint presensi_note_required check (
-    status in ('wfo_bahtera', 'wfo_depkes', 'wfo_redigma') or length(btrim(coalesce(note, ''))) > 0
+    status = 'wfo' or length(btrim(coalesce(note, ''))) > 0
   ),
   constraint presensi_note_len check (note is null or length(note) <= 1000),
   constraint presensi_in_gps_ok check (
