@@ -205,6 +205,12 @@ _Terakhir diperbarui: 7 Oktober 2026 — Semua milestone M0–M6 selesai; tingga
 - Keputusan terbuka dari brief bagian 9 (opsi Status, kolom ke-4 SPV, field wajib, format Penjualan/Konten, nama/logo/warna, domain, batas edit) — tanyakan saat relevan.
 - PDF di `referensi-form/` belum dilihat; wajib dilihat sebelum M2.
 
+## Presensi harian (Check-In / Check-Out) — mulai 11 Okt 2026
+Keputusan pemilik: presensi dicatat lewat fitur/form baru ini; kolom "presensi mandiri" di form harian TETAP hanya sebagai pengingat (bukan pencatatan). "Departemen" = jabatan. Lokasi & foto hanya tercatat (tanpa tolak berdasarkan jarak). Status: WFO Bahtera, WFO Depkes, WFO Redigma, Tugas Luar, Izin, Sakit (catatan wajib untuk Tugas Luar/Izin/Sakit). Check-Out wajib foto. Foto dikompres di ponsel (<200 KB), disimpan di bucket privat `presensi`.
+- Tahap: P1 database + bucket + uji (file ditulis, ⏳ BELUM dijalankan pemilik) → P2 halaman Check-In → P3 Check-Out → P4 rekap Owner/Manager.
+- P1: `supabase/008_presensi.sql` (= bagian 17 schema) dan uji keamanan bagian 20–23 di `supabase/tests/uji_keamanan.sql` (belum dijalankan).
+- Poin "Daftar Undangan Pending + Salin Link" sudah ada di Owner → Undangan (`InviteLinkButton`); tidak dibangun ulang.
+
 ## Cara menjalankan di komputer
 ```
 cd ~/Desktop/daily-report-app

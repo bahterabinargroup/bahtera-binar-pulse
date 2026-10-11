@@ -815,6 +815,227 @@ begin
   res := res || pg_temp.t_line(19, 'Target negatif ditolak', st = '23514', 'hasil=' || st);
 
   -- =====================================================================
+  -- PRESENSI (butuh supabase/008_presensi.sql sudah dijalankan)
+  -- =====================================================================
+
+  -- 20. Check-In
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_bahtera');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  select position_id, check_in_at into n, ts from public.presensi where user_id = ea1 and attendance_date = today;
+  res := res || pg_temp.t_line(20, 'Karyawan bisa Check-In; jabatan terisi otomatis dan jam masuk dari server', st = 'OK' and n = p_adv and ts > now() - interval '1 minute', format('hasil=%s, jabatan=%s', st, n));
+
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_depkes');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Check-In kedua pada hari yang sama ditolak', st = '23505', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea1, 'wfo_bahtera');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Tidak bisa Check-In atas nama orang lain', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status) values (cb, ea2, 'wfo_bahtera');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Tidak bisa Check-In dengan company yang bukan company-nya', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea2, 'izin');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Izin tanpa catatan ditolak', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status, note) values (ca, ea2, 'tugas_luar', '   ');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Tugas Luar dengan catatan kosong/spasi ditolak', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status) values (ca, ea2, 'bolos');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Status di luar daftar ditolak', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng) values (ca, ea2, 'wfo_redigma', 123, 10);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Koordinat GPS di luar jangkauan ditolak', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea2);
+    insert into public.presensi (company_id, user_id, status, check_out_photo_path) values (ca, ea2, 'wfo_bahtera', 'x.jpg');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Kolom pulang tidak bisa diisi saat Check-In', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(gh);
+    insert into public.presensi (company_id, user_id, status) values (ca, gh, 'wfo_bahtera');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Akun tanpa undangan tidak bisa Check-In', st = '42501', 'hasil=' || st);
+
+  -- 21. Check-Out
+  perform pg_temp.t_as(ea2);
+  update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8, check_out_photo_path = 'x.jpg'
+    where user_id = ea2 and attendance_date = today;
+  get diagnostics n = row_count;
+  reset role;
+  res := res || pg_temp.t_line(21, 'Check-Out tanpa Check-In hari itu tidak mengubah apa pun', n = 0, format('baris terubah=%s', n));
+
+  begin
+    perform pg_temp.t_as(ea1);
+    update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8 where user_id = ea1 and attendance_date = today;
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  select check_out_at into ts from public.presensi where user_id = ea1 and attendance_date = today;
+  res := res || pg_temp.t_line(21, 'Tanpa foto, jam pulang tidak tercatat', ts is null, format('hasil=%s, jam pulang kosong=%s', st, ts is null));
+
+  perform pg_temp.t_as(ea1);
+  update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8, check_out_photo_path = ca::text || '/' || ea1::text || '/pulang.jpg'
+    where user_id = ea1 and attendance_date = today;
+  get diagnostics n = row_count;
+  reset role;
+  select check_out_at into ts from public.presensi where user_id = ea1 and attendance_date = today;
+  res := res || pg_temp.t_line(21, 'Check-Out dengan foto berhasil; jam pulang dari server', n = 1 and ts > now() - interval '1 minute', format('baris=%s', n));
+
+  perform pg_temp.t_as(ea1);
+  update public.presensi set check_out_lat = -1, check_out_lng = -1, check_out_photo_path = 'lain.jpg'
+    where user_id = ea1 and attendance_date = today;
+  get diagnostics n = row_count;
+  reset role;
+  res := res || pg_temp.t_line(21, 'Check-Out hanya sekali (setelah pulang terkunci)', n = 0, format('baris terubah=%s', n));
+
+  begin
+    perform pg_temp.t_as(ea1);
+    update public.presensi set status = 'sakit' where user_id = ea1 and attendance_date = today;
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(21, 'Data Check-In (status, jam masuk, lokasi) tidak bisa diubah', st = '42501', 'hasil=' || st);
+
+  insert into public.presensi (company_id, user_id, status, attendance_date) values (ca, ea2, 'wfo_bahtera', today - 1);
+  perform pg_temp.t_as(ea2);
+  update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8, check_out_photo_path = 'k.jpg'
+    where user_id = ea2 and attendance_date = today - 1;
+  get diagnostics n = row_count;
+  reset role;
+  res := res || pg_temp.t_line(21, 'Presensi hari lampau terkunci (tidak bisa Check-Out belakangan)', n = 0, format('baris terubah=%s', n));
+
+  begin
+    perform pg_temp.t_as(ea1);
+    delete from public.presensi where user_id = ea1;
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(21, 'Presensi tidak bisa dihapus lewat aplikasi (tidak ada hak hapus)', st = '42501', 'hasil=' || st);
+
+  -- 22. Siapa melihat presensi
+  insert into public.presensi (company_id, user_id, status) values (cb, eb1, 'wfo_bahtera');
+
+  perform pg_temp.t_as(ea1);
+  select count(*) into n from public.presensi;
+  reset role;
+  res := res || pg_temp.t_line(22, 'Karyawan hanya melihat presensi sendiri', n = 1, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(ma);
+  select count(*) into n from public.presensi where company_id = ca and attendance_date = today;
+  select count(*) into n2 from public.presensi where company_id = cb;
+  reset role;
+  res := res || pg_temp.t_line(22, 'Manager melihat presensi company-nya, tidak company lain', n = 1 and n2 = 0, format('company sendiri=%s, company lain=%s', n, n2));
+
+  perform pg_temp.t_as(uo);
+  select count(*) into n from public.presensi where company_id in (ca, cb) and attendance_date = today;
+  reset role;
+  res := res || pg_temp.t_line(22, 'Owner melihat presensi semua company', n = 2, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(gh);
+  select count(*) into n from public.presensi;
+  reset role;
+  res := res || pg_temp.t_line(22, 'Akun tanpa undangan tidak melihat presensi', n = 0, format('terlihat=%s', n));
+
+  -- 23. Foto (bucket privat)
+  select (public = false and file_size_limit <= 524288)::int into n from storage.buckets where id = 'presensi';
+  res := res || pg_temp.t_line(23, 'Bucket foto presensi ada, privat, dan dibatasi ukurannya', n = 1, format('ok=%s', n));
+
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into storage.objects (bucket_id, name, owner_id) values ('presensi', ca::text || '/' || ea1::text || '/masuk-uji.jpg', ea1::text);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(23, 'Karyawan bisa mengunggah foto ke folder sendiri', st = 'OK', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into storage.objects (bucket_id, name, owner_id) values ('presensi', ca::text || '/' || ea2::text || '/curang.jpg', ea1::text);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(23, 'Karyawan tidak bisa mengunggah ke folder orang lain', st = '42501', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(ea1);
+    insert into storage.objects (bucket_id, name, owner_id) values ('presensi', cb::text || '/' || ea1::text || '/curang.jpg', ea1::text);
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(23, 'Karyawan tidak bisa mengunggah ke folder company lain', st = '42501', 'hasil=' || st);
+
+  perform pg_temp.t_as(ea2);
+  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  reset role;
+  res := res || pg_temp.t_line(23, 'Karyawan lain tidak melihat foto orang lain', n = 0, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(ea1);
+  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  delete from storage.objects where bucket_id = 'presensi';
+  get diagnostics n2 = row_count;
+  reset role;
+  res := res || pg_temp.t_line(23, 'Pemilik melihat fotonya sendiri tetapi tidak bisa menghapus', n = 1 and n2 = 0, format('terlihat=%s, terhapus=%s', n, n2));
+
+  perform pg_temp.t_as(ma);
+  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  reset role;
+  res := res || pg_temp.t_line(23, 'Manager melihat foto company-nya', n = 1, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(mb);
+  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  reset role;
+  res := res || pg_temp.t_line(23, 'Manager company lain tidak melihat foto company A', n = 0, format('terlihat=%s', n));
+
+  perform pg_temp.t_as(uo);
+  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  reset role;
+  res := res || pg_temp.t_line(23, 'Owner melihat semua foto', n = 1, format('terlihat=%s', n));
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;
