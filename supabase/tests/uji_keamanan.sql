@@ -1073,10 +1073,12 @@ begin
   reset role;
   res := res || pg_temp.t_line(23, 'Manager company lain tidak melihat foto company A', n = 0, format('terlihat=%s', n));
 
+  -- Owner sungguhan juga melihat foto asli di bucket, jadi hitung hanya foto uji (berdasarkan nama folder uji).
   perform pg_temp.t_as(uo);
-  select count(*) into n from storage.objects where bucket_id = 'presensi';
+  select count(*) into n from storage.objects where bucket_id = 'presensi' and name like ca::text || '/%';
+  select count(*) into n2 from storage.objects where bucket_id = 'presensi';
   reset role;
-  res := res || pg_temp.t_line(23, 'Owner melihat semua foto', n = 1, format('terlihat=%s', n));
+  res := res || pg_temp.t_line(23, 'Owner melihat semua foto (termasuk foto uji company A)', n = 1 and n2 >= 1, format('foto uji=%s, total terlihat=%s', n, n2));
 
   -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
