@@ -900,6 +900,45 @@ begin
   reset role;
   res := res || pg_temp.t_line(20, 'Akun tanpa undangan tidak bisa Check-In', st = '42501', 'hasil=' || st);
 
+  -- Izin/Sakit otomatis Check-Out; Tugas Luar wajib foto (data uji dihapus lagi agar hitungan di bawah tetap)
+  begin
+    perform pg_temp.t_as(eb2);
+    insert into public.presensi (company_id, user_id, status, note) values (cb, eb2, 'sakit', 'demam');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  select check_out_at into ts from public.presensi where user_id = eb2 and attendance_date = today;
+  res := res || pg_temp.t_line(20, 'Sakit/Izin: Check-Out tercatat otomatis (tanpa foto pulang)', st = 'OK' and ts is not null, format('hasil=%s, otomatis pulang=%s', st, ts is not null));
+  delete from public.presensi where user_id = eb2;
+
+  begin
+    perform pg_temp.t_as(eb2);
+    insert into public.presensi (company_id, user_id, status, note) values (cb, eb2, 'tugas_luar', 'diminta klien');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  res := res || pg_temp.t_line(20, 'Tugas Luar tanpa foto bukti ditolak', st = '23514', 'hasil=' || st);
+
+  begin
+    perform pg_temp.t_as(eb2);
+    insert into public.presensi (company_id, user_id, status, note, check_in_photo_path) values (cb, eb2, 'tugas_luar', 'diminta klien', cb::text || '/' || eb2::text || '/bukti.jpg');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  select check_out_at into ts from public.presensi where user_id = eb2 and attendance_date = today;
+  res := res || pg_temp.t_line(20, 'Tugas Luar dengan foto bukti diterima; belum otomatis pulang', st = 'OK' and ts is null, format('hasil=%s, pulang kosong=%s', st, ts is null));
+  delete from public.presensi where user_id = eb2;
+
+  begin
+    perform pg_temp.t_as(eb2);
+    insert into public.presensi (company_id, user_id, status) values (cb, eb2, 'wfo_depkes');
+    st := 'OK';
+  exception when others then st := sqlstate; end;
+  reset role;
+  select check_out_at into ts from public.presensi where user_id = eb2 and attendance_date = today;
+  res := res || pg_temp.t_line(20, 'WFO tanpa foto diterima; belum otomatis pulang', st = 'OK' and ts is null, format('hasil=%s, pulang kosong=%s', st, ts is null));
+  delete from public.presensi where user_id = eb2;
+
   -- 21. Check-Out
   perform pg_temp.t_as(ea2);
   update public.presensi set check_out_lat = -6.2, check_out_lng = 106.8, check_out_photo_path = 'x.jpg'

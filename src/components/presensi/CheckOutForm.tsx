@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { checkOut } from "@/app/(app)/presensi/actions";
-import { cardCls } from "@/components/owner/ui";
 import { photoPath, PRESENSI_BUCKET } from "@/lib/presensi";
 import { createClient } from "@/lib/supabase/client";
 import { GpsBox } from "./GpsBox";
@@ -42,18 +41,28 @@ export function CheckOutForm({ companyId, userId, today }: { companyId: string; 
   }
 
   return (
-    <form onSubmit={submit} className={`${cardCls} mt-4 space-y-4`}>
-      <h2 className="text-lg font-bold text-accent">Check-Out (pulang)</h2>
+    <form onSubmit={submit} className="mt-4 space-y-4 rounded-xl border-2 border-accent bg-white p-4 shadow-md">
+      <div>
+        <h2 className="text-xl font-bold text-accent">Waktunya pulang? Check-Out di sini</h2>
+        <p className="mt-1 text-sm text-zinc-600">Dua langkah: <b>1)</b> ambil foto selfie, <b>2)</b> tekan tombol Check-Out.</p>
+      </div>
+      <PhotoField label="Langkah 1 — Foto selfie / bukti pulang" required camera="user" buttonText="Ketuk di sini untuk ambil foto selfie" onChange={setPhoto} />
       <GpsBox gps={gps} onRetry={retry} />
-      <PhotoField label="Foto selfie / bukti pulang" hint={<span className="text-red-700">(wajib)</span>} camera="user" onChange={setPhoto} />
       {error && (
         <p role="alert" className="text-sm text-red-700">
           {error}
         </p>
       )}
-      <button type="submit" disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
-        {busy ? "Menyimpan…" : "Check-Out"}
-      </button>
+      <div>
+        <button
+          type="submit"
+          disabled={busy || !photo}
+          className="w-full rounded-lg bg-accent px-4 py-3 text-base font-bold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? "Menyimpan…" : "Langkah 2 — Check-Out"}
+        </button>
+        {!photo && <p className="mt-1 text-xs text-zinc-600">Tombol aktif setelah foto selfie siap.</p>}
+      </div>
     </form>
   );
 }

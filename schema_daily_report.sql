@@ -2505,8 +2505,12 @@ create table if not exists public.presensi (
     (check_out_lat is null) = (check_out_lng is null)
     and (check_out_lat is null or (check_out_lat between -90 and 90 and check_out_lng between -180 and 180))
   ),
-  -- Pulang wajib foto
-  constraint presensi_out_photo_required check (check_out_at is null or check_out_photo_path is not null),
+  -- Pulang wajib foto, kecuali Izin/Sakit (Check-Out otomatis saat Check-In)
+  constraint presensi_out_photo_required check (
+    check_out_at is null or check_out_photo_path is not null or status in ('izin', 'sakit')
+  ),
+  -- Tugas Luar wajib melampirkan foto bukti saat Check-In
+  constraint presensi_tugas_luar_photo check (status <> 'tugas_luar' or check_in_photo_path is not null),
   constraint presensi_paths_len check (
     length(coalesce(check_in_photo_path, '')) <= 300 and length(coalesce(check_out_photo_path, '')) <= 300
   )
@@ -2527,7 +2531,8 @@ begin
   if tg_op = 'INSERT' then
     -- Jam masuk selalu dari server; pulang belum boleh terisi saat masuk
     new.check_in_at := now();
-    new.check_out_at := null;
+    -- Izin/Sakit: Check-Out otomatis saat itu juga (tidak masuk kerja)
+    new.check_out_at := case when new.status in ('izin', 'sakit') then now() end;
     if new.position_id is null then
       select u.position_id into new.position_id from public.users u where u.id = new.user_id;
     end if;

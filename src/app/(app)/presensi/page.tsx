@@ -90,16 +90,18 @@ export default async function PresensiPage() {
 
       {row?.check_out_at && (
         <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4 text-sm">
-          <p className="font-bold text-green-800">✓ Sudah Check-Out pukul {formatJam(row.check_out_at)} WIB</p>
-          {row.check_out_lat !== null && row.check_out_lng !== null ? (
+          <p className="font-bold text-green-800">
+            ✓ {row.status === "izin" || row.status === "sakit" ? "Check-Out otomatis" : "Sudah Check-Out"} pukul {formatJam(row.check_out_at)} WIB
+          </p>
+          {row.status !== "izin" && row.status !== "sakit" && row.check_out_lat !== null && row.check_out_lng !== null ? (
             <p className="mt-1">
               <a href={mapsUrl(row.check_out_lat, row.check_out_lng)} target="_blank" rel="noopener noreferrer" className="font-bold text-accent underline">
                 Lihat lokasi pulang di Google Maps
               </a>
             </p>
-          ) : (
+          ) : row.status !== "izin" && row.status !== "sakit" ? (
             <p className="mt-1 text-amber-800">Lokasi pulang tidak tercatat.</p>
-          )}
+          ) : null}
           {outPhotoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={outPhotoUrl} alt="Foto Check-Out" className="mt-2 max-h-48 rounded-lg border border-zinc-200" />

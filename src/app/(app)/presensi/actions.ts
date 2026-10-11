@@ -20,7 +20,7 @@ export type CheckInInput = {
 function dbError(error: { code?: string; message: string }): string {
   if (error.code === "23505") return "Anda sudah Check-In hari ini.";
   if (error.code === "42501" || /row-level security/i.test(error.message)) return "Akses ditolak. Check-In hanya untuk diri sendiri dan hari ini.";
-  if (error.code === "23514") return "Isian tidak memenuhi aturan (catatan wajib untuk Tugas Luar, Izin, atau Sakit).";
+  if (error.code === "23514") return "Isian tidak memenuhi aturan (catatan wajib untuk Tugas Luar, Izin, atau Sakit; foto bukti wajib untuk Tugas Luar).";
   if (error.code === "42P01") return "Tabel presensi belum dibuat. Jalankan supabase/008_presensi.sql.";
   return `Gagal menyimpan: ${error.message}`;
 }
@@ -33,6 +33,7 @@ export async function checkIn(input: CheckInInput): Promise<PresensiResult> {
   if (!isPresensiStatus(input.status)) return { ok: false, error: "Pilih status kehadiran." };
   const note = input.note.trim();
   if (noteRequired(input.status) && !note) return { ok: false, error: "Alasan / catatan wajib diisi untuk status ini." };
+  if (input.status === "tugas_luar" && !input.photoPath) return { ok: false, error: "Foto bukti diminta tugas luar wajib diunggah." };
   if (note.length > 1000) return { ok: false, error: "Catatan terlalu panjang (maksimal 1000 huruf)." };
 
   const hasGps = input.lat !== null && input.lng !== null && Number.isFinite(input.lat) && Number.isFinite(input.lng);

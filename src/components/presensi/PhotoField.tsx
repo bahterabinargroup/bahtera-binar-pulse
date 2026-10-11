@@ -1,23 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { labelCls } from "@/components/owner/ui";
 import { compressImage, formatKb } from "@/lib/image-compress";
 
-// Pilih foto, kecilkan otomatis (<200 KB), tampilkan pratinjau. onChange(null) bila belum ada foto valid.
+// Pilih/ambil foto: area besar yang jelas, dikecilkan otomatis (<200 KB), lalu tampil pratinjau.
+// onChange(null) bila belum ada foto valid.
 export function PhotoField({
   label,
-  hint,
+  required,
   camera,
+  buttonText,
   onChange,
 }: {
   label: string;
-  hint: React.ReactNode;
+  required?: boolean;
   camera?: "user";
+  buttonText: string;
   onChange: (blob: Blob | null) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => () => (url ? URL.revokeObjectURL(url) : undefined), [url]);
 
@@ -26,6 +29,7 @@ export function PhotoField({
     setUrl(null);
     onChange(null);
     setMsg("");
+    setFailed(false);
     if (!file) return;
     setMsg("Mengecilkan foto…");
     try {
@@ -34,6 +38,7 @@ export function PhotoField({
       onChange(blob);
       setMsg(`Foto siap (${formatKb(file.size)} → ${formatKb(blob.size)}).`);
     } catch (err) {
+      setFailed(true);
       setMsg(err instanceof Error ? err.message : "Foto tidak bisa diproses.");
       e.target.value = "";
     }
@@ -41,13 +46,24 @@ export function PhotoField({
 
   return (
     <div>
-      <label className={labelCls}>
-        {label} {hint}
-        <input type="file" accept="image/*" capture={camera} onChange={onFile} className="mt-1 block w-full text-sm" />
+      <p className="text-sm font-bold">
+        {label} {required ? <span className="text-red-700">(wajib)</span> : <span className="font-normal text-zinc-500">(opsional)</span>}
+      </p>
+      <label
+        className={`mt-2 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center focus-within:ring-2 focus-within:ring-accent ${
+          url ? "border-green-400 bg-green-50" : "border-accent bg-blue-50/40 hover:bg-blue-50"
+        }`}
+      >
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="Pratinjau foto" className="max-h-56 rounded-lg border border-zinc-200" />
+        ) : (
+          <span aria-hidden="true" className="text-4xl">📷</span>
+        )}
+        <span className="text-base font-bold text-accent">{url ? "Ganti foto" : buttonText}</span>
+        <input type="file" accept="image/*" capture={camera} onChange={onFile} className="sr-only" />
       </label>
-      {msg && <p className="mt-1 text-xs text-zinc-600">{msg}</p>}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url && <img src={url} alt="Pratinjau foto" className="mt-2 max-h-48 rounded-lg border border-zinc-200" />}
+      {msg && <p className={`mt-1 text-xs ${failed ? "text-red-700" : "text-zinc-600"}`}>{msg}</p>}
     </div>
   );
 }

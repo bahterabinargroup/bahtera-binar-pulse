@@ -25,11 +25,12 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
     setError("");
     if (!status) return setError("Pilih status kehadiran.");
     if (noteRequired(status) && !note.trim()) return setError("Alasan / catatan wajib diisi untuk status ini.");
+    if (status === "tugas_luar" && !photo) return setError("Foto bukti diminta tugas luar wajib diunggah.");
 
     setBusy(true);
     try {
       let path: string | null = null;
-      if (photo) {
+      if (photo && showPhoto) {
         path = photoPath(companyId, userId, today, "masuk");
         const { error: upErr } = await createClient()
           .storage.from(PRESENSI_BUCKET)
@@ -48,12 +49,13 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
   }
 
   const needNote = noteRequired(status);
+  const showPhoto = status === "tugas_luar" || status === "izin" || status === "sakit";
 
   return (
     <form onSubmit={submit} className={`${cardCls} mt-4 space-y-4`}>
       <label className={labelCls}>
         Status kehadiran
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls} required>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPhoto(null); }} className={inputCls} required>
           <option value="">— Pilih —</option>
           {PRESENSI_STATUS.map((s) => (
             <option key={s.value} value={s.value}>
@@ -70,7 +72,15 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
 
       <GpsBox gps={gps} onRetry={retry} />
 
-      <PhotoField label="Foto bukti / surat" hint={<span className="font-normal text-zinc-500">(opsional)</span>} onChange={setPhoto} />
+      {status === "tugas_luar" && (
+        <PhotoField key="tugas_luar" label="Foto bukti diminta tugas luar" required buttonText="Ketuk untuk ambil / pilih foto bukti" onChange={setPhoto} />
+      )}
+      {(status === "izin" || status === "sakit") && (
+        <>
+          <PhotoField key={status} label={status === "sakit" ? "Foto bukti / surat sakit" : "Foto bukti / surat izin"} buttonText="Ketuk untuk ambil / pilih foto" onChange={setPhoto} />
+          <p className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700">Untuk {status === "sakit" ? "Sakit" : "Izin"}, Check-Out tercatat otomatis. Anda tidak perlu Check-Out lagi.</p>
+        </>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-red-700">
