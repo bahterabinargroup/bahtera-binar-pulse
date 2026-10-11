@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { parsePeriode } from "@/lib/dashboard";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
+import { statusLabel } from "@/lib/presensi";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
 import { menuFor } from "@/lib/menu";
@@ -20,7 +21,8 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const today = todayJakarta();
   const isLeader = profile.role !== "employee";
   const hasForm = !!profile.position;
-  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes] = await Promise.all([
+  const wajibPresensi = profile.role !== "owner";
+  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes] = await Promise.all([
     hasForm
       ? supabase.from("daily_reports").select("updated_at").eq("user_id", profile.id).eq("report_date", today).maybeSingle()
       : Promise.resolve(null),
@@ -31,6 +33,12 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
       : Promise.resolve(null),
     supabase.from("resource_links").select(LINK_SELECT).order("title"),
     isLeader ? supabase.from("roles_config").select("id, name") : Promise.resolve(null),
+    // Presensi hari ini: milik sendiri (karyawan/manager) dan hitungan tim (Owner/Manager).
+    wajibPresensi
+      ? supabase.from("presensi").select("status, check_in_at, check_out_at").eq("user_id", profile.id).eq("attendance_date", today).maybeSingle()
+      : Promise.resolve(null),
+    isLeader ? supabase.from("presensi").select("user_id").eq("attendance_date", today).limit(1000) : Promise.resolve(null),
+    isLeader ? supabase.from("users").select("id, created_at").eq("is_active", true).in("role", ["employee", "manager"]).limit(1000) : Promise.resolve(null),
   ]);
   // Bila tabel tautan belum ada (atau gagal dibaca), bagian ini dilewati; Beranda tetap tampil.
   const links = linksRes.error ? null : ((linksRes.data ?? []) as unknown as ResourceLink[]);
@@ -39,6 +47,16 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const overdue = tasks ? tasks.filter((t) => t.due_date && t.due_date < today).length : 0;
   const missing = missingRes && !missingRes.error ? ((missingRes.data ?? []) as unknown[]).length : null;
   const deleteRequests = deleteRes && !deleteRes.error ? (deleteRes.count ?? 0) : null;
+
+  // Presensi: bila tabel belum ada atau gagal dibaca, kartunya dilewati.
+  const myPres = myPresRes && !myPresRes.error ? { row: (myPresRes.data as { status: string; check_in_at: string; check_out_at: string | null } | null) ?? null } : null;
+  let presTim: { sudah: number; belum: number } | null = null;
+  if (presTodayRes && peopleRes && !presTodayRes.error && !peopleRes.error) {
+    const done = new Set(((presTodayRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
+    const endOfDay = new Date(`${today}T23:59:59+07:00`).getTime();
+    const people = ((peopleRes.data ?? []) as { id: string; created_at: string }[]).filter((p) => new Date(p.created_at).getTime() <= endOfDay);
+    presTim = { sudah: people.filter((p) => done.has(p.id)).length, belum: people.filter((p) => !done.has(p.id)).length };
+  }
 
   return (
     <div>
@@ -73,6 +91,44 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
                 <p className="text-sm text-zinc-600">Ketuk untuk mengisi laporan hari ini.</p>
               </>
             )}
+          </Link>
+        )}
+        {myPres && (() => {
+          const r = myPres.row;
+          const noOut = !!r && !r.check_out_at && r.status !== "izin" && r.status !== "sakit";
+          const tone = !r ? "border-amber-300 bg-amber-50" : noOut ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50";
+          return (
+            <Link href="/presensi" className={`rounded-xl border p-4 shadow-sm ${tone}`}>
+              <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Presensi hari ini</p>
+              {!r ? (
+                <>
+                  <p className="mt-1 font-bold text-amber-900">Belum Check-In</p>
+                  <p className="text-sm text-zinc-600">Ketuk untuk Check-In.</p>
+                </>
+              ) : noOut ? (
+                <>
+                  <p className="mt-1 font-bold text-amber-900">Check-In {formatJam(r.check_in_at)} · belum Check-Out</p>
+                  <p className="text-sm text-zinc-600">Ketuk untuk Check-Out saat pulang.</p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1 font-bold text-green-800">✓ {statusLabel(r.status)} · selesai</p>
+                  <p className="text-sm text-zinc-600">Check-In {formatJam(r.check_in_at)}{r.check_out_at ? `, Check-Out ${formatJam(r.check_out_at)}` : ""}.</p>
+                </>
+              )}
+            </Link>
+          );
+        })()}
+        {presTim && (
+          <Link
+            href="/presensi/rekap"
+            className={`rounded-xl border p-4 shadow-sm ${presTim.belum ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}`}
+          >
+            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Presensi tim hari ini</p>
+            <p className={`mt-1 font-bold ${presTim.belum ? "text-amber-900" : "text-green-800"}`}>
+              {presTim.belum === 0 ? "Semua sudah Check-In" : `${presTim.belum} orang belum Check-In`}
+            </p>
+            <p className="text-sm text-zinc-600">{presTim.sudah} sudah Check-In. Ketuk untuk rekap.</p>
           </Link>
         )}
         {tasks && (

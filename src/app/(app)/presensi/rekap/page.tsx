@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cardCls } from "@/components/owner/ui";
 import { addDays, formatHariTanggal, formatJam, formatTanggalPendek, todayJakarta, dateFromYmd } from "@/lib/date";
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
+import { monthLabel, monthStart, prevMonth } from "@/lib/target";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -127,6 +128,10 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
   const prev = addDays(tanggal, -1);
   const next = addDays(tanggal, 1);
   const showCompany = isOwner && !company;
+  const months: string[] = [];
+  for (let m = monthStart(today), i = 0; i < 12; i++, m = prevMonth(m)) months.push(m);
+  const tanggalMonth = monthStart(tanggal);
+  if (!months.includes(tanggalMonth)) months.push(tanggalMonth);
   const inputCls = "rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm";
   const navCls = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-bold";
 
@@ -230,6 +235,16 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
           ))}
         </ul>
       )}
+      <form action="/presensi/rekap/unduh" className={`${cardCls} mt-6 flex flex-wrap items-center gap-2 text-sm`}>
+        <span className="font-bold">Unduh rekap bulanan (CSV, bisa dibuka di Excel):</span>
+        <select name="bulan" defaultValue={tanggalMonth} className={inputCls} aria-label="Bulan">
+          {months.map((m) => (
+            <option key={m} value={m}>{monthLabel(m)}</option>
+          ))}
+        </select>
+        {company && <input type="hidden" name="company" value={company} />}
+        <button type="submit" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">Unduh CSV</button>
+      </form>
       <p className="mt-3 text-xs text-zinc-500">Link foto berlaku 10 menit; muat ulang halaman bila sudah kedaluwarsa.</p>
     </div>
   );
