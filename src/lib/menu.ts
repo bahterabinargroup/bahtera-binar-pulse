@@ -13,6 +13,7 @@ const ALL: UserRole[] = ["owner", "manager", "employee"];
 // Satu-satunya daftar menu. Tampil sesuai role (BRIEF bagian 5).
 export const MENU: MenuItem[] = [
   { label: "Laporan Hari Ini", description: "Isi laporan harian Anda", href: "/laporan", roles: ALL, ready: true },
+  { label: "Presensi", description: "Check-In pagi dan Check-Out pulang", href: "/presensi", roles: ALL, ready: true },
   { label: "Pratinjau Form", description: "Lihat form setiap jabatan (tanpa menyimpan)", href: "/laporan/pratinjau", roles: ["owner"], ready: true },
   { label: "Riwayat Laporan", description: "Laporan yang sudah Anda kirim", href: "/riwayat", roles: ALL, ready: true },
   { label: "Notulensi", description: "Catatan meeting dan tindak lanjut", href: "/notulensi", roles: ALL, ready: true },

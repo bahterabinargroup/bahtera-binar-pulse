@@ -1,0 +1,85 @@
+import { CheckInForm } from "@/components/presensi/CheckInForm";
+import { cardCls } from "@/components/owner/ui";
+import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
+import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
+import { getCurrentUser } from "@/lib/profile";
+import { createClient } from "@/lib/supabase/server";
+
+type Row = {
+  status: string;
+  note: string | null;
+  check_in_at: string;
+  check_in_lat: number | null;
+  check_in_lng: number | null;
+  check_in_photo_path: string | null;
+};
+
+// Presensi harian. Data identitas (nama, company, jabatan, tanggal) otomatis; karyawan hanya mengisi status dan bukti.
+export default async function PresensiPage() {
+  const { profile } = await getCurrentUser();
+  if (!profile) return null;
+  if (!profile.company) return <p className="text-sm">Akun Anda belum punya company. Hubungi admin.</p>;
+
+  const today = todayJakarta();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("presensi")
+    .select("status, note, check_in_at, check_in_lat, check_in_lng, check_in_photo_path")
+    .eq("user_id", profile.id)
+    .eq("attendance_date", today)
+    .maybeSingle();
+  const tableMissing = error?.code === "42P01" || error?.code === "PGRST205";
+  if (error && !tableMissing) throw new Error(`Gagal memuat presensi: ${error.message}`);
+  const row = (data as Row | null) ?? null;
+
+  let photoUrl: string | null = null;
+  if (row?.check_in_photo_path) {
+    const { data: signed } = await supabase.storage.from(PRESENSI_BUCKET).createSignedUrl(row.check_in_photo_path, 600);
+    photoUrl = signed?.signedUrl ?? null;
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-accent">Presensi</h1>
+
+      <dl className={`${cardCls} mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm`}>
+        <dt className="font-bold">Nama</dt>
+        <dd>{profile.full_name}</dd>
+        <dt className="font-bold">Company</dt>
+        <dd>{profile.company.name}</dd>
+        <dt className="font-bold">Departemen</dt>
+        <dd>{profile.position?.name ?? "—"}</dd>
+        <dt className="font-bold">Hari, tanggal</dt>
+        <dd>{formatHariTanggal()}</dd>
+      </dl>
+
+      {tableMissing ? (
+        <p role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Fitur presensi belum aktif: tabelnya belum dibuat. Jalankan <code>supabase/008_presensi.sql</code>.
+        </p>
+      ) : row ? (
+        <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4 text-sm">
+          <p className="font-bold text-green-800">✓ Sudah Check-In pukul {formatJam(row.check_in_at)} WIB</p>
+          <p className="mt-1">Status: <b>{statusLabel(row.status)}</b></p>
+          {row.note && <p className="mt-1">Catatan: {row.note}</p>}
+          {row.check_in_lat !== null && row.check_in_lng !== null ? (
+            <p className="mt-1">
+              <a href={mapsUrl(row.check_in_lat, row.check_in_lng)} target="_blank" rel="noopener noreferrer" className="font-bold text-accent underline">
+                Lihat lokasi di Google Maps
+              </a>
+            </p>
+          ) : (
+            <p className="mt-1 text-amber-800">Lokasi tidak tercatat.</p>
+          )}
+          {photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="Foto Check-In" className="mt-2 max-h-48 rounded-lg border border-zinc-200" />
+          )}
+          <p className="mt-3 text-xs text-zinc-600">Check-Out (pulang) akan tersedia di tahap berikutnya.</p>
+        </div>
+      ) : (
+        <CheckInForm companyId={profile.company.id} userId={profile.id} today={today} />
+      )}
+    </div>
+  );
+}
