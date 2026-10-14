@@ -34,7 +34,10 @@ const createdDay = (u: UserLite) => todayJakarta(new Date(u.created_at));
 
 export type DayCompliance = { day: string; expected: number; filled: number; pct: number };
 
-export function complianceByDay(users: UserLite[], reports: ReportLite[], days: string[]): DayCompliance[] {
+// excused: pasangan "idPengguna|tanggal" yang gugur wajib lapor (Izin/Sakit/Cuti) dan tidak dihitung.
+export const excusedKey = (userId: string, day: string) => `${userId}|${day}`;
+
+export function complianceByDay(users: UserLite[], reports: ReportLite[], days: string[], excused?: Set<string>): DayCompliance[] {
   const eligible = users.filter(mustReport);
   const byDay = new Map<string, Set<string>>();
   for (const r of reports) {
@@ -44,7 +47,7 @@ export function complianceByDay(users: UserLite[], reports: ReportLite[], days: 
   const out: DayCompliance[] = [];
   for (const day of days) {
     if (!isWorkday(day)) continue;
-    const expectedUsers = eligible.filter((u) => createdDay(u) <= day);
+    const expectedUsers = eligible.filter((u) => createdDay(u) <= day && !excused?.has(excusedKey(u.id, day)));
     if (expectedUsers.length === 0) continue;
     const filledSet = byDay.get(day) ?? new Set<string>();
     const filled = expectedUsers.filter((u) => filledSet.has(u.id)).length;
@@ -66,6 +69,7 @@ export function complianceByPosition(
   reports: ReportLite[],
   days: string[],
   positionNames: Record<number, string>,
+  excused?: Set<string>,
 ): GroupCompliance[] {
   const groups = new Map<string, UserLite[]>();
   for (const u of users.filter(mustReport)) {
@@ -75,7 +79,7 @@ export function complianceByPosition(
   const out: GroupCompliance[] = [];
   for (const [key, members] of groups) {
     const ids = new Set(members.map((m) => m.id));
-    const t = complianceTotal(complianceByDay(members, reports.filter((r) => ids.has(r.user_id)), days));
+    const t = complianceTotal(complianceByDay(members, reports.filter((r) => ids.has(r.user_id)), days, excused));
     if (t.expected === 0 || t.pct === null) continue;
     out.push({
       key,

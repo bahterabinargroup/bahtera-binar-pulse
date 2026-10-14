@@ -15,7 +15,7 @@ export type DashboardData = {
     total: { expected: number; filled: number; pct: number | null };
     today: { filled: number; expected: number; belumPulang: number } | null;
     byPosition: GroupCompliance[];
-    status: { wfo: number; tugas_luar: number; izin: number; sakit: number };
+    status: { wfo: number; tugas_luar: number; izin: number; sakit: number; cuti: number };
   };
   kendala: number;
   overdue: number;
@@ -102,7 +102,7 @@ export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.
   const compDays = d.compliance.days;
   const presDays = pp.days;
   const st = pp.status;
-  const stTotal = st.wfo + st.tugas_luar + st.izin + st.sakit;
+  const stTotal = st.wfo + st.tugas_luar + st.izin + st.sakit + st.cuti;
 
   return (
     <section aria-label="Ringkasan dashboard">
@@ -166,7 +166,7 @@ export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.
             )}
           </Card>
 
-          <Card title="Komposisi status presensi" sub="Jumlah Check-In pada periode terpilih" className="md:col-span-2">
+          <Card title="Komposisi status presensi" sub="Jumlah hari per status pada periode terpilih (Izin dan Cuti termasuk yang disetujui lewat pengajuan)" className="md:col-span-2">
             {stTotal > 0 ? (
               <Donut
                 items={[
@@ -174,6 +174,7 @@ export function DashboardView({ d, filter }: { d: DashboardData; filter?: React.
                   { label: "Tugas Luar", value: st.tugas_luar },
                   { label: "Izin", value: st.izin },
                   { label: "Sakit", value: st.sakit },
+                  { label: "Cuti", value: st.cuti },
                 ].filter((x) => x.value > 0)}
                 fmt={(n) => `${n} presensi`}
                 center={`${stTotal}`}

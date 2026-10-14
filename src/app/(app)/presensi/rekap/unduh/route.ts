@@ -3,6 +3,7 @@ import { mapsUrl, statusLabel } from "@/lib/presensi";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { monthEnd, parseMonth } from "@/lib/target";
+import { leaveDaysIn, kindLabel } from "@/lib/leave";
 import { isUuid } from "@/lib/uuid";
 
 const PAGE = 1000;
@@ -60,6 +61,16 @@ export async function GET(request: Request) {
     if (!data || data.length < PAGE) break;
   }
 
+  // Cuti/izin yang disetujui pada bulan ini (hari kerja Senin–Sabtu); hari yang sudah punya presensi tidak diulang.
+  let leaveQ = supabase
+    .from("leave_requests")
+    .select("user_id, company_id, kind, start_date, end_date, reason")
+    .eq("status", "approved")
+    .lte("start_date", monthEnd(month))
+    .gte("end_date", month)
+    .limit(2000);
+  if (company) leaveQ = leaveQ.eq("company_id", company);
+  const leaveRes = await leaveQ;
   const [usersRes, compRes] = await Promise.all([
     supabase.from("users").select("id, full_name, position:roles_config(name)").limit(5000),
     supabase.from("companies").select("id, name"),
@@ -95,6 +106,23 @@ export async function GET(request: Request) {
         .join(","),
     );
   }
+
+  const hasRow = new Set(rows.map((r) => `${r.user_id}|${r.attendance_date}`));
+  const leaveLines: { date: string; line: string }[] = [];
+  const today = todayJakarta();
+  for (const l of (leaveRes.error ? [] : (leaveRes.data ?? [])) as { user_id: string; company_id: string; kind: string; start_date: string; end_date: string; reason: string }[]) {
+    const p = people.get(l.user_id);
+    const to = monthEnd(month) < today ? monthEnd(month) : today;
+    for (const day of leaveDaysIn(l, month, to)) {
+      if (hasRow.has(`${l.user_id}|${day}`)) continue;
+      leaveLines.push({
+        date: day,
+        line: [day, p?.full_name ?? "", comps.get(l.company_id) ?? "", p?.position?.name ?? "", `${kindLabel(l.kind)} (disetujui)`, l.reason, "", "", "", "", "", "", "", "", "", ""].map(cell).join(","),
+      });
+    }
+  }
+  leaveLines.sort((a, b) => a.date.localeCompare(b.date));
+  lines.push(...leaveLines.map((x) => x.line));
 
   return new Response("﻿" + lines.join("\r\n"), {
     headers: {

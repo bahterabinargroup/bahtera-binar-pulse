@@ -2,6 +2,7 @@ import { CheckInForm } from "@/components/presensi/CheckInForm";
 import { CheckOutForm } from "@/components/presensi/CheckOutForm";
 import { cardCls } from "@/components/owner/ui";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
+import { fmtRentang, kindLabel } from "@/lib/leave";
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,21 @@ export default async function PresensiPage() {
   if (error && !tableMissing) throw new Error(`Gagal memuat presensi: ${error.message}`);
   const row = (data as Row | null) ?? null;
 
+  // Cuti/izin yang sudah disetujui dan berlaku hari ini (kecuali hari Minggu): tidak perlu presensi.
+  let leave: { kind: string; start_date: string; end_date: string; reason: string } | null = null;
+  if (!row && new Date(`${today}T00:00:00Z`).getUTCDay() !== 0) {
+    const { data: lv } = await supabase
+      .from("leave_requests")
+      .select("kind, start_date, end_date, reason")
+      .eq("user_id", profile.id)
+      .eq("status", "approved")
+      .lte("start_date", today)
+      .gte("end_date", today)
+      .limit(1)
+      .maybeSingle();
+    leave = lv ?? null;
+  }
+
   const sign = async (path: string | null) => {
     if (!path) return null;
     const { data: signed } = await supabase.storage.from(PRESENSI_BUCKET).createSignedUrl(path, 600);
@@ -65,6 +81,13 @@ export default async function PresensiPage() {
         <p role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Fitur presensi belum aktif: tabelnya belum dibuat. Jalankan <code>supabase/008_presensi.sql</code>.
         </p>
+      ) : leave ? (
+        <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4 text-sm">
+          <p className="font-bold text-green-800">✓ Hari ini Anda {kindLabel(leave.kind)} (sudah disetujui)</p>
+          <p className="mt-1">{fmtRentang(leave.start_date, leave.end_date)}</p>
+          <p className="mt-1">Alasan: {leave.reason}</p>
+          <p className="mt-2 text-zinc-700">Anda tidak perlu Check-In dan tidak perlu mengisi daily report hari ini. Jika tidak jadi, ajukan pembatalan di menu <b>Cuti / Izin</b>.</p>
+        </div>
       ) : row ? (
         <div className="mt-4 rounded-xl border border-green-300 bg-green-50 p-4 text-sm">
           <p className="font-bold text-green-800">✓ Sudah Check-In pukul {formatJam(row.check_in_at)} WIB</p>

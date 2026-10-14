@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { todayJakarta } from "@/lib/date";
+import { leaveDaysIn } from "@/lib/leave";
 import {
+  excusedKey,
   complianceByDay,
   complianceByPosition,
   complianceTotal,
@@ -48,7 +50,16 @@ async function buildData(sb: Sb, profile: Profile, periode: Periode, company: st
   const kq = companyFilter ? kq0.eq("company_id", companyFilter) : kq0;
   const oq = sb.from("meeting_action_items").select("id", { count: "exact", head: true }).neq("status", "done").lt("due_date", today);
 
-  const [posRes, users, reportsRaw, presRaw, kRes, oRes] = await Promise.all([
+  const leaveQ0 = sb
+    .from("leave_requests")
+    .select("user_id, kind, start_date, end_date")
+    .eq("status", "approved")
+    .lte("start_date", range.to)
+    .gte("end_date", range.from)
+    .limit(1000);
+  const leaveQ = companyFilter ? leaveQ0.eq("company_id", companyFilter) : leaveQ0;
+
+  const [posRes, users, reportsRaw, presRaw, kRes, oRes, leaveRes] = await Promise.all([
     sb.from("roles_config").select("id, code, name"),
     fetchAll<UserLite>((a, b) => {
       let q = sb.from("users").select("id, role, is_active, created_at, position_id, full_name").order("id").range(a, b);
@@ -81,18 +92,34 @@ async function buildData(sb: Sb, profile: Profile, periode: Periode, company: st
     }).catch((e: Error) => (/presensi|42P01|PGRST205/i.test(e.message) ? [] : Promise.reject(e))),
     kq,
     oq,
+    leaveQ,
   ]);
   if (posRes.error) throw new Error(posRes.error.message);
   if (kRes.error) throw new Error(kRes.error.message);
   if (oRes.error) throw new Error(oRes.error.message);
   const names = Object.fromEntries((posRes.data ?? []).map((p) => [p.id as number, p.name as string]));
 
+  // Gugur wajib lapor/presensi: Izin & Sakit lewat presensi, serta cuti/izin yang disetujui (Senin–Sabtu, sampai hari ini).
+  // Bila tabel cuti belum ada, abaikan.
+  const leaves = leaveRes.error ? [] : ((leaveRes.data ?? []) as { user_id: string; kind: string; start_date: string; end_date: string }[]);
+  const excused = new Set<string>();
+  for (const r of presRaw) if (r.status === "izin" || r.status === "sakit") excused.add(excusedKey(r.user_id, r.attendance_date));
+  let cutiHari = 0;
+  let izinCutiHari = 0;
+  for (const l of leaves) {
+    for (const day of leaveDaysIn(l, range.from, range.to < today ? range.to : today)) {
+      excused.add(excusedKey(l.user_id, day));
+      if (l.kind === "cuti") cutiHari++;
+      else izinCutiHari++;
+    }
+  }
+
   const reports = reportsRaw.map((r): ReportLite => ({ ...r, presensi: null }));
   // Presensi dipetakan ke bentuk yang sama agar memakai hitungan kepatuhan yang sama.
   const checkins = presRaw.map((r): ReportLite => ({ user_id: r.user_id, report_date: r.attendance_date, position_id: r.position_id, presensi: null }));
 
-  const dayRows = complianceByDay(users, reports, days);
-  const presDays = complianceByDay(users, checkins, days);
+  const dayRows = complianceByDay(users, reports, days, excused);
+  const presDays = complianceByDay(users, checkins, days, excused);
   const todayRow = dayRows.find((x) => x.day === today);
   const presToday = presDays.find((x) => x.day === today);
   const statusCount = (st: string) => presRaw.filter((r) => r.status === st).length;
@@ -104,13 +131,13 @@ async function buildData(sb: Sb, profile: Profile, periode: Periode, company: st
     companyName: profile.role === "owner" ? (companyFilter ? "Company terpilih" : "Semua company") : (profile.company?.name ?? ""),
     compliance: { days: dayRows, total: complianceTotal(dayRows) },
     today: todayRow ? { filled: todayRow.filled, expected: todayRow.expected } : null,
-    byPosition: complianceByPosition(users, reports, days, names),
+    byPosition: complianceByPosition(users, reports, days, names, excused),
     presensi: {
       days: presDays,
       total: complianceTotal(presDays),
       today: presToday ? { filled: presToday.filled, expected: presToday.expected, belumPulang: todayRows.filter((r) => !r.check_out_at && r.status !== "izin" && r.status !== "sakit").length } : null,
-      byPosition: complianceByPosition(users, checkins, days, names),
-      status: { wfo: statusCount("wfo"), tugas_luar: statusCount("tugas_luar"), izin: statusCount("izin"), sakit: statusCount("sakit") },
+      byPosition: complianceByPosition(users, checkins, days, names, excused),
+      status: { wfo: statusCount("wfo"), tugas_luar: statusCount("tugas_luar"), izin: statusCount("izin") + izinCutiHari, sakit: statusCount("sakit"), cuti: cutiHari },
     },
     kendala: kRes.count ?? 0,
     overdue: oRes.count ?? 0,

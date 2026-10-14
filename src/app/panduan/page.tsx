@@ -59,6 +59,22 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "cuti",
+    title: "Cuti dan izin",
+    body: (
+      <>
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>Buka menu <b>Cuti / Izin</b> (karyawan dan Manager). Pilih <b>jenis</b> (Cuti atau Izin), <b>tanggal mulai</b> dan <b>tanggal selesai</b>, tulis <b>alasan</b>, lalu <b>Kirim pengajuan</b>. Boleh diajukan jauh-jauh hari. Hari Minggu tidak dihitung.</li>
+          <li>Pengajuan Karyawan diputuskan oleh Manager di company-nya atau Owner. Pengajuan Manager diputuskan oleh Owner. Pemberi keputusan bisa menulis catatan saat <b>Setujui</b> atau <b>Tolak</b> di menu <b>Persetujuan Cuti/Izin</b>.</li>
+          <li>Selama masih <b>menunggu keputusan</b>, Anda bisa mengetuk <b>Batalkan pengajuan</b>.</li>
+          <li>Setelah <b>disetujui</b>, pada tanggal itu Anda <b>tidak perlu presensi</b> dan <b>tidak perlu mengisi daily report</b>. Di Presensi tertulis &quot;Hari ini Anda Cuti (sudah disetujui)&quot;, dan Anda tidak dihitung belum mengisi.</li>
+          <li>Kalau tidak jadi, buka pengajuan yang sudah disetujui lalu ketuk <b>Ajukan pembatalan</b> dengan alasan. Selama belum disetujui, cuti Anda tetap berlaku. Bila pembatalan disetujui dan cuti belum mulai, cuti batal. Bila sudah berjalan, cuti dipotong sampai kemarin.</li>
+        </ol>
+        <Tip>Status <b>Izin</b> dan <b>Sakit</b> yang dipilih langsung saat Check-In juga membuat daily report hari itu tidak wajib. <b>Tugas Luar</b> tetap wajib lapor.</Tip>
+      </>
+    ),
+  },
+  {
     id: "beranda",
     title: "Beranda: ringkasan hari ini",
     body: (

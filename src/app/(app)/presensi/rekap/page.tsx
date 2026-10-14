@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cardCls } from "@/components/owner/ui";
 import { addDays, formatHariTanggal, formatJam, formatTanggalPendek, todayJakarta, dateFromYmd } from "@/lib/date";
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
+import { fmtRentang, kindLabel } from "@/lib/leave";
 import { monthLabel, monthStart, prevMonth } from "@/lib/target";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -86,10 +87,19 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
     presQ = presQ.eq("company_id", company);
     peopleQ = peopleQ.eq("company_id", company);
   }
-  const [presRes, peopleRes, compRes] = await Promise.all([
+  let leaveQ = supabase
+    .from("leave_requests")
+    .select("user_id, kind, start_date, end_date, reason")
+    .eq("status", "approved")
+    .lte("start_date", tanggal)
+    .gte("end_date", tanggal)
+    .limit(1000);
+  if (company) leaveQ = leaveQ.eq("company_id", company);
+  const [presRes, peopleRes, compRes, leaveRes] = await Promise.all([
     presQ,
     peopleQ,
     isOwner ? supabase.from("companies").select("id, name").order("name") : Promise.resolve({ data: null, error: null }),
+    leaveQ,
   ]);
   const tableMissing = presRes.error?.code === "42P01" || presRes.error?.code === "PGRST205";
   if (tableMissing) {
@@ -107,7 +117,12 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
   const compName = new Map((companies ?? []).map((c) => [c.id, c.name]));
   const byUser = new Map(people.map((p) => [p.id, p]));
   const endOfDay = new Date(`${tanggal}T23:59:59+07:00`).getTime();
-  const belum = people.filter((p) => !rows.some((r) => r.user_id === p.id) && new Date(p.created_at).getTime() <= endOfDay);
+  // Cuti/izin yang disetujui pada tanggal ini (bukan Minggu) dan orangnya belum punya presensi: tidak perlu Check-In.
+  const isSundayDay = new Date(`${tanggal}T00:00:00Z`).getUTCDay() === 0;
+  const leaveAll = leaveRes.error || isSundayDay ? [] : ((leaveRes.data ?? []) as { user_id: string; kind: string; start_date: string; end_date: string; reason: string }[]);
+  const leaves = leaveAll.filter((l) => !rows.some((r) => r.user_id === l.user_id));
+  const onLeave = new Set(leaves.map((l) => l.user_id));
+  const belum = people.filter((p) => !rows.some((r) => r.user_id === p.id) && !onLeave.has(p.id) && new Date(p.created_at).getTime() <= endOfDay);
 
   // Alamat foto sementara (berlaku 10 menit) untuk semua foto hari itu.
   const paths = rows.flatMap((r) => [r.check_in_photo_path, r.check_out_photo_path]).filter((x): x is string => !!x);
@@ -159,11 +174,12 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
         </form>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6">
         <Stat label="WFO" value={count("wfo")} />
         <Stat label="Tugas Luar" value={count("tugas_luar")} />
         <Stat label="Izin" value={count("izin")} tone="text-amber-700" />
         <Stat label="Sakit" value={count("sakit")} tone="text-amber-700" />
+        <Stat label="Cuti/Izin disetujui" value={leaves.length} tone="text-amber-700" />
         <Stat label="Belum Check-In" value={belum.length} tone={belum.length ? "text-red-700" : "text-green-700"} />
       </div>
       {belumPulang > 0 && <p className="mt-2 text-sm text-zinc-600">{belumPulang} orang sudah Check-In tetapi belum Check-Out.</p>}
@@ -217,6 +233,23 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
             </tbody>
           </table>
         </div>
+      )}
+
+      {leaves.length > 0 && (
+        <>
+          <h2 className="mt-6 text-lg font-bold">Cuti / Izin disetujui ({leaves.length})</h2>
+          <ul className="mt-2 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white text-sm shadow-sm">
+            {leaves.map((l) => {
+              const p = byUser.get(l.user_id);
+              return (
+                <li key={l.user_id} className="flex flex-wrap justify-between gap-2 p-2">
+                  <span><b>{p?.full_name ?? "—"}</b> <span className="text-zinc-600">· {p?.position?.name ?? "—"}{showCompany && p ? ` · ${compName.get(p.company_id) ?? ""}` : ""}</span></span>
+                  <span className="text-zinc-700">{kindLabel(l.kind)} · {fmtRentang(l.start_date, l.end_date)} · {l.reason}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
       <h2 className="mt-6 text-lg font-bold">Belum Check-In ({belum.length})</h2>

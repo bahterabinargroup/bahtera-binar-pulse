@@ -82,6 +82,11 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Tabel `presensi` + bucket privat `presensi` (`supabase/008`–`010`, bagian 17 schema). Status: `wfo`, `tugas_luar`, `izin`, `sakit`. Catatan wajib untuk tugas_luar/izin/sakit; foto bukti WAJIB untuk tugas_luar; Izin/Sakit otomatis Check-Out; Check-Out wajib foto selfie, sekali saja; hari lampau terkunci. Foto dikompres di browser (<200 KB, `src/lib/image-compress.ts`).
 - UI: `/presensi` (karyawan, semua peran), `/presensi/rekap` + `/presensi/rekap/unduh` (CSV bulanan; Owner/Manager).
 
+## Cuti / izin — keputusan pemilik 14 Okt 2026
+- Tabel `leave_requests` (`supabase/011`, `012`, bagian 18–19 schema). Jenis `cuti`/`izin`; rentang tanggal + alasan; status pending/approved/rejected/cancelled. Mengajukan: karyawan & manager (Owner tidak). Memutuskan lewat RPC `decide_leave`: Owner semua; Manager hanya pengajuan KARYAWAN di company-nya; tidak boleh milik sendiri (pengajuan Manager hanya Owner). Batal langsung (`cancel_leave`) hanya saat pending; yang sudah disetujui lewat `request_leave_cancel` + `decide_leave_cancel` (selama menunggu cuti TETAP berlaku; belum mulai → batal, sudah berjalan → end_date = kemarin; ditolak → boleh ajukan lagi).
+- Laporan harian GUGUR untuk Izin/Sakit (presensi) dan cuti/izin disetujui (`excused_kind`, `leave_on`; hari Minggu tidak dihitung); Tugas Luar tetap wajib. `get_missing_reports` & `get_weekly_report_compliance` mengabaikan yang gugur; di aplikasi `complianceByDay(..., excused)` di `src/lib/dashboard.ts`. Check-In ditolak (trigger) pada hari cuti disetujui.
+- UI: `/cuti` (ajukan, lihat, batalkan, ajukan pembatalan), `/cuti/persetujuan` (Owner/Manager); kartu di Beranda; Presensi, Laporan, Rekap Presensi, CSV, dan dashboard ikut menyesuaikan. Kode: `src/lib/leave.ts`, `src/components/cuti/`, `src/app/(app)/cuti/`.
+
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { parsePeriode } from "@/lib/dashboard";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
+import { kindLabel } from "@/lib/leave";
 import { statusLabel } from "@/lib/presensi";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
@@ -22,7 +23,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const isLeader = profile.role !== "employee";
   const hasForm = !!profile.position;
   const wajibPresensi = profile.role !== "owner";
-  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes] = await Promise.all([
+  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes, excusedRes, leaveTodayRes, leaveOpenRes] = await Promise.all([
     hasForm
       ? supabase.from("daily_reports").select("updated_at").eq("user_id", profile.id).eq("report_date", today).maybeSingle()
       : Promise.resolve(null),
@@ -39,6 +40,18 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
       : Promise.resolve(null),
     isLeader ? supabase.from("presensi").select("user_id").eq("attendance_date", today).limit(1000) : Promise.resolve(null),
     isLeader ? supabase.from("users").select("id, created_at").eq("is_active", true).in("role", ["employee", "manager"]).limit(1000) : Promise.resolve(null),
+    // Cuti/izin: gugur hari ini (diri sendiri), yang cuti hari ini di tim, dan pengajuan yang menunggu keputusan
+    wajibPresensi ? supabase.rpc("excused_kind", { p_user: profile.id, p_date: today }) : Promise.resolve(null),
+    isLeader
+      ? supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today).limit(1000)
+      : Promise.resolve(null),
+    isLeader
+      ? supabase
+          .from("leave_requests")
+          .select("user_id, status, cancel_requested_at, cancel_outcome")
+          .or("status.eq.pending,and(status.eq.approved,cancel_requested_at.not.is.null,cancel_outcome.is.null)")
+          .limit(500)
+      : Promise.resolve(null),
   ]);
   // Bila tabel tautan belum ada (atau gagal dibaca), bagian ini dilewati; Beranda tetap tampil.
   const links = linksRes.error ? null : ((linksRes.data ?? []) as unknown as ResourceLink[]);
@@ -50,12 +63,22 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
 
   // Presensi: bila tabel belum ada atau gagal dibaca, kartunya dilewati.
   const myPres = myPresRes && !myPresRes.error ? { row: (myPresRes.data as { status: string; check_in_at: string; check_out_at: string | null } | null) ?? null } : null;
-  let presTim: { sudah: number; belum: number } | null = null;
+  const isSunday = new Date(`${today}T00:00:00Z`).getUTCDay() === 0;
+  const excusedToday = excusedRes && !excusedRes.error && typeof excusedRes.data === "string" ? (excusedRes.data as string) : null;
+  const onLeaveSet = new Set(
+    leaveTodayRes && !leaveTodayRes.error && !isSunday ? ((leaveTodayRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id) : [],
+  );
+  const leaveWaiting = leaveOpenRes && !leaveOpenRes.error ? ((leaveOpenRes.data ?? []) as unknown[]).length : null;
+  let presTim: { sudah: number; belum: number; cuti: number } | null = null;
   if (presTodayRes && peopleRes && !presTodayRes.error && !peopleRes.error) {
     const done = new Set(((presTodayRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
     const endOfDay = new Date(`${today}T23:59:59+07:00`).getTime();
     const people = ((peopleRes.data ?? []) as { id: string; created_at: string }[]).filter((p) => new Date(p.created_at).getTime() <= endOfDay);
-    presTim = { sudah: people.filter((p) => done.has(p.id)).length, belum: people.filter((p) => !done.has(p.id)).length };
+    presTim = {
+      sudah: people.filter((p) => done.has(p.id)).length,
+      belum: people.filter((p) => !done.has(p.id) && !onLeaveSet.has(p.id)).length,
+      cuti: people.filter((p) => !done.has(p.id) && onLeaveSet.has(p.id)).length,
+    };
   }
 
   return (
@@ -77,10 +100,15 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         {reportAt !== undefined && (
           <Link
             href="/laporan"
-            className={`rounded-xl border p-4 shadow-sm ${reportAt ? "border-green-300 bg-green-50" : "border-amber-300 bg-amber-50"}`}
+            className={`rounded-xl border p-4 shadow-sm ${reportAt || excusedToday ? "border-green-300 bg-green-50" : "border-amber-300 bg-amber-50"}`}
           >
             <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Laporan hari ini</p>
-            {reportAt ? (
+            {!reportAt && excusedToday ? (
+              <>
+                <p className="mt-1 font-bold text-green-800">Tidak wajib hari ini</p>
+                <p className="text-sm text-zinc-600">Anda {excusedToday === "sakit" ? "Sakit" : kindLabel(excusedToday)}, jadi daily report gugur.</p>
+              </>
+            ) : reportAt ? (
               <>
                 <p className="mt-1 font-bold text-green-800">✓ Sudah tersimpan</p>
                 <p className="text-sm text-zinc-600">Terakhir diperbarui pukul {formatJam(reportAt)} WIB. Ketuk untuk melanjutkan.</p>
@@ -96,11 +124,17 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         {myPres && (() => {
           const r = myPres.row;
           const noOut = !!r && !r.check_out_at && r.status !== "izin" && r.status !== "sakit";
-          const tone = !r ? "border-amber-300 bg-amber-50" : noOut ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50";
+          const leaveKind = !r && !isSunday && (excusedToday === "cuti" || excusedToday === "izin") ? excusedToday : null;
+          const tone = leaveKind ? "border-green-300 bg-green-50" : !r ? "border-amber-300 bg-amber-50" : noOut ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50";
           return (
             <Link href="/presensi" className={`rounded-xl border p-4 shadow-sm ${tone}`}>
               <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Presensi hari ini</p>
-              {!r ? (
+              {leaveKind ? (
+                <>
+                  <p className="mt-1 font-bold text-green-800">✓ Hari ini {kindLabel(leaveKind)} (disetujui)</p>
+                  <p className="text-sm text-zinc-600">Tidak perlu presensi dan daily report.</p>
+                </>
+              ) : !r ? (
                 <>
                   <p className="mt-1 font-bold text-amber-900">Belum Check-In</p>
                   <p className="text-sm text-zinc-600">Ketuk untuk Check-In.</p>
@@ -128,7 +162,16 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
             <p className={`mt-1 font-bold ${presTim.belum ? "text-amber-900" : "text-green-800"}`}>
               {presTim.belum === 0 ? "Semua sudah Check-In" : `${presTim.belum} orang belum Check-In`}
             </p>
-            <p className="text-sm text-zinc-600">{presTim.sudah} sudah Check-In. Ketuk untuk rekap.</p>
+            <p className="text-sm text-zinc-600">
+              {presTim.sudah} sudah Check-In{presTim.cuti > 0 ? `, ${presTim.cuti} cuti/izin` : ""}. Ketuk untuk rekap.
+            </p>
+          </Link>
+        )}
+        {leaveWaiting !== null && leaveWaiting > 0 && (
+          <Link href="/cuti/persetujuan" className="rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Cuti / Izin</p>
+            <p className="mt-1 font-bold text-amber-900">{leaveWaiting} pengajuan menunggu keputusan</p>
+            <p className="text-sm text-zinc-600">Termasuk pengajuan pembatalan. Ketuk untuk memproses.</p>
           </Link>
         )}
         {tasks && (

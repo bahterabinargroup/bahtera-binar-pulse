@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ReportForm } from "@/components/report/ReportForm";
 import { dateFromYmd, formatHariTanggal, todayJakarta } from "@/lib/date";
 import { getCurrentUser } from "@/lib/profile";
+import { kindLabel } from "@/lib/leave";
 import { extractPrefill, type ReportData } from "@/lib/report/form-state";
 import type { FormTemplate } from "@/lib/report/template";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,10 @@ export default async function LaporanHariIniPage() {
     .eq("report_date", today)
     .maybeSingle();
   if (reportError) throw new Error(`Gagal memuat laporan: ${reportError.message}`);
+
+  // Izin/Sakit (presensi) atau cuti/izin yang disetujui: laporan hari ini tidak wajib.
+  const { data: excusedRaw } = await supabase.rpc("excused_kind", { p_user: profile.id, p_date: today });
+  const excused = typeof excusedRaw === "string" ? excusedRaw : null;
 
   // Laporan yang sudah ada memakai jabatan saat laporan dibuat (snapshot).
   const positionId = report?.position_id ?? profile.position?.id;
@@ -64,7 +69,15 @@ export default async function LaporanHariIniPage() {
     if (last) prefill = extractPrefill(template, last.performance_metrics);
   }
 
+  const excusedLabel = excused === "sakit" ? "Sakit" : excused ? kindLabel(excused) : null;
+
   return (
+    <>
+      {excusedLabel && !report && (
+        <p role="status" className="mb-3 rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-900">
+          <b>Hari ini Anda {excusedLabel}, jadi daily report tidak wajib diisi.</b> Anda tidak dihitung belum mengisi. Form di bawah boleh diabaikan.
+        </p>
+      )}
     <ReportForm
       key={report?.id ?? "baru"}
       template={template}
@@ -74,6 +87,7 @@ export default async function LaporanHariIniPage() {
       reportDate={today}
       initialReport={report as (ReportData & { id: string; updated_at: string }) | null}
     />
+    </>
   );
 }
 
