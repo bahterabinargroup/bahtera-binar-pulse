@@ -13,8 +13,8 @@
 --   Manager hanya bisa disetujui Owner. Pemberi keputusan boleh menulis catatan.
 -- - Pengajuan disetujui = di tanggal itu orang tidak perlu presensi (Check-In
 --   ditolak), tercatat Cuti/Izin di rekap. Hari Minggu tidak dihitung.
--- - Pemohon bisa membatalkan selama belum disetujui, atau yang sudah disetujui
---   asal belum mulai.
+-- - Pemohon bisa membatalkan langsung selama belum disetujui. Yang sudah disetujui
+--   dibatalkan lewat pengajuan pembatalan (012).
 -- Aman dijalankan ulang.
 -- =====================================================================
 
@@ -164,7 +164,7 @@ $$;
 revoke all on function public.decide_leave(uuid, boolean, text) from public, anon;
 grant execute on function public.decide_leave(uuid, boolean, text) to authenticated;
 
--- Pembatalan oleh pemohon: selama pending, atau sudah disetujui tetapi belum mulai
+-- Pembatalan langsung oleh pemohon: hanya selama masih menunggu keputusan (yang sudah disetujui: lihat bagian 19 / 012)
 create or replace function public.cancel_leave(p_id uuid)
 returns void
 language plpgsql
@@ -178,8 +178,8 @@ begin
   if not found or r.user_id is distinct from auth.uid() then
     raise exception 'Akses ditolak.' using errcode = '42501';
   end if;
-  if not (r.status = 'pending' or (r.status = 'approved' and r.start_date > public.today_jakarta())) then
-    raise exception 'Pengajuan ini tidak bisa dibatalkan lagi.' using errcode = '22023';
+  if r.status <> 'pending' then
+    raise exception 'Pengajuan yang sudah disetujui dibatalkan lewat pengajuan pembatalan.' using errcode = '22023';
   end if;
   update public.leave_requests set status = 'cancelled', updated_at = now() where id = p_id;
 end;

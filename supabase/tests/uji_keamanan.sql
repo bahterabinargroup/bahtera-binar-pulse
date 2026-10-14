@@ -1312,6 +1312,147 @@ begin
     reset role;
     delete from public.presensi where user_id = eb2;
     res := res || pg_temp.t_line(27, 'Tugas Luar tetap wajib lapor', n = 1, format('masih belum mengisi=%s', n));
+
+  -- =====================================================================
+  -- PEMBATALAN CUTI / IZIN (butuh supabase/012_pembatalan_cuti.sql sudah dijalankan)
+  -- =====================================================================
+  declare
+    d2 date := today + case when extract(isodow from today) = 7 then 1 else 0 end;
+    lv5 uuid; lv6 uuid; kd2 text; ed date; cs text; co text;
+  begin
+    -- lv1 (ea2, d2..d2+2) sudah disetujui di bagian 26
+    begin
+      perform pg_temp.t_as(ea2);
+      perform public.cancel_leave(lv1);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Cuti yang sudah disetujui tidak bisa dibatalkan langsung (harus lewat pengajuan pembatalan)', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      perform public.request_leave_cancel(lv1, '   ');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Pengajuan pembatalan tanpa alasan ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.request_leave_cancel(lv1, 'iseng');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Orang lain tidak bisa mengajukan pembatalan cuti milik orang lain', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(ea2);
+    perform public.request_leave_cancel(lv1, 'Acara dibatalkan');
+    select status into cs from public.leave_requests where id = lv1;
+    select public.leave_on(ea2, d2) into kd2;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Pengajuan pembatalan terkirim; selama menunggu, cuti TETAP berlaku', cs = 'approved' and kd2 = 'cuti', format('status=%s, leave_on=%s', cs, coalesce(kd2, '-')));
+
+    begin
+      perform pg_temp.t_as(ea2);
+      perform public.request_leave_cancel(lv1, 'sekali lagi');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Pengajuan pembatalan ganda saat masih menunggu ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.decide_leave_cancel(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Rekan tidak bisa menyetujui pembatalan', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      perform public.decide_leave_cancel(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Pemohon tidak bisa menyetujui pembatalannya sendiri', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.decide_leave_cancel(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Manager company lain tidak bisa memutuskan pembatalan', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(ma);
+    perform public.decide_leave_cancel(lv1, false, 'Sudah dijadwalkan');
+    select status, cancel_outcome into cs, co from public.leave_requests where id = lv1;
+    select public.leave_on(ea2, d2) into kd2;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Manager menolak pembatalan: cuti tetap berlaku', cs = 'approved' and co = 'rejected' and kd2 = 'cuti', format('status=%s, hasil=%s, leave_on=%s', cs, co, coalesce(kd2, '-')));
+
+    perform pg_temp.t_as(ea2);
+    perform public.request_leave_cancel(lv1, 'Mohon dipertimbangkan lagi');
+    reset role;
+    perform pg_temp.t_as(ma);
+    perform public.decide_leave_cancel(lv1, true, 'Oke');
+    select status, cancel_outcome into cs, co from public.leave_requests where id = lv1;
+    select public.leave_on(ea2, d2) into kd2;
+    select count(*) into n from public.get_missing_reports(d2, ca) where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Pembatalan disetujui (belum mulai): cuti batal, kembali wajib lapor', cs = 'cancelled' and co = 'approved' and kd2 is null and n = 1, format('status=%s, leave_on=%s, belum mengisi=%s', cs, coalesce(kd2, '-'), n));
+
+    -- Cuti yang sudah berjalan: dipotong sampai kemarin
+    perform pg_temp.t_as(ea1);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ea1, 'cuti', d2 + 60, d2 + 63, 'Liburan') returning id into lv5;
+    reset role;
+    perform pg_temp.t_as(ma);
+    perform public.decide_leave(lv5, true, null);
+    reset role;
+    update public.leave_requests set start_date = today - 1, end_date = today + 3 where id = lv5;
+    perform pg_temp.t_as(ea1);
+    perform public.request_leave_cancel(lv5, 'Tidak jadi, ada pekerjaan');
+    reset role;
+    perform pg_temp.t_as(uo);
+    perform public.decide_leave_cancel(lv5, true, null);
+    reset role;
+    select status, end_date, cancel_outcome into cs, ed, co from public.leave_requests where id = lv5;
+    res := res || pg_temp.t_line(28, 'Cuti yang sudah berjalan dipotong sampai kemarin; statusnya tetap disetujui', cs = 'approved' and ed = today - 1 and co = 'approved', format('status=%s, selesai=%s, hasil=%s', cs, ed, co));
+
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.request_leave_cancel(lv5, 'lagi');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Cuti yang sudah berakhir tidak bisa diajukan pembatalan', st = '22023', 'hasil=' || st);
+
+    -- Manager tidak memutuskan pembatalan milik sendiri; Owner boleh
+    perform pg_temp.t_as(ma);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ma, 'izin', d2 + 70, d2 + 70, 'Urusan') returning id into lv6;
+    reset role;
+    perform pg_temp.t_as(uo);
+    perform public.decide_leave(lv6, true, null);
+    reset role;
+    perform pg_temp.t_as(ma);
+    perform public.request_leave_cancel(lv6, 'Tidak jadi');
+    reset role;
+    begin
+      perform pg_temp.t_as(ma);
+      perform public.decide_leave_cancel(lv6, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(28, 'Manager tidak bisa memutuskan pembatalan miliknya sendiri', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(uo);
+    perform public.decide_leave_cancel(lv6, true, null);
+    reset role;
+    select status into cs from public.leave_requests where id = lv6;
+    res := res || pg_temp.t_line(28, 'Owner bisa menyetujui pembatalan pengajuan Manager', cs = 'cancelled', 'status=' || coalesce(cs, '-'));
+  end;
   end;
 
   -- =====================================================================
