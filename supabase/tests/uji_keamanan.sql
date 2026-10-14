@@ -1089,6 +1089,232 @@ begin
   res := res || pg_temp.t_line(23, 'Owner melihat semua foto (termasuk foto uji company A)', n = 1 and n2 >= 1, format('foto uji=%s, total terlihat=%s', n, n2));
 
   -- =====================================================================
+  -- CUTI / IZIN (butuh supabase/011_cuti_izin.sql sudah dijalankan)
+  -- =====================================================================
+  declare
+    d date := today + case when extract(isodow from today) = 7 then 1 else 0 end;
+    lv1 uuid; lv2 uuid; lv3 uuid; lv4 uuid; kd text; n7 int;
+  begin
+    -- 24. Mengajukan
+    perform pg_temp.t_as(ea2);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ea2, 'cuti', d, d + 2, 'Acara keluarga') returning id into lv1;
+    select status into st from public.leave_requests where id = lv1;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Karyawan bisa mengajukan cuti; status otomatis menunggu', st = 'pending', 'status=' || coalesce(st, '-'));
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason, status) values (ca, ea2, 'izin', d + 10, d + 10, 'x', 'approved');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Status tidak bisa dipalsukan saat mengajukan (kolom status terkunci)', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'izin', d + 10, d + 10, 'atas nama orang lain');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Tidak bisa mengajukan atas nama orang lain', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea2, 'cuti', today - 3, today - 3, 'sudah lewat');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Tanggal mulai di masa lalu ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea2, 'cuti', d + 20, d + 19, 'terbalik');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Tanggal selesai sebelum tanggal mulai ditolak', st = '23514', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea2, 'cuti', d + 1, d + 1, 'tumpang tindih');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Pengajuan yang tumpang tindih dengan pengajuan lain ditolak', st = '23505', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea2, 'cuti', d + 30, d + 30, '   ');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Alasan kosong ditolak', st = '23514', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(uo);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uo, 'cuti', d + 30, d + 30, 'owner');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(24, 'Owner tidak mengajukan cuti (tidak wajib presensi)', st = '42501', 'hasil=' || st);
+
+    -- 25. Siapa melihat
+    perform pg_temp.t_as(ea1);
+    select count(*) into n from public.leave_requests;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Karyawan hanya melihat pengajuan sendiri', n = 0, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(ea2);
+    select count(*) into n from public.leave_requests;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Pemohon melihat pengajuannya sendiri', n = 1, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.leave_requests where company_id = ca;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Manager melihat pengajuan company-nya', n = 1, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(mb);
+    select count(*) into n from public.leave_requests;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Manager company lain tidak melihat pengajuan company A', n = 0, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(uo);
+    select count(*) into n from public.leave_requests where company_id = ca;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Owner melihat semua pengajuan', n = 1, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(gh);
+    select count(*) into n from public.leave_requests;
+    reset role;
+    res := res || pg_temp.t_line(25, 'Akun tanpa undangan tidak melihat pengajuan', n = 0, format('terlihat=%s', n));
+
+    -- 26. Keputusan
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.decide_leave(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Karyawan (rekan) tidak bisa menyetujui', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea2);
+      perform public.decide_leave(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Pemohon tidak bisa menyetujui pengajuannya sendiri', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.decide_leave(lv1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Manager company lain tidak bisa menyetujui', st = '42501', 'hasil=' || st);
+
+    -- sebelum disetujui, ea2 masih tercatat "belum mengisi"
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.get_missing_reports(d, ca) where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Sebelum disetujui, pemohon masih tercatat belum mengisi', n = 1, format('baris=%s', n));
+
+    perform pg_temp.t_as(ma);
+    perform public.decide_leave(lv1, true, 'Silakan');
+    reset role;
+    select status, decision_note into st, t from public.leave_requests where id = lv1;
+    res := res || pg_temp.t_line(26, 'Manager menyetujui pengajuan karyawan di company-nya; catatan tersimpan', st = 'approved' and t = 'Silakan', format('status=%s, catatan=%s', st, t));
+
+    begin
+      perform pg_temp.t_as(uo);
+      perform public.decide_leave(lv1, false, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Pengajuan yang sudah diproses tidak bisa diputuskan lagi', st = '22023', 'hasil=' || st);
+
+    -- pengajuan Manager: hanya Owner
+    perform pg_temp.t_as(ma);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ma, 'izin', d + 40, d + 40, 'Urusan keluarga') returning id into lv2;
+    reset role;
+    begin
+      perform pg_temp.t_as(ma);
+      perform public.decide_leave(lv2, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Manager tidak bisa menyetujui pengajuannya sendiri', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(uo);
+    perform public.decide_leave(lv2, false, 'Tolak');
+    reset role;
+    select status into st from public.leave_requests where id = lv2;
+    res := res || pg_temp.t_line(26, 'Owner bisa menolak pengajuan Manager', st = 'rejected', 'status=' || coalesce(st, '-'));
+
+    perform pg_temp.t_as(ea1);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ea1, 'izin', d + 50, d + 50, 'Keperluan') returning id into lv3;
+    perform public.cancel_leave(lv3);
+    reset role;
+    select status into st from public.leave_requests where id = lv3;
+    res := res || pg_temp.t_line(26, 'Pemohon bisa membatalkan pengajuan yang masih menunggu', st = 'cancelled', 'status=' || coalesce(st, '-'));
+
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.cancel_leave(lv1);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(26, 'Orang lain tidak bisa membatalkan pengajuan milik orang lain', st = '42501', 'hasil=' || st);
+
+    -- 27. Dampak: cuti disetujui = laporan gugur, presensi tidak perlu
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.get_missing_reports(d, ca) where user_id = ea2;
+    select count(*) into n2 from public.get_missing_reports(d + 5, ca) where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(27, 'Cuti disetujui: tidak dihitung belum mengisi pada harinya, tetap dihitung di luar rentang', n = 0 and n2 = 1, format('pada hari cuti=%s, di luar rentang=%s', n, n2));
+
+    perform pg_temp.t_as(ma);
+    select public.leave_on(ea2, d) into kd;
+    reset role;
+    res := res || pg_temp.t_line(27, 'leave_on mengembalikan jenis cuti pada tanggal yang disetujui', kd = 'cuti', 'jenis=' || coalesce(kd, '-'));
+
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.get_weekly_report_compliance(date_trunc('week', d)::date, ca, '{1,2,3,4,5,6}', true) where user_id = ea2 and expected_days > 0;
+    reset role;
+    select count(*) into n2 from public.users where id = ea2;
+    res := res || pg_temp.t_line(27, 'Kepatuhan mingguan tetap berjalan tanpa error setelah ada cuti', n >= 0 and n2 = 1, format('baris=%s', n));
+
+    begin
+      insert into public.presensi (company_id, user_id, status, attendance_date) values (ca, ea2, 'wfo', d);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    res := res || pg_temp.t_line(27, 'Check-In pada hari cuti yang disetujui ditolak', st = '22023', 'hasil=' || st);
+
+    -- Izin lewat presensi juga membuat laporan gugur
+    perform pg_temp.t_as(mb);
+    select count(*) into n from public.get_missing_reports(today, cb) where user_id = eb2;
+    reset role;
+    insert into public.presensi (company_id, user_id, status, note) values (cb, eb2, 'sakit', 'demam');
+    perform pg_temp.t_as(mb);
+    select count(*) into n2 from public.get_missing_reports(today, cb) where user_id = eb2;
+    reset role;
+    delete from public.presensi where user_id = eb2;
+    res := res || pg_temp.t_line(27, 'Izin/Sakit lewat presensi: laporan hari itu gugur (tidak dihitung belum mengisi)', n = 1 and n2 = 0, format('sebelum=%s, sesudah=%s', n, n2));
+
+    -- Tugas Luar tetap wajib lapor
+    insert into public.presensi (company_id, user_id, status, note, check_in_photo_path) values (cb, eb2, 'tugas_luar', 'klien', cb::text || '/' || eb2::text || '/b.jpg');
+    perform pg_temp.t_as(mb);
+    select count(*) into n from public.get_missing_reports(today, cb) where user_id = eb2;
+    reset role;
+    delete from public.presensi where user_id = eb2;
+    res := res || pg_temp.t_line(27, 'Tugas Luar tetap wajib lapor', n = 1, format('masih belum mengisi=%s', n));
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

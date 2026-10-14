@@ -225,3 +225,7 @@ Lalu buka http://localhost:3000 (halaman cek koneksi: http://localhost:3000/cek-
 
 ## Dashboard disederhanakan — 11 Okt 2026
 Keputusan pemilik: dashboard hanya Owner/Manager, hanya data semua divisi (kepatuhan laporan, presensi dari tabel `presensi`, kendala, tugas lewat tenggat); proyeksi spreadsheet ditunda; bagian ADV/target disembunyikan (kode tetap). Poin "presensi mandiri" = opsi A (angka presensi dari data Check-In; kolom form dibiarkan). `/dev/dashboard` dihapus. Detail di CLAUDE.md.
+
+## Cuti / Izin + laporan gugur — mulai 14 Okt 2026
+Keputusan pemilik: (1) Izin, Sakit, dan Cuti membuat daily report GUGUR (tidak wajib lapor, tidak dihitung tidak patuh; Tugas Luar tetap wajib). (2) Pengajuan cuti/izin jauh hari: jenis (cuti/izin), tanggal mulai-selesai, alasan; disetujui/ditolak oleh Owner, atau Manager untuk pengajuan KARYAWAN di company-nya (pengajuan Manager hanya Owner; tidak boleh memutuskan milik sendiri); catatan keputusan; pemohon bisa membatalkan. (3) Disetujui = di hari itu Check-In ditolak, rekap tertulis Cuti/Izin; hari Minggu tidak dihitung.
+- Tahap: K1 database (✅ file ditulis, ⏳ belum dijalankan pemilik): `supabase/011_cuti_izin.sql` (= bagian 18 schema; tabel `leave_requests`, fungsi `decide_leave`/`cancel_leave`/`leave_on`/`excused_kind`, `get_missing_reports` & `get_weekly_report_compliance` mengabaikan yang gugur, Check-In ditolak saat cuti) + uji bagian 24–27. → K2 halaman pengajuan & persetujuan → K3 sambungan ke presensi/laporan/dashboard/rekap → K4 perbarui dokumen panduan.
