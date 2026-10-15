@@ -1642,10 +1642,11 @@ begin
 
     -- 32. Tautan penting: Lead melihat seperti karyawan
     perform pg_temp.t_as(ul);
-    select count(*) into n from public.resource_links where id in (l1, l2, l5, l6);
+    -- l2 sudah dihapus oleh uji nomor 17, jadi yang tersisa untuk divisi ADV: l1 (semua divisi), l5 (semua company), l6 (ADV dan CC)
+    select count(*) into n from public.resource_links where id in (l1, l5, l6);
     select count(*) into n2 from public.resource_links where id in (l3, l4);
     reset role;
-    res := res || pg_temp.t_line(32, 'Lead melihat tautan untuk divisinya dan semua divisi, bukan divisi/company lain', n = 4 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+    res := res || pg_temp.t_line(32, 'Lead melihat tautan untuk divisinya dan semua divisi, bukan divisi/company lain', n = 3 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
 
     -- Manager tetap melihat Lead, dan Owner melihat semuanya
     perform pg_temp.t_as(ma);
