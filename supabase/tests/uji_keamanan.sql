@@ -1460,23 +1460,27 @@ begin
   -- =====================================================================
   declare
     ul uuid := gen_random_uuid(); ul2 uuid := gen_random_uuid();
-    eax uuid := gen_random_uuid(); ebx uuid := gen_random_uuid();
-    lvl uuid; lvx uuid; ob uuid;
+    eax uuid := gen_random_uuid(); ebx uuid := gen_random_uuid(); emh uuid := gen_random_uuid();
+    lvl uuid; lvx uuid; ob uuid; p_mh int;
   begin
+    select id into p_mh from public.roles_config where code = 'ADV_MH';
     insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at)
     select x.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', x.em, now(), now(), now()
     from (values
       (ul,  'uji.lead.a@example.invalid'),
       (ul2, 'uji.lead.a2@example.invalid'),
       (eax, 'uji.karyawan.adv.a3@example.invalid'),
-      (ebx, 'uji.karyawan.adv.b3@example.invalid')
+      (ebx, 'uji.karyawan.adv.b3@example.invalid'),
+      (emh, 'uji.magang.hub@example.invalid')
     ) as x(id, em);
     insert into public.users (id, company_id, position_id, role, full_name, email) values
       (ul,  ca, p_adv, 'lead',     'Uji Lead ADV A',    'uji.lead.a@example.invalid'),
       (ul2, ca, p_adv, 'lead',     'Uji Lead ADV A2',   'uji.lead.a2@example.invalid'),
       (eax, ca, p_adv, 'employee', 'Uji Karyawan ADV A3', 'uji.karyawan.adv.a3@example.invalid'),
-      (ebx, cb, p_adv, 'employee', 'Uji Karyawan ADV B3', 'uji.karyawan.adv.b3@example.invalid');
+      (ebx, cb, p_adv, 'employee', 'Uji Karyawan ADV B3', 'uji.karyawan.adv.b3@example.invalid'),
+      (emh, ca, p_mh,  'employee', 'Uji Magang Hub A',    'uji.magang.hub@example.invalid');
     insert into public.daily_reports (company_id, user_id, report_date) values (ca, ul2, today);
+    insert into public.daily_reports (company_id, user_id, report_date) values (ca, emh, today);
     insert into public.daily_reports (company_id, user_id, report_date) values (cb, ebx, today);
     insert into public.presensi (company_id, user_id, status) values (cb, ebx, 'wfo');
     insert into storage.objects (bucket_id, name, owner_id) values ('presensi', ca::text || '/' || ea2::text || '/foto-rnd.jpg', ea2::text);
@@ -1523,6 +1527,38 @@ begin
     select count(*) into n from public.get_weekly_report_compliance(date_trunc('week', today)::date, null) where user_id <> ul and position_code is distinct from 'ADV';
     reset role;
     res := res || pg_temp.t_line(29, 'Kepatuhan mingguan untuk Lead hanya memuat divisinya', n = 0, format('baris divisi lain=%s', n));
+
+    -- Divisi tambahan: Lead ADV belum membawahi ADV MH sampai Owner mengaturnya
+    perform pg_temp.t_as(ul);
+    select count(*) into n from public.daily_reports where user_id = emh;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Sebelum diatur Owner, Lead ADV belum melihat anak Magang Hub (ADV MH)', n = 0, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(ul);
+    update public.users set lead_position_ids = array[p_mh]::smallint[] where id = ul;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead tidak bisa memperluas cakupannya sendiri', n = 0, format('baris terubah=%s', n));
+
+    perform pg_temp.t_as(ma);
+    update public.users set lead_position_ids = array[p_mh]::smallint[] where id = ul;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Manager tidak bisa mengatur cakupan Lead', n = 0, format('baris terubah=%s', n));
+
+    perform pg_temp.t_as(uo);
+    update public.users set lead_position_ids = array[p_mh]::smallint[] where id = ul;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Owner bisa mengatur divisi tambahan Lead', n = 1, format('baris terubah=%s', n));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n from public.daily_reports where user_id = emh;
+    select count(*) into n2 from public.presensi where user_id = emh;
+    select count(*) into n3 from public.get_missing_reports(today, ca) where user_id = emh;
+    select count(*) into n4 from public.daily_reports where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead ADV dengan divisi tambahan ADV MH melihat laporan anak Magang Hub; divisi lain tetap tertutup', n = 1 and n4 = 0, format('laporan ADV MH=%s, divisi lain=%s', n, n4));
 
     -- 30. Lead hanya melihat, tidak mengubah
     perform pg_temp.t_as(ul);

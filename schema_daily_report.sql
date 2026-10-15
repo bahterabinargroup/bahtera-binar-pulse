@@ -3158,10 +3158,17 @@ grant execute on function public.decide_leave_cancel(uuid, boolean, text) to aut
 --      Di sini kebijakan, fungsi keputusan cuti, get_missing_reports, dan
 --      get_weekly_report_compliance didefinisikan ulang agar memuat Lead.)
 --     Lead hanya MELIHAT laporan, presensi (lokasi + foto), dan cuti/izin
---     karyawan biasa berjabatan sama di company yang sama; tidak menyetujui cuti.
+--     karyawan biasa di company yang sama dengan jabatan sama ATAU divisi tambahan
+--     (users.lead_position_ids, diatur Owner); tidak menyetujui cuti.
 -- =====================================================================
 
--- Boleh dilihat Lead yang sedang login? (karyawan biasa, jabatan sama, company sama)
+-- Divisi tambahan yang dipantau seorang Lead (diatur Owner di menu Pengguna).
+-- Contoh: Lead berjabatan ADV yang membawahi anak Magang Hub -> berisi id jabatan ADV MH.
+-- Selain itu Lead selalu melihat karyawan biasa berjabatan SAMA dengan dirinya.
+alter table public.users add column if not exists lead_position_ids smallint[] not null default '{}'::smallint[];
+comment on column public.users.lead_position_ids is 'Hanya berarti untuk role lead: jabatan tambahan yang dipantau (selain jabatannya sendiri). Diubah Owner.';
+
+-- Boleh dilihat Lead yang sedang login? (karyawan biasa, company sama, jabatan sama ATAU salah satu divisi tambahan)
 create or replace function public.lead_can_view(p_user uuid)
 returns boolean
 language sql
@@ -3172,13 +3179,14 @@ as $$
   select exists (
     select 1
     from public.users me
-    join public.users t on t.company_id = me.company_id and t.position_id = me.position_id
+    join public.users t on t.company_id = me.company_id
     where me.id = (select auth.uid())
       and me.is_active
       and me.role = 'lead'
-      and me.position_id is not null
       and t.id = p_user
       and t.role = 'employee'
+      and t.position_id is not null
+      and (t.position_id = me.position_id or t.position_id = any (me.lead_position_ids))
   )
 $$;
 
