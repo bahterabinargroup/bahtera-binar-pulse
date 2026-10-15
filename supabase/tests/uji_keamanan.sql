@@ -1456,6 +1456,174 @@ begin
   end;
 
   -- =====================================================================
+  -- ROLE LEAD (butuh supabase/013_role_lead.sql dan 014_wewenang_lead.sql sudah dijalankan)
+  -- =====================================================================
+  declare
+    ul uuid := gen_random_uuid(); ul2 uuid := gen_random_uuid();
+    eax uuid := gen_random_uuid(); ebx uuid := gen_random_uuid();
+    lvl uuid; lvx uuid; ob uuid;
+  begin
+    insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at)
+    select x.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', x.em, now(), now(), now()
+    from (values
+      (ul,  'uji.lead.a@example.invalid'),
+      (ul2, 'uji.lead.a2@example.invalid'),
+      (eax, 'uji.karyawan.adv.a3@example.invalid'),
+      (ebx, 'uji.karyawan.adv.b3@example.invalid')
+    ) as x(id, em);
+    insert into public.users (id, company_id, position_id, role, full_name, email) values
+      (ul,  ca, p_adv, 'lead',     'Uji Lead ADV A',    'uji.lead.a@example.invalid'),
+      (ul2, ca, p_adv, 'lead',     'Uji Lead ADV A2',   'uji.lead.a2@example.invalid'),
+      (eax, ca, p_adv, 'employee', 'Uji Karyawan ADV A3', 'uji.karyawan.adv.a3@example.invalid'),
+      (ebx, cb, p_adv, 'employee', 'Uji Karyawan ADV B3', 'uji.karyawan.adv.b3@example.invalid');
+    insert into public.daily_reports (company_id, user_id, report_date) values (ca, ul2, today);
+    insert into public.daily_reports (company_id, user_id, report_date) values (cb, ebx, today);
+    insert into public.presensi (company_id, user_id, status) values (cb, ebx, 'wfo');
+    insert into storage.objects (bucket_id, name, owner_id) values ('presensi', ca::text || '/' || ea2::text || '/foto-rnd.jpg', ea2::text);
+
+    -- 29. Melihat: hanya karyawan biasa, jabatan sama, company sama
+    perform pg_temp.t_as(ul);
+    select count(*) into n  from public.daily_reports where user_id = ea1;
+    select count(*) into n2 from public.daily_reports where user_id = ea2;
+    select count(*) into n3 from public.daily_reports where user_id = ma;
+    select count(*) into n4 from public.daily_reports where user_id = ul2;
+    select count(*) into n5 from public.daily_reports where user_id = ebx;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead ADV melihat laporan karyawan ADV di company-nya; tidak melihat divisi lain, Manager, sesama Lead, atau company lain',
+      n >= 1 and n2 = 0 and n3 = 0 and n4 = 0 and n5 = 0, format('karyawan ADV=%s, divisi lain=%s, manager=%s, sesama lead=%s, company lain=%s', n, n2, n3, n4, n5));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n  from public.presensi where user_id = ea1;
+    select count(*) into n2 from public.presensi where user_id = ebx;
+    select count(*) into n3 from public.presensi where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead melihat presensi karyawan divisinya; tidak melihat company lain atau divisi lain', n >= 1 and n2 = 0 and n3 = 0, format('divisi sendiri=%s, company lain=%s, divisi lain=%s', n, n2, n3));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n  from storage.objects where bucket_id = 'presensi' and name like ca::text || '/' || ea1::text || '/%';
+    select count(*) into n2 from storage.objects where bucket_id = 'presensi' and name like ca::text || '/' || ea2::text || '/%';
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead melihat foto presensi karyawan divisinya, bukan divisi lain', n = 1 and n2 = 0, format('foto divisi sendiri=%s, divisi lain=%s', n, n2));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n  from public.leave_requests where user_id = ea1;
+    select count(*) into n2 from public.leave_requests where user_id = ea2;
+    reset role;
+    res := res || pg_temp.t_line(29, 'Lead melihat pengajuan cuti karyawan divisinya, bukan divisi lain', n >= 1 and n2 = 0, format('divisi sendiri=%s, divisi lain=%s', n, n2));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n  from public.get_missing_reports(today, ca) where user_id = eax;
+    select count(*) into n2 from public.get_missing_reports(today, ca) where user_id = ea2;
+    select count(*) into n3 from public.get_missing_reports(today, ca) where user_id = ul;
+    select count(*) into n4 from public.get_missing_reports(today, cb);
+    reset role;
+    res := res || pg_temp.t_line(29, 'Daftar belum mengisi untuk Lead: hanya karyawan ADV di company-nya', n = 1 and n2 = 0 and n3 = 0 and n4 = 0, format('karyawan ADV belum mengisi=%s, divisi lain=%s, dirinya=%s, company lain=%s', n, n2, n3, n4));
+
+    perform pg_temp.t_as(ul);
+    select count(*) into n from public.get_weekly_report_compliance(date_trunc('week', today)::date, null) where user_id <> ul and position_code is distinct from 'ADV';
+    reset role;
+    res := res || pg_temp.t_line(29, 'Kepatuhan mingguan untuk Lead hanya memuat divisinya', n = 0, format('baris divisi lain=%s', n));
+
+    -- 30. Lead hanya melihat, tidak mengubah
+    perform pg_temp.t_as(ul);
+    update public.daily_reports set insights = 'diubah lead' where user_id = ea1;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(30, 'Lead tidak bisa mengubah laporan karyawan', n = 0, format('baris terubah=%s', n));
+
+    begin
+      perform pg_temp.t_as(ul);
+      insert into public.daily_reports (company_id, user_id, report_date) values (ca, eax, today);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(30, 'Lead tidak bisa membuat laporan atas nama karyawan', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ul);
+      insert into public.presensi (company_id, user_id, status) values (ca, eax, 'wfo');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(30, 'Lead tidak bisa membuat presensi atas nama karyawan', st = '42501', 'hasil=' || st);
+
+    -- Lead mengisi laporan dan presensi sendiri
+    begin
+      perform pg_temp.t_as(ul);
+      insert into public.daily_reports (company_id, user_id, report_date) values (ca, ul, today);
+      insert into public.presensi (company_id, user_id, status) values (ca, ul, 'wfo');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(30, 'Lead bisa mengisi laporan dan presensinya sendiri', st = 'OK', 'hasil=' || st);
+
+    -- Lead tidak melihat sesama Lead
+    perform pg_temp.t_as(ul);
+    select count(*) into n from public.presensi where user_id = ul2;
+    reset role;
+    res := res || pg_temp.t_line(30, 'Lead tidak melihat presensi sesama Lead', n = 0, format('terlihat=%s', n));
+
+    -- 31. Cuti: Lead mengajukan, Manager memutuskan, Lead tidak memutuskan
+    perform pg_temp.t_as(ul);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ul, 'cuti', today + 20, today + 21, 'Cuti tahunan') returning id into lvl;
+    reset role;
+    res := res || pg_temp.t_line(31, 'Lead bisa mengajukan cuti', lvl is not null, 'id=' || coalesce(lvl::text, '-'));
+
+    perform pg_temp.t_as(ea1);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
+      values (ca, ea1, 'izin', today + 25, today + 25, 'Keperluan') returning id into lvx;
+    reset role;
+    begin
+      perform pg_temp.t_as(ul);
+      perform public.decide_leave(lvx, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(31, 'Lead tidak bisa menyetujui cuti karyawan divisinya', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ul);
+      perform public.decide_leave(lvl, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(31, 'Lead tidak bisa menyetujui cutinya sendiri', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(ma);
+    perform public.decide_leave(lvl, true, 'Silakan');
+    reset role;
+    select status into st from public.leave_requests where id = lvl;
+    res := res || pg_temp.t_line(31, 'Manager company-nya bisa menyetujui cuti Lead', st = 'approved', 'status=' || coalesce(st, '-'));
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.decide_leave(lvl, false, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(31, 'Manager company lain tidak bisa memutuskan cuti Lead', st = '22023' or st = '42501', 'hasil=' || st);
+
+    -- 32. Tautan penting: Lead melihat seperti karyawan
+    perform pg_temp.t_as(ul);
+    select count(*) into n from public.resource_links where id in (l1, l2, l5, l6);
+    select count(*) into n2 from public.resource_links where id in (l3, l4);
+    reset role;
+    res := res || pg_temp.t_line(32, 'Lead melihat tautan untuk divisinya dan semua divisi, bukan divisi/company lain', n = 4 and n2 = 0, format('terlihat=%s, tidak seharusnya=%s', n, n2));
+
+    -- Manager tetap melihat Lead, dan Owner melihat semuanya
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.daily_reports where user_id = ul2;
+    reset role;
+    res := res || pg_temp.t_line(32, 'Manager tetap melihat laporan Lead di company-nya', n = 1, format('terlihat=%s', n));
+
+    perform pg_temp.t_as(ea1);
+    select count(*) into n from public.daily_reports where user_id <> ea1;
+    reset role;
+    res := res || pg_temp.t_line(32, 'Karyawan biasa tetap hanya melihat laporan sendiri (Lead tidak membuka akses rekan)', n = 0, format('milik orang lain=%s', n));
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;
