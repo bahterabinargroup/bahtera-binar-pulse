@@ -19,7 +19,7 @@ function dbError(error: { code?: string; message: string }): string {
 // Owner & Manager. Database (RLS) tetap penentu akhir: Manager hanya company-nya.
 export async function saveLink(_prev: ActionResult | null, f: FormData): Promise<ActionResult> {
   const { profile } = await getCurrentUser();
-  if (!profile || profile.role === "employee") return { ok: false, error: "Hanya Owner dan Manager yang bisa mengelola tautan." };
+  if (!profile || (profile.role !== "owner" && profile.role !== "manager")) return { ok: false, error: "Hanya Owner dan Manager yang bisa mengelola tautan." };
 
   const id = str(f, "id");
   const title = str(f, "title");
@@ -63,7 +63,7 @@ export async function saveLink(_prev: ActionResult | null, f: FormData): Promise
 
 export async function deleteLink(id: string): Promise<ActionResult> {
   const { profile } = await getCurrentUser();
-  if (!profile || profile.role === "employee") return { ok: false, error: "Hanya Owner dan Manager yang bisa menghapus tautan." };
+  if (!profile || (profile.role !== "owner" && profile.role !== "manager")) return { ok: false, error: "Hanya Owner dan Manager yang bisa menghapus tautan." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("resource_links").delete().eq("id", id).select("id");
   if (error) return { ok: false, error: dbError(error) };

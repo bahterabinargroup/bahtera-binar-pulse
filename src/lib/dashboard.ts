@@ -1,6 +1,6 @@
 // Perhitungan untuk dashboard utama. Fungsi murni (tanpa akses database) agar mudah diuji.
 // Definisi kepatuhan mengikuti database (get_weekly_report_compliance): yang wajib lapor
-// = pengguna aktif ber-role employee atau manager, hari kerja Senin-Sabtu, hari sebelum
+// = pengguna aktif ber-role employee, lead, atau manager, hari kerja Senin-Sabtu, hari sebelum
 // akun dibuat tidak dihitung.
 
 import { addDays, todayJakarta } from "@/lib/date";
@@ -29,7 +29,7 @@ export const isWorkday = (ymd: string) => new Date(`${ymd}T00:00:00Z`).getUTCDay
 export type UserLite = { id: string; role: string; is_active: boolean; created_at: string; position_id: number | null; full_name?: string };
 export type ReportLite = { user_id: string; report_date: string; position_id: number | null; presensi: string | null };
 
-const mustReport = (u: UserLite) => u.is_active && (u.role === "employee" || u.role === "manager");
+const mustReport = (u: UserLite) => u.is_active && (u.role === "employee" || u.role === "lead" || u.role === "manager");
 const createdDay = (u: UserLite) => todayJakarta(new Date(u.created_at));
 
 export type DayCompliance = { day: string; expected: number; filled: number; pct: number };

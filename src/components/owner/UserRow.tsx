@@ -12,6 +12,7 @@ export type UserRowData = {
   employee_code: string | null;
   role: UserRole;
   position_id: number | null;
+  lead_position_ids: number[];
   is_active: boolean;
   company_name: string;
 };
@@ -29,9 +30,10 @@ export function UserRow({
   const [role, setRole] = useState(user.role);
   const [positionId, setPositionId] = useState(user.position_id ? String(user.position_id) : "");
   const [active, setActive] = useState(user.is_active);
+  const [leadIds, setLeadIds] = useState<number[]>(user.lead_position_ids ?? []);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, start] = useTransition();
-  const changed = role !== user.role || positionId !== (user.position_id ? String(user.position_id) : "") || active !== user.is_active;
+  const changed = role !== user.role || positionId !== (user.position_id ? String(user.position_id) : "") || active !== user.is_active || (role === "lead" && JSON.stringify([...leadIds].sort()) !== JSON.stringify([...(user.lead_position_ids ?? [])].sort()));
   const sel = "rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm disabled:bg-zinc-100";
 
   return (
@@ -48,6 +50,7 @@ export function UserRow({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} disabled={isSelf} className={sel} aria-label="Role">
           <option value="employee">Karyawan</option>
+          <option value="lead">Lead</option>
           <option value="manager">Manager</option>
           <option value="owner">Owner</option>
         </select>
@@ -73,6 +76,7 @@ export function UserRow({
                 role,
                 position_id: positionId ? Number(positionId) : null,
                 is_active: active,
+                lead_position_ids: role === "lead" ? leadIds : [],
               });
               setResult(res);
             });
@@ -83,6 +87,26 @@ export function UserRow({
         </button>
         {result && <Result result={result} />}
       </div>
+      {role === "lead" && (
+        <fieldset className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+          <legend className="px-1 text-xs font-bold">Divisi yang dipantau (selain jabatannya sendiri)</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {positions
+              .filter((p) => String(p.id) !== positionId)
+              .map((p) => (
+                <label key={p.id} className="flex items-center gap-1 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={leadIds.includes(p.id)}
+                    onChange={(e) => setLeadIds((cur) => (e.target.checked ? [...cur, p.id] : cur.filter((x) => x !== p.id)))}
+                  />
+                  {p.name}
+                </label>
+              ))}
+          </div>
+          <p className="mt-1 text-xs text-zinc-600">Lead selalu melihat karyawan biasa berjabatan sama di company-nya. Contoh: Lead ADV yang membimbing anak Magang Hub centang <b>ADV MH</b>. Lead hanya melihat, tidak mengubah.</p>
+        </fieldset>
+      )}
     </li>
   );
 }

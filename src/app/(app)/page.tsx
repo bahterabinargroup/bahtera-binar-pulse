@@ -8,7 +8,7 @@ import { statusLabel } from "@/lib/presensi";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
 import { menuFor } from "@/lib/menu";
-import { getCurrentUser } from "@/lib/profile";
+import { canViewTeam, getCurrentUser, isManagerial, leadPositionIds } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BerandaPage({ searchParams }: PageProps<"/">) {
@@ -20,7 +20,8 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   // Ringkasan hari ini. Bila satu pertanyaan ke database gagal, kartunya dilewati (Beranda tetap tampil).
   const supabase = await createClient();
   const today = todayJakarta();
-  const isLeader = profile.role !== "employee";
+  const isLeader = isManagerial(profile.role); // Owner/Manager: dashboard, kelola tautan, persetujuan
+  const viewsTeam = canViewTeam(profile.role); // + Lead (hanya melihat divisinya)
   const hasForm = !!profile.position;
   const wajibPresensi = profile.role !== "owner";
   const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes, excusedRes, leaveTodayRes, leaveOpenRes] = await Promise.all([
@@ -28,7 +29,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
       ? supabase.from("daily_reports").select("updated_at").eq("user_id", profile.id).eq("report_date", today).maybeSingle()
       : Promise.resolve(null),
     supabase.rpc("get_my_action_items"),
-    isLeader ? supabase.rpc("get_missing_reports") : Promise.resolve(null),
+    viewsTeam ? supabase.rpc("get_missing_reports") : Promise.resolve(null),
     profile.role === "owner"
       ? supabase.from("meetings").select("id", { count: "exact", head: true }).not("delete_requested_at", "is", null)
       : Promise.resolve(null),
@@ -38,11 +39,17 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
     wajibPresensi
       ? supabase.from("presensi").select("status, check_in_at, check_out_at").eq("user_id", profile.id).eq("attendance_date", today).maybeSingle()
       : Promise.resolve(null),
-    isLeader ? supabase.from("presensi").select("user_id").eq("attendance_date", today).limit(1000) : Promise.resolve(null),
-    isLeader ? supabase.from("users").select("id, created_at").eq("is_active", true).in("role", ["employee", "manager"]).limit(1000) : Promise.resolve(null),
+    viewsTeam ? supabase.from("presensi").select("user_id").eq("attendance_date", today).limit(1000) : Promise.resolve(null),
+    viewsTeam
+      ? (() => {
+          const q = supabase.from("users").select("id, created_at").eq("is_active", true).limit(1000);
+          // Lead: hanya karyawan biasa di divisinya (dan divisi tambahan)
+          return profile.role === "lead" ? q.eq("role", "employee").in("position_id", leadPositionIds(profile)) : q.in("role", ["employee", "lead", "manager"]);
+        })()
+      : Promise.resolve(null),
     // Cuti/izin: gugur hari ini (diri sendiri), yang cuti hari ini di tim, dan pengajuan yang menunggu keputusan
     wajibPresensi ? supabase.rpc("excused_kind", { p_user: profile.id, p_date: today }) : Promise.resolve(null),
-    isLeader
+    viewsTeam
       ? supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today).limit(1000)
       : Promise.resolve(null),
     isLeader

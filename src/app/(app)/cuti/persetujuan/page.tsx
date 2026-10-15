@@ -3,7 +3,7 @@ import { DecideForm } from "@/components/cuti/LeaveForms";
 import { cardCls } from "@/components/owner/ui";
 import { todayJakarta } from "@/lib/date";
 import { cancelPending, fmtRentang, kindLabel, LEAVE_COLUMNS, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
-import { getCurrentUser } from "@/lib/profile";
+import { getCurrentUser, isManagerial } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 type Person = { id: string; full_name: string; role: string; position: { name: string } | null };
@@ -12,7 +12,7 @@ type Person = { id: string; full_name: string; role: string; position: { name: s
 export default async function PersetujuanCutiPage() {
   const { profile } = await getCurrentUser();
   if (!profile) return null;
-  if (profile.role === "employee") redirect("/cuti");
+  if (!isManagerial(profile.role)) redirect("/cuti");
   const isOwner = profile.role === "owner";
   const today = todayJakarta();
 
@@ -47,7 +47,7 @@ export default async function PersetujuanCutiPage() {
   const people = new Map(((ppl ?? []) as unknown as Person[]).map((p) => [p.id, p]));
 
   // Siapa yang boleh diputuskan oleh yang login (database tetap menjaga).
-  const canDecide = (r: LeaveRow) => r.user_id !== profile.id && (isOwner || people.get(r.user_id)?.role === "employee");
+  const canDecide = (r: LeaveRow) => r.user_id !== profile.id && (isOwner || ["employee", "lead"].includes(people.get(r.user_id)?.role ?? ""));
   const label = (r: LeaveRow) => {
     const p = people.get(r.user_id);
     return `${p?.full_name ?? "—"}${p?.position ? ` · ${p.position.name}` : ""}`;
@@ -71,7 +71,7 @@ export default async function PersetujuanCutiPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-accent">Persetujuan Cuti / Izin</h1>
-      <p className="mt-1 text-sm text-zinc-600">{isOwner ? "Semua company." : "Karyawan di company Anda. Pengajuan sesama Manager diputuskan Owner."}</p>
+      <p className="mt-1 text-sm text-zinc-600">{isOwner ? "Semua company." : "Karyawan dan Lead di company Anda. Pengajuan sesama Manager diputuskan Owner."}</p>
 
       <h2 className="mt-5 text-lg font-bold">Pengajuan menunggu keputusan ({pendings.length})</h2>
       {pendings.length === 0 ? (

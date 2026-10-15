@@ -91,7 +91,7 @@ function LinkFields({
 
 export default async function KelolaTautanPage() {
   const { profile } = await getCurrentUser();
-  if (!profile || profile.role === "employee") redirect("/");
+  if (!profile || (profile.role !== "owner" && profile.role !== "manager")) redirect("/");
   const isOwner = profile.role === "owner";
 
   const supabase = await createClient();

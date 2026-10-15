@@ -11,7 +11,7 @@ export default async function OwnerPenggunaPage({ searchParams }: PageProps<"/ow
 
   let q = supabase
     .from("users")
-    .select("id, full_name, email, employee_code, role, position_id, is_active, company_id, company:companies(name)")
+    .select("id, full_name, email, employee_code, role, position_id, lead_position_ids, is_active, company_id, company:companies(name)")
     .order("is_active", { ascending: false })
     .order("full_name");
   if (company) q = q.eq("company_id", company);
@@ -31,7 +31,7 @@ export default async function OwnerPenggunaPage({ searchParams }: PageProps<"/ow
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Pengguna</h1>
       <p className="text-sm text-zinc-600">
-        Role menentukan hak akses; jabatan menentukan form laporan. Pengguna baru ditambahkan lewat{" "}
+        Role menentukan hak akses (urutan: Owner, Manager, Lead, Karyawan); jabatan menentukan form laporan. Lead bisa memantau divisi tambahan (mis. Lead ADV memantau ADV MH): atur lewat kotak &quot;Divisi yang dipantau&quot;. Pengguna baru ditambahkan lewat{" "}
         <Link href="/owner/undangan" className="font-bold text-accent underline">
           Undangan Karyawan
         </Link>

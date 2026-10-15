@@ -28,7 +28,7 @@ export default async function TugasSayaPage({ searchParams }: PageProps<"/tugas"
   if (error) throw new Error(`Gagal memuat tugas: ${error.message}`);
   const tasks = (data ?? []) as Task[];
   const today = todayJakarta();
-  const canOpenMeeting = profile.role !== "employee";
+  const canOpenMeeting = profile.role === "owner" || profile.role === "manager";
 
   return (
     <div>

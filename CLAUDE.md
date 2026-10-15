@@ -87,6 +87,11 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Laporan harian GUGUR untuk Izin/Sakit (presensi) dan cuti/izin disetujui (`excused_kind`, `leave_on`; hari Minggu tidak dihitung); Tugas Luar tetap wajib. `get_missing_reports` & `get_weekly_report_compliance` mengabaikan yang gugur; di aplikasi `complianceByDay(..., excused)` di `src/lib/dashboard.ts`. Check-In ditolak (trigger) pada hari cuti disetujui.
 - UI: `/cuti` (ajukan, lihat, batalkan, ajukan pembatalan), `/cuti/persetujuan` (Owner/Manager); kartu di Beranda; Presensi, Laporan, Rekap Presensi, CSV, dan dashboard ikut menyesuaikan. Kode: `src/lib/leave.ts`, `src/components/cuti/`, `src/app/(app)/cuti/`.
 
+## Role Lead — keputusan pemilik 15 Okt 2026
+- Urutan: Owner > Manager > Lead > Karyawan (enum `user_role` + 'lead', `supabase/013`, `014`, bagian 20 schema). Mentor = Lead berjabatan ADV yang membimbing anak Magang Hub (ADV MH); boleh >1 Lead per divisi.
+- Lead HANYA MELIHAT laporan, presensi (lokasi+foto), cuti/izin, daftar belum mengisi milik KARYAWAN BIASA di company sama dengan jabatan SAMA atau divisi tambahan `users.lead_position_ids` (diatur Owner di menu Pengguna). Fungsi `lead_can_view(user)`. Tidak melihat Manager/sesama Lead/company lain; tidak mengubah atau menyetujui apa pun (cuti Lead diputuskan Manager/Owner). Lead tetap wajib lapor/presensi sendiri dan memakai tautan/notulensi seperti karyawan.
+- Kode: `isManagerial()`, `canViewTeam()`, `leadPositionIds()` di `src/lib/profile.ts`. Dashboard Beranda, Kelola Tautan, Persetujuan Cuti hanya Owner/Manager; Dashboard Tim dan Rekap Presensi juga untuk Lead (dibatasi divisinya).
+
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).

@@ -94,7 +94,7 @@ export async function createInvite(_prev: ActionResult | null, f: FormData): Pro
   };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "Email tidak valid." };
   if (!row.full_name || !row.company_id) return { ok: false, error: "Nama dan company wajib diisi." };
-  if (!["owner", "manager", "employee"].includes(row.role)) return { ok: false, error: "Role tidak valid." };
+  if (!["owner", "manager", "lead", "employee"].includes(row.role)) return { ok: false, error: "Role tidak valid." };
   if (row.role !== "owner" && !row.position_id)
     return { ok: false, error: "Jabatan wajib dipilih agar karyawan mendapat form laporan." };
 
@@ -216,20 +216,27 @@ export async function cancelInvite(inviteId: string): Promise<ActionResult> {
 
 export async function updateUser(input: {
   id: string;
-  role: "owner" | "manager" | "employee";
+  role: "owner" | "manager" | "lead" | "employee";
   position_id: number | null;
   is_active: boolean;
+  lead_position_ids?: number[];
 }): Promise<ActionResult> {
   const owner = await requireOwnerAction();
   if (!owner) return NOT_OWNER;
   if (input.id === owner.id && (input.role !== "owner" || !input.is_active)) {
     return { ok: false, error: "Anda tidak bisa menonaktifkan atau menurunkan role akun Anda sendiri." };
   }
-  if (!["owner", "manager", "employee"].includes(input.role)) return { ok: false, error: "Role tidak valid." };
+  if (!["owner", "manager", "lead", "employee"].includes(input.role)) return { ok: false, error: "Role tidak valid." };
+  // Divisi yang dipantau hanya berarti untuk Lead; role lain selalu dikosongkan.
+  const leadIds =
+    input.role === "lead"
+      ? [...new Set((input.lead_position_ids ?? []).filter((n) => Number.isInteger(n) && n > 0 && n !== input.position_id))]
+      : [];
+  if (input.role === "lead" && !input.position_id) return { ok: false, error: "Lead perlu punya jabatan (divisinya)." };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
-    .update({ role: input.role, position_id: input.position_id, is_active: input.is_active })
+    .update({ role: input.role, position_id: input.position_id, is_active: input.is_active, lead_position_ids: leadIds })
     .eq("id", input.id)
     .select("id");
   if (error) return { ok: false, error: dbError(error) };

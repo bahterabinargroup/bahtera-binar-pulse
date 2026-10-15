@@ -183,6 +183,19 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "lead",
+    title: "Untuk Lead: memantau tim divisi",
+    badge: "Lead",
+    body: (
+      <ul className="list-disc space-y-2 pl-5">
+        <li>Urutan wewenang: Owner, Manager, <b>Lead</b>, Karyawan. Satu divisi boleh punya lebih dari satu Lead. Mentor adalah Lead yang membimbing anak Magang Hub (ADV MH).</li>
+        <li>Lead <b>hanya melihat</b> laporan, presensi (lokasi dan foto), pengajuan cuti, dan daftar belum mengisi milik <b>karyawan biasa</b> di divisinya dan divisi tambahan yang diatur Owner. Lead tidak melihat Manager, sesama Lead, atau company lain, dan tidak bisa mengubah atau menyetujui apa pun.</li>
+        <li>Menu untuk Lead: <b>Dashboard Tim</b> (belum mengisi, laporan masuk, kepatuhan minggu ini) dan <b>Rekap Presensi</b>, keduanya hanya berisi karyawan divisinya.</li>
+        <li>Lead tetap mengisi laporan dan presensi sendiri, serta boleh mengajukan cuti atau izin (diputuskan Manager atau Owner).</li>
+      </ul>
+    ),
+  },
+  {
     id: "manager",
     title: "6. Untuk Manager: Dashboard Tim",
     badge: "Manager & Owner",
@@ -209,7 +222,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
             ketuk <b>🔗 Salin link undangan</b> dan kirim lewat WhatsApp. Untuk akun yang <b>Belum pernah masuk</b>, ketuk
             <b> 🔑 Salin link atur password</b>.
           </li>
-          <li><b>Pengguna:</b> ubah role (Karyawan / Manager / Owner), jabatan, atau nonaktifkan akun yang sudah tidak bekerja.</li>
+          <li><b>Pengguna:</b> ubah role (Karyawan / Lead / Manager / Owner), jabatan, atau nonaktifkan akun yang sudah tidak bekerja. Untuk <b>Lead</b>, centang <b>Divisi yang dipantau</b> bila ia membawahi divisi lain (contoh: Lead ADV yang membimbing anak Magang Hub centang ADV MH).</li>
           <li><b>Koreksi laporan lama:</b> buka laporan lewat Dashboard Tim, lalu ketuk <b>Koreksi (Owner)</b>.</li>
           <li><b>Tarikan Mingguan:</b> lihat laporan satu minggu dan unduh sebagai CSV (Excel) atau JSON.</li>
           <li><b>Pratinjau Form:</b> melihat form setiap jabatan tanpa menyimpan.</li>

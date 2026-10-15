@@ -92,6 +92,7 @@ export default async function OwnerUndanganPage() {
               Role (hak akses) *
               <select name="role" defaultValue="employee" className={inputCls}>
                 <option value="employee">Karyawan — mengisi laporan sendiri</option>
+                <option value="lead">Lead — + melihat laporan & presensi karyawan di divisinya</option>
                 <option value="manager">Manager — + melihat laporan & dashboard company-nya</option>
                 <option value="owner">Owner — akses penuh semua company</option>
               </select>

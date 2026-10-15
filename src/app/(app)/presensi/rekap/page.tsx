@@ -5,7 +5,7 @@ import { addDays, formatHariTanggal, formatJam, formatTanggalPendek, todayJakart
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
 import { fmtRentang, kindLabel } from "@/lib/leave";
 import { monthLabel, monthStart, prevMonth } from "@/lib/target";
-import { getCurrentUser } from "@/lib/profile";
+import { getCurrentUser, leadPositionIds } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
@@ -80,9 +80,10 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
     .from("users")
     .select("id, full_name, company_id, created_at, position:roles_config(name)")
     .eq("is_active", true)
-    .in("role", ["employee", "manager"])
     .order("full_name")
     .limit(1000);
+  // Lead hanya karyawan biasa di divisinya (dan divisi tambahannya); pengelola melihat karyawan, Lead, dan manager.
+  peopleQ = profile.role === "lead" ? peopleQ.eq("role", "employee").in("position_id", leadPositionIds(profile)) : peopleQ.in("role", ["employee", "lead", "manager"]);
   if (company) {
     presQ = presQ.eq("company_id", company);
     peopleQ = peopleQ.eq("company_id", company);
@@ -153,6 +154,7 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
   return (
     <div>
       <h1 className="text-2xl font-bold text-accent">Rekap Presensi</h1>
+      {profile.role === "lead" && <p className="mt-1 text-sm text-zinc-600">Karyawan di divisi Anda (hanya melihat).</p>}
       <p className="mt-1 text-sm text-zinc-600">{formatHariTanggal(dateFromYmd(tanggal))}{company && compName.get(company) ? ` · ${compName.get(company)}` : isOwner ? " · Semua company" : ""}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
