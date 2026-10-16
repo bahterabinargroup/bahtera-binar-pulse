@@ -239,3 +239,4 @@ Keputusan pemilik: urutan wewenang Owner > Manager > Lead > Karyawan. Mentor (AD
 
 ## Kuota cuti/izin — 16 Okt 2026
 Keputusan pemilik: maksimal 2 pengajuan cuti/izin per bulan; yang ke-3 ditolak dengan peringatan "kuota pengajuan telah habis". Aturan saya: cuti+izin digabung, bulan menurut tanggal mulai, hanya pending/approved dihitung (ditolak/dibatalkan mengembalikan kuota), Izin/Sakit lewat Check-In tidak dihitung. Database: `supabase/015_kuota_cuti.sql` (⏳ belum dijalankan; juga sudah di 011/schema bagian 18) + uji bagian 33. UI: `/cuti` menampilkan sisa kuota, peringatan merah, dan tombol Kirim nonaktif bila habis (kode ✅, belum ditayangkan).
+- L3 ✅ 16 Okt: dokumen panduan (Claude Docs) diperbarui: peran Lead (Owner/Manager dan presensi), kuota 2 pengajuan per bulan di keempat dokumen. Role Lead sudah TAYANG.
