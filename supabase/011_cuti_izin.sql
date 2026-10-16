@@ -13,6 +13,7 @@
 --   Manager hanya bisa disetujui Owner. Pemberi keputusan boleh menulis catatan.
 -- - Pengajuan disetujui = di tanggal itu orang tidak perlu presensi (Check-In
 --   ditolak), tercatat Cuti/Izin di rekap. Hari Minggu tidak dihitung.
+-- - Kuota: maksimal 2 pengajuan (cuti+izin) per bulan menurut bulan tanggal mulai (015).
 -- - Pemohon bisa membatalkan langsung selama belum disetujui. Yang sudah disetujui
 --   dibatalkan lewat pengajuan pembatalan (012).
 -- Aman dijalankan ulang.
@@ -73,6 +74,16 @@ begin
         and daterange(x.start_date, x.end_date, '[]') && daterange(new.start_date, new.end_date, '[]')
     ) then
       raise exception 'Sudah ada pengajuan lain pada tanggal tersebut.' using errcode = '23505';
+    end if;
+    -- Kuota: maksimal 2 pengajuan (cuti dan izin digabung) per bulan, menurut bulan tanggal mulai.
+    -- Yang ditolak atau dibatalkan tidak dihitung.
+    if (
+      select count(*) from public.leave_requests x
+      where x.user_id = new.user_id
+        and x.status in ('pending', 'approved')
+        and date_trunc('month', x.start_date) = date_trunc('month', new.start_date)
+    ) >= 2 then
+      raise exception 'Kuota pengajuan cuti/izin bulan ini telah habis (maksimal 2 kali per bulan).' using errcode = '22023';
     end if;
   end if;
   return new;

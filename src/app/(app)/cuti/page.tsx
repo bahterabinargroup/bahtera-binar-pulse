@@ -1,7 +1,7 @@
 import { CancelPendingForm, CancelRequestForm, LeaveRequestForm } from "@/components/cuti/LeaveForms";
 import { cardCls } from "@/components/owner/ui";
 import { todayJakarta } from "@/lib/date";
-import { cancelPending, fmtRentang, fmtTanggal, kindLabel, LEAVE_COLUMNS, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
+import { cancelPending, fmtRentang, fmtTanggal, kindLabel, LEAVE_COLUMNS, quotaUsage, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,7 +32,7 @@ export default async function CutiPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-accent">Cuti / Izin</h1>
-      <p className="mt-1 text-sm text-zinc-600">Ajukan cuti atau izin, bahkan jauh-jauh hari. Atasan akan menyetujui atau menolak. Bila disetujui, pada harinya presensi dan daily report tidak diperlukan.</p>
+      <p className="mt-1 text-sm text-zinc-600">Ajukan cuti atau izin, bahkan jauh-jauh hari (maksimal 2 pengajuan per bulan). Atasan akan menyetujui atau menolak. Bila disetujui, pada harinya presensi dan daily report tidak diperlukan.</p>
 
       {tableMissing ? (
         <p role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -41,7 +41,7 @@ export default async function CutiPage() {
       ) : profile.role === "owner" ? (
         <p className="mt-4 rounded-lg border border-zinc-200 bg-white p-3 text-sm">Owner tidak mengajukan cuti. Untuk memutuskan pengajuan tim, buka <b>Persetujuan Cuti/Izin</b>.</p>
       ) : (
-        <LeaveRequestForm today={today} />
+        <LeaveRequestForm today={today} usage={quotaUsage(rows)} />
       )}
 
       <h2 className="mt-6 text-lg font-bold">Pengajuan saya</h2>

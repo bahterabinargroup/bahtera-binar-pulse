@@ -1661,6 +1661,61 @@ begin
   end;
 
   -- =====================================================================
+  -- KUOTA CUTI/IZIN: maksimal 2 pengajuan per bulan (butuh supabase/015_kuota_cuti.sql)
+  -- =====================================================================
+  declare
+    uq uuid := gen_random_uuid();
+    base date := (date_trunc('month', today) + interval '3 months')::date;
+    q1 uuid; q2 uuid;
+  begin
+    insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at)
+      values (uq, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'uji.kuota@example.invalid', now(), now(), now());
+    insert into public.users (id, company_id, position_id, role, full_name, email)
+      values (uq, ca, p_adv, 'employee', 'Uji Kuota', 'uji.kuota@example.invalid');
+
+    perform pg_temp.t_as(uq);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'cuti', base + 1, base + 1, 'Satu') returning id into q1;
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'izin', base + 5, base + 5, 'Dua') returning id into q2;
+    reset role;
+    res := res || pg_temp.t_line(33, 'Dua pengajuan pertama dalam satu bulan diterima', q1 is not null and q2 is not null, 'ok');
+
+    begin
+      perform pg_temp.t_as(uq);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'cuti', base + 9, base + 9, 'Tiga');
+      st := 'OK'; t := '';
+    exception when others then st := sqlstate; t := sqlerrm; end;
+    reset role;
+    res := res || pg_temp.t_line(33, 'Pengajuan ke-3 pada bulan yang sama ditolak: kuota habis', st = '22023' and t like '%Kuota%', format('hasil=%s, pesan=%s', st, t));
+
+    perform pg_temp.t_as(uq);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'cuti', (base + interval '1 month')::date + 3, (base + interval '1 month')::date + 3, 'Bulan depan');
+    reset role;
+    res := res || pg_temp.t_line(33, 'Kuota dihitung per bulan: bulan berikutnya masih bisa mengajukan', true, 'ok');
+
+    perform pg_temp.t_as(uq);
+    perform public.cancel_leave(q1);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'cuti', base + 12, base + 12, 'Pengganti');
+    reset role;
+    res := res || pg_temp.t_line(33, 'Pengajuan yang dibatalkan tidak dihitung: kuota kembali', true, 'ok');
+
+    begin
+      perform pg_temp.t_as(uq);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'izin', base + 20, base + 20, 'Lagi');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(33, 'Setelah kuota terisi lagi, pengajuan berikutnya ditolak', st = '22023', 'hasil=' || st);
+
+    perform pg_temp.t_as(uo);
+    perform public.decide_leave(q2, false, 'Tolak');
+    reset role;
+    perform pg_temp.t_as(uq);
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, uq, 'izin', base + 22, base + 22, 'Setelah ditolak');
+    reset role;
+    res := res || pg_temp.t_line(33, 'Pengajuan yang ditolak tidak dihitung: kuota kembali', true, 'ok');
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

@@ -61,3 +61,20 @@ export function leaveDaysIn(r: { start_date: string; end_date: string }, from: s
   const b = r.end_date < to ? r.end_date : to;
   return a > b ? [] : eachDay(a, b).filter(isWorkday);
 }
+
+// Kuota: maksimal 2 pengajuan (cuti + izin) per bulan menurut bulan tanggal mulai. Dijaga database (supabase/015).
+export const LEAVE_QUOTA_PER_MONTH = 2;
+
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+export const monthName = (ym: string) => `${BULAN[Number(ym.slice(5, 7)) - 1] ?? ym} ${ym.slice(0, 4)}`;
+
+// Jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per bulan tanggal mulai.
+export function quotaUsage(rows: { status: string; start_date: string }[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of rows) {
+    if (r.status !== "pending" && r.status !== "approved") continue;
+    const k = r.start_date.slice(0, 7);
+    out[k] = (out[k] ?? 0) + 1;
+  }
+  return out;
+}
