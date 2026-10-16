@@ -76,6 +76,18 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "pantauan",
+    title: "Pantauan Kendala dan Insight, dan Daftar Tindak Lanjut",
+    badge: "Owner, Manager, Lead",
+    body: (
+      <ul className="list-disc space-y-2 pl-5">
+        <li><b>Pantauan Kendala</b> menyatukan semua kendala dan insight yang ditulis di laporan harian dalam satu daftar. Pilih periode, jenis (kendala atau insight), status, divisi, dan cari kata. Ketuk <b>Buka laporan</b> untuk membaca laporan lengkapnya, dan <b>Unduh CSV</b> untuk bahan rapat.</li>
+        <li>Owner dan Manager bisa mengetuk <b>Tandai sudah ditangani</b> (dengan catatan opsional) setelah kendala ditindaklanjuti, dan <b>Batalkan tanda</b> bila keliru. Lead hanya melihat divisinya.</li>
+        <li><b>Daftar Tindak Lanjut</b> (Owner dan Manager) menampilkan semua tugas dari notulensi: PIC, tenggat, status, dan yang lewat tenggat berwarna merah. Status diubah oleh PIC di <b>Tugas Saya</b> atau halaman notulensinya.</li>
+      </ul>
+    ),
+  },
+  {
     id: "beranda",
     title: "Beranda: ringkasan hari ini",
     body: (

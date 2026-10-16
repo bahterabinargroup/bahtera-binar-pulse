@@ -94,6 +94,10 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - Lead HANYA MELIHAT laporan, presensi (lokasi+foto), cuti/izin, daftar belum mengisi milik KARYAWAN BIASA di company sama dengan jabatan SAMA atau divisi tambahan `users.lead_position_ids` (diatur Owner di menu Pengguna). Fungsi `lead_can_view(user)`. Tidak melihat Manager/sesama Lead/company lain; tidak mengubah atau menyetujui apa pun (cuti Lead diputuskan Manager/Owner). Lead tetap wajib lapor/presensi sendiri dan memakai tautan/notulensi seperti karyawan.
 - Kode: `isManagerial()`, `canViewTeam()`, `leadPositionIds()` di `src/lib/profile.ts`. Dashboard Beranda, Kelola Tautan, Persetujuan Cuti hanya Owner/Manager; Dashboard Tim dan Rekap Presensi juga untuk Lead (dibatasi divisinya).
 
+## Pantauan kendala & Daftar tindak lanjut — 17 Okt 2026
+- `/pantauan` (Owner, Manager, Lead; data disaring RLS): daftar kendala (`daily_reports.obstacles`) dan insight (`insights`) semua divisi, filter periode/jenis/status/divisi/company/kata, ringkasan per divisi, CSV `/pantauan/unduh`. Tanda "sudah ditangani" per laporan: tabel `report_followups` (`supabase/016`, bagian 21) lewat RPC `mark_report_handled`/`unmark_report_handled` — hanya Owner dan Manager company-nya; Lead dan karyawan tidak. Kode: `src/lib/pantauan.ts`, `src/components/pantauan/`, `src/app/(app)/pantauan/`.
+- `/tindak-lanjut` (Owner/Manager): semua `meeting_action_items` yang terlihat (RLS), filter status/PIC/company, ringkasan belum selesai/lewat tenggat/selesai bulan ini; hanya melihat (status diubah PIC). Kartu Beranda untuk pengelola: kendala 7 hari belum ditangani dan tindak lanjut belum selesai.
+
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).

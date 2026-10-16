@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { parsePeriode } from "@/lib/dashboard";
-import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
+import { addDays, formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
 import { kindLabel } from "@/lib/leave";
 import { statusLabel } from "@/lib/presensi";
 import { LinkGroups } from "@/components/links/LinkGroups";
@@ -24,7 +24,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const viewsTeam = canViewTeam(profile.role); // + Lead (hanya melihat divisinya)
   const hasForm = !!profile.position;
   const wajibPresensi = profile.role !== "owner";
-  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes, excusedRes, leaveTodayRes, leaveOpenRes] = await Promise.all([
+  const [reportRes, tasksRes, missingRes, deleteRes, linksRes, posRes, myPresRes, presTodayRes, peopleRes, excusedRes, leaveTodayRes, leaveOpenRes, aiOpenRes, aiLateRes, kendalaRes, handledRes] = await Promise.all([
     hasForm
       ? supabase.from("daily_reports").select("updated_at").eq("user_id", profile.id).eq("report_date", today).maybeSingle()
       : Promise.resolve(null),
@@ -59,6 +59,13 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
           .or("status.eq.pending,and(status.eq.approved,cancel_requested_at.not.is.null,cancel_outcome.is.null)")
           .limit(500)
       : Promise.resolve(null),
+    // Pengelola: ringkasan tindak lanjut notulensi dan kendala 7 hari terakhir yang belum ditandai ditangani
+    isLeader ? supabase.from("meeting_action_items").select("id", { count: "exact", head: true }).neq("status", "done") : Promise.resolve(null),
+    isLeader ? supabase.from("meeting_action_items").select("id", { count: "exact", head: true }).neq("status", "done").lt("due_date", today) : Promise.resolve(null),
+    isLeader
+      ? supabase.from("daily_reports").select("id").gte("report_date", addDays(today, -6)).lte("report_date", today).not("obstacles", "is", null).neq("obstacles", "").limit(1000)
+      : Promise.resolve(null),
+    isLeader ? supabase.from("report_followups").select("report_id").limit(5000) : Promise.resolve(null),
   ]);
   // Bila tabel tautan belum ada (atau gagal dibaca), bagian ini dilewati; Beranda tetap tampil.
   const links = linksRes.error ? null : ((linksRes.data ?? []) as unknown as ResourceLink[]);
@@ -75,6 +82,10 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const onLeaveSet = new Set(
     leaveTodayRes && !leaveTodayRes.error && !isSunday ? ((leaveTodayRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id) : [],
   );
+  const aiOpen = aiOpenRes && !aiOpenRes.error ? (aiOpenRes.count ?? 0) : null;
+  const aiLate = aiLateRes && !aiLateRes.error ? (aiLateRes.count ?? 0) : 0;
+  const handledIds = new Set(handledRes && !handledRes.error ? ((handledRes.data ?? []) as { report_id: string }[]).map((r) => r.report_id) : []);
+  const kendalaOpen = kendalaRes && !kendalaRes.error ? ((kendalaRes.data ?? []) as { id: string }[]).filter((r) => !handledIds.has(r.id)).length : null;
   const leaveWaiting = leaveOpenRes && !leaveOpenRes.error ? ((leaveOpenRes.data ?? []) as unknown[]).length : null;
   let presTim: { sudah: number; belum: number; cuti: number } | null = null;
   if (presTodayRes && peopleRes && !presTodayRes.error && !peopleRes.error) {
@@ -179,6 +190,20 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
             <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Cuti / Izin</p>
             <p className="mt-1 font-bold text-amber-900">{leaveWaiting} pengajuan menunggu keputusan</p>
             <p className="text-sm text-zinc-600">Termasuk pengajuan pembatalan. Ketuk untuk memproses.</p>
+          </Link>
+        )}
+        {kendalaOpen !== null && (
+          <Link href="/pantauan" className={`rounded-xl border p-4 shadow-sm ${kendalaOpen ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}`}>
+            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Pantauan kendala</p>
+            <p className={`mt-1 font-bold ${kendalaOpen ? "text-amber-900" : "text-green-800"}`}>{kendalaOpen === 0 ? "Semua kendala sudah ditangani" : `${kendalaOpen} kendala belum ditangani`}</p>
+            <p className="text-sm text-zinc-600">Laporan 7 hari terakhir. Ketuk untuk membaca dan menandai.</p>
+          </Link>
+        )}
+        {aiOpen !== null && aiOpen > 0 && (
+          <Link href="/tindak-lanjut" className={`rounded-xl border p-4 shadow-sm ${aiLate ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white"}`}>
+            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Tindak lanjut notulensi</p>
+            <p className={`mt-1 font-bold ${aiLate ? "text-red-800" : "text-accent"}`}>{aiOpen} belum selesai</p>
+            {aiLate > 0 && <p className="text-sm font-bold text-red-700">{aiLate} lewat tenggat</p>}
           </Link>
         )}
         {tasks && (

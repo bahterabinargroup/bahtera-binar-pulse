@@ -16,6 +16,8 @@ export const MENU: MenuItem[] = [
   { label: "Presensi", description: "Check-In pagi dan Check-Out pulang", href: "/presensi", roles: ALL, ready: true },
   { label: "Cuti / Izin", description: "Ajukan cuti atau izin (juga jauh hari) dan lihat statusnya", href: "/cuti", roles: ["employee", "lead", "manager"], ready: true },
   { label: "Persetujuan Cuti/Izin", description: "Setujui atau tolak pengajuan cuti, izin, dan pembatalannya", href: "/cuti/persetujuan", roles: ["owner", "manager"], ready: true },
+  { label: "Pantauan Kendala", description: "Semua kendala dan insight dari laporan harian, dengan tanda sudah ditangani", href: "/pantauan", roles: ["owner", "manager", "lead"], ready: true },
+  { label: "Daftar Tindak Lanjut", description: "Semua tugas dari notulensi: PIC, tenggat, dan yang lewat tenggat", href: "/tindak-lanjut", roles: ["owner", "manager"], ready: true },
   { label: "Kalender Cuti", description: "Siapa yang cuti atau izin, per tanggal dalam sebulan", href: "/cuti/kalender", roles: ["owner", "manager", "lead"], ready: true },
   { label: "Rekap Presensi", description: "Siapa sudah Check-In/Check-Out hari ini, lengkap dengan lokasi dan foto", href: "/presensi/rekap", roles: ["owner", "manager", "lead"], ready: true },
   { label: "Pratinjau Form", description: "Lihat form setiap jabatan (tanpa menyimpan)", href: "/laporan/pratinjau", roles: ["owner"], ready: true },

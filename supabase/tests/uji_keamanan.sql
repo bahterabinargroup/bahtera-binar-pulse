@@ -1716,6 +1716,77 @@ begin
   end;
 
   -- =====================================================================
+  -- TANDA "SUDAH DITANGANI" KENDALA (butuh supabase/016_tindak_lanjut_kendala.sql)
+  -- =====================================================================
+  begin
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.mark_report_handled(r_a1_today, 'iseng');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Karyawan tidak bisa menandai laporannya sendiri sebagai ditangani', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.mark_report_handled(r_a1_today, 'company lain');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Manager company lain tidak bisa menandai laporan company A', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ma);
+      perform public.mark_report_handled(gen_random_uuid(), null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Menandai laporan yang tidak ada ditolak', st = 'P0002', 'hasil=' || st);
+
+    perform pg_temp.t_as(ma);
+    perform public.mark_report_handled(r_a1_today, 'Sudah dibahas di meeting');
+    reset role;
+    select count(*) into n from public.report_followups where report_id = r_a1_today and note = 'Sudah dibahas di meeting';
+    res := res || pg_temp.t_line(34, 'Manager menandai laporan company-nya dengan catatan', n = 1, format('baris=%s', n));
+
+    perform pg_temp.t_as(ea1);
+    select count(*) into n from public.report_followups where report_id = r_a1_today;
+    reset role;
+    perform pg_temp.t_as(ea2);
+    select count(*) into n2 from public.report_followups where report_id = r_a1_today;
+    reset role;
+    perform pg_temp.t_as(mb);
+    select count(*) into n3 from public.report_followups;
+    reset role;
+    perform pg_temp.t_as(uo);
+    select count(*) into n4 from public.report_followups where report_id = r_a1_today;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Tanda terlihat oleh pemilik laporan dan Owner; tidak oleh rekan atau company lain', n = 1 and n2 = 0 and n3 = 0 and n4 = 1, format('pemilik=%s, rekan=%s, company lain=%s, owner=%s', n, n2, n3, n4));
+
+    begin
+      perform pg_temp.t_as(ma);
+      insert into public.report_followups (report_id, company_id) values (r_a1_past, ca);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Tanda tidak bisa dibuat langsung ke tabel (hanya lewat fungsi resmi)', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.unmark_report_handled(r_a1_today);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(34, 'Karyawan tidak bisa membatalkan tanda', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(uo);
+    perform public.unmark_report_handled(r_a1_today);
+    reset role;
+    select count(*) into n from public.report_followups where report_id = r_a1_today;
+    res := res || pg_temp.t_line(34, 'Owner bisa membatalkan tanda', n = 0, format('baris=%s', n));
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;
