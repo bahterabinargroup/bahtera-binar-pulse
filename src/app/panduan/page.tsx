@@ -70,6 +70,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           <li>Setelah <b>disetujui</b>, pada tanggal itu Anda <b>tidak perlu presensi</b> dan <b>tidak perlu mengisi daily report</b>. Di Presensi tertulis &quot;Hari ini Anda Cuti (sudah disetujui)&quot;, dan Anda tidak dihitung belum mengisi.</li>
           <li>Kalau tidak jadi, buka pengajuan yang sudah disetujui lalu ketuk <b>Ajukan pembatalan</b> dengan alasan. Selama belum disetujui, cuti Anda tetap berlaku. Bila pembatalan disetujui dan cuti belum mulai, cuti batal. Bila sudah berjalan, cuti dipotong sampai kemarin.</li>
         </ol>
+        <Tip>Manager, Owner, dan Lead bisa melihat <b>Kalender Cuti</b>: kalender sebulan berisi siapa yang cuti atau izin tiap tanggal (Lead hanya divisinya). Pengajuan yang masih menunggu tampil bergaris putus-putus.</Tip>
         <Tip>Status <b>Izin</b> dan <b>Sakit</b> yang dipilih langsung saat Check-In juga membuat daily report hari itu tidak wajib. <b>Tugas Luar</b> tetap wajib lapor.</Tip>
       </>
     ),

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DecideForm } from "@/components/cuti/LeaveForms";
 import { cardCls } from "@/components/owner/ui";
@@ -71,7 +72,7 @@ export default async function PersetujuanCutiPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-accent">Persetujuan Cuti / Izin</h1>
-      <p className="mt-1 text-sm text-zinc-600">{isOwner ? "Semua company." : "Karyawan dan Lead di company Anda. Pengajuan sesama Manager diputuskan Owner."}</p>
+      <p className="mt-1 text-sm text-zinc-600">{isOwner ? "Semua company." : "Karyawan dan Lead di company Anda. Pengajuan sesama Manager diputuskan Owner."} <Link href="/cuti/kalender" className="font-bold text-accent underline">Lihat kalender cuti →</Link></p>
 
       <h2 className="mt-5 text-lg font-bold">Pengajuan menunggu keputusan ({pendings.length})</h2>
       {pendings.length === 0 ? (
