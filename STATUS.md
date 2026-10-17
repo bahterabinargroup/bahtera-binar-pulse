@@ -249,3 +249,6 @@ Dibuat: `/pantauan` (kendala+insight semua divisi, filter, ringkasan per divisi,
 
 ## Perbaikan kolom link di form harian — 17 Okt 2026
 Masukan pemilik: kolom Keterangan/Link (mis. "Upload konten apa & ke akun mana", "Brief Konten, QC, Upload") hanya satu baris dan link tidak bisa diklik. Sekarang kolom bertipe link dan keterangan checklist berbentuk kotak banyak baris (Enter = baris baru; beberapa link, satu per baris), dan link yang valid tampil sebagai tautan yang bisa diklik (juga di laporan yang dibuka hanya-baca). Link bukti umum (Bukti SPV) tetap satu link per kolom tetapi juga bisa diklik. Kode: `src/components/report/FormRenderer.tsx` (`LinkChips`), `src/lib/report/form-state.ts` (`splitLinks`, `normalizeLinks`). Tanpa perubahan database. Kode ✅, belum ditayangkan.
+
+## Owner membuat notulensi di company lain — 17 Okt 2026
+Bug: Owner yang memilih company lain di form Notulensi Baru gagal simpan (`meetings_creator_company_fk` mewajibkan pembuat se-company). Keputusan pemilik: pilihan A, Owner boleh membuat notulensi untuk company mana pun. Database: `supabase/017_owner_notulensi_semua_company.sql` (= bagian 22 schema; ganti FK dengan FK pembuat biasa + pemicu "pembuat se-company kecuali Owner"; ⏳ belum dijalankan) + uji bagian 35. Tanpa perubahan kode aplikasi.

@@ -1787,6 +1787,52 @@ begin
   end;
 
   -- =====================================================================
+  -- OWNER MEMBUAT NOTULENSI DI COMPANY LAIN (butuh supabase/017_owner_notulensi_semua_company.sql)
+  -- =====================================================================
+  declare
+    mo uuid;
+  begin
+    begin
+      perform pg_temp.t_as(uo);
+      insert into public.meetings (company_id, created_by, title, meeting_date) values (cb, uo, 'Rapat Owner di company B', today) returning id into mo;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(35, 'Owner (company A) bisa membuat notulensi untuk company B', st = 'OK', 'hasil=' || st);
+
+    perform pg_temp.t_as(mb);
+    select count(*) into n from public.meetings where id = mo;
+    reset role;
+    perform pg_temp.t_as(eb1);
+    select count(*) into n2 from public.meetings where id = mo;
+    reset role;
+    perform pg_temp.t_as(ma);
+    select count(*) into n3 from public.meetings where id = mo;
+    reset role;
+    res := res || pg_temp.t_line(35, 'Notulensi itu terlihat Manager company B; tidak oleh karyawan company B atau Manager company A', n = 1 and n2 = 0 and n3 = 0, format('manager B=%s, karyawan B=%s, manager A=%s', n, n2, n3));
+
+    perform pg_temp.t_as(uo);
+    update public.meetings set title = 'Rapat Owner (diubah)' where id = mo;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(35, 'Owner bisa mengubah notulensi yang dibuatnya di company B', n = 1, format('baris terubah=%s', n));
+
+    begin
+      insert into public.meetings (company_id, created_by, title, meeting_date) values (cb, ea1, 'Karyawan A di company B', today);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    res := res || pg_temp.t_line(35, 'Pembuat non-Owner tetap harus se-company dengan notulensi (pemicu database)', st = '23503', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ma);
+      insert into public.meetings (company_id, created_by, title, meeting_date) values (cb, ma, 'Manager A di company B', today);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(35, 'Manager tetap tidak bisa membuat notulensi di company lain', st = '42501', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;
