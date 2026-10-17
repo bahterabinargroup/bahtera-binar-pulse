@@ -7,7 +7,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { Errors, FormState, Row } from "@/lib/report/form-state";
-import { MAX_EVIDENCE, NEGATIVE_STATUS } from "@/lib/report/form-state";
+import { MAX_EVIDENCE, NEGATIVE_STATUS, normalizeUrl, splitLinks } from "@/lib/report/form-state";
 import type {
   ActivitiesBlock,
   Block,
@@ -154,6 +154,23 @@ function FieldNote({ path, ctx }: { path: string; ctx: Ctx }) {
   return null;
 }
 
+// Link yang terbaca di sebuah isian: tampil sebagai tautan yang bisa diklik (buka di tab baru).
+function LinkChips({ value }: { value: string }) {
+  const links = splitLinks(value)
+    .map((t) => normalizeUrl(t))
+    .filter((u): u is string => !!u);
+  if (links.length === 0) return null;
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-0.5 px-2 pb-1 text-xs">
+      {links.map((u, i) => (
+        <a key={`${u}-${i}`} href={u} target="_blank" rel="noopener noreferrer" className="max-w-full truncate font-bold text-sky-700 underline" title={u}>
+          ↗ {u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)}
+        </a>
+      ))}
+    </span>
+  );
+}
+
 function CellInput({
   type,
   value,
@@ -162,6 +179,7 @@ function CellInput({
   path,
   placeholder,
   label,
+  single = false,
 }: {
   type: FieldType;
   value: string;
@@ -170,12 +188,15 @@ function CellInput({
   path: string;
   placeholder?: string;
   label: string;
+  single?: boolean; // satu baris saja (mis. satu link bukti per kolom)
 }) {
   const invalid = !!ctx.errors[path];
   const cls = `block w-full bg-white px-2 py-1.5 outline-none focus:bg-sky-50 ${invalid ? "bg-red-50" : ""}`;
+  // Teks panjang dan link boleh banyak baris (Enter = baris baru; beberapa link, satu per baris).
+  const multiline = type === "textarea" || (type === "url" && !single);
   return (
     <>
-      {type === "textarea" ? (
+      {multiline ? (
         <textarea
           aria-label={label}
           value={value}
@@ -196,6 +217,7 @@ function CellInput({
           className={cls}
         />
       )}
+      {type === "url" && <LinkChips value={value} />}
       <FieldNote path={path} ctx={ctx} />
     </>
   );
@@ -479,7 +501,7 @@ function ChecklistView({ block, ctx }: { block: ChecklistBlock; ctx: Ctx }) {
                     )}
                     <div className="flex-1">
                       <CellInput
-                        type={item.note.type === "url" ? "url" : "text"}
+                        type={item.note.type === "url" ? "url" : "textarea"}
                         value={v.note}
                         onChange={(x) => update(item.key, "note", x)}
                         ctx={ctx}
@@ -636,6 +658,7 @@ function EvidenceView({ block, ctx }: { block: EvidenceBlock; ctx: Ctx }) {
             <div className="flex-1 border border-black">
               <CellInput
                 type="url"
+                single
                 value={v}
                 onChange={(x) => set((s) => ({ ...s, evidence: s.evidence.map((e, j) => (j === i ? x : e)) }))}
                 ctx={ctx}

@@ -167,6 +167,23 @@ export function normalizeUrl(input: string): string | null {
   }
 }
 
+// Beberapa link sekaligus: satu per baris (atau dipisah spasi). Semua harus valid; hasilnya satu per baris.
+export function splitLinks(input: string): string[] {
+  return input.split(/\s+/).filter(Boolean);
+}
+
+export function normalizeLinks(input: string): string | null {
+  const tokens = splitLinks(input);
+  if (tokens.length === 0) return "";
+  const out: string[] = [];
+  for (const t of tokens) {
+    const u = normalizeUrl(t);
+    if (!u) return null;
+    out.push(u);
+  }
+  return out.join("\n");
+}
+
 export const ERR_NUMBER = "Harus berupa angka, contoh: 1500000 atau 1.500.000";
 export const ERR_URL = "Link tidak valid. Contoh: https://drive.google.com/...";
 
@@ -175,7 +192,7 @@ export type Errors = Record<string, string>;
 function checkValue(type: FieldType | "url" | "text" | undefined, value: string): string | null {
   if (!value.trim()) return null;
   if (type === "number" && Number.isNaN(parseNumber(value))) return ERR_NUMBER;
-  if (type === "url" && normalizeUrl(value) === null) return ERR_URL;
+  if (type === "url" && normalizeLinks(value) === null) return ERR_URL;
   return null;
 }
 
@@ -212,7 +229,10 @@ export function validate(template: FormTemplate, s: FormState): Errors {
         );
         break;
       case "evidence":
-        s.evidence.forEach((v, i) => put(`evidence.${i}`, "url", v));
+        s.evidence.forEach((v, i) => {
+          // Bukti umum: satu link per kolom (tombol + Tambah link untuk menambah)
+          if (v.trim() && normalizeUrl(v) === null) errors[`evidence.${i}`] = ERR_URL;
+        });
         if (s.evidence.filter((v) => v.trim()).length > MAX_EVIDENCE) {
           errors["evidence"] = `Maksimal ${MAX_EVIDENCE} link bukti.`;
         }
@@ -259,7 +279,7 @@ function convert(type: FieldType | "url" | "text" | undefined, value: string): J
   const v = value.trim();
   if (v === "") return null;
   if (type === "number") return parseNumber(v);
-  if (type === "url") return normalizeUrl(v);
+  if (type === "url") return normalizeLinks(v);
   return v;
 }
 

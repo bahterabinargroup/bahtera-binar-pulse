@@ -246,3 +246,6 @@ Halaman `/cuti/kalender` (menu "Kalender Cuti" untuk Owner/Manager/Lead): kalend
 
 ## Pantauan Kendala & Daftar Tindak Lanjut — 17 Okt 2026
 Dibuat: `/pantauan` (kendala+insight semua divisi, filter, ringkasan per divisi, CSV, tanda sudah ditangani) dan `/tindak-lanjut` (semua tugas notulensi untuk Owner/Manager), menu, tab Tindak lanjut di Notulensi/Tugas, dua kartu Beranda untuk pengelola, bagian Panduan. Database: `supabase/016_tindak_lanjut_kendala.sql` (tabel `report_followups` + RPC; = bagian 21 schema; ✅ dijalankan 17 Okt) + uji bagian 34. Kode ✅ TAYANG. Uji keamanan penuh bagian 1–34: **0 GAGAL**.
+
+## Perbaikan kolom link di form harian — 17 Okt 2026
+Masukan pemilik: kolom Keterangan/Link (mis. "Upload konten apa & ke akun mana", "Brief Konten, QC, Upload") hanya satu baris dan link tidak bisa diklik. Sekarang kolom bertipe link dan keterangan checklist berbentuk kotak banyak baris (Enter = baris baru; beberapa link, satu per baris), dan link yang valid tampil sebagai tautan yang bisa diklik (juga di laporan yang dibuka hanya-baca). Link bukti umum (Bukti SPV) tetap satu link per kolom tetapi juga bisa diklik. Kode: `src/components/report/FormRenderer.tsx` (`LinkChips`), `src/lib/report/form-state.ts` (`splitLinks`, `normalizeLinks`). Tanpa perubahan database. Kode ✅, belum ditayangkan.
