@@ -1834,6 +1834,67 @@ begin
   end;
 
   -- =====================================================================
+  -- PESERTA MELIHAT NOTULENSI (butuh supabase/018_peserta_lihat_notulensi.sql)
+  -- =====================================================================
+  declare
+    mp uuid;
+  begin
+    insert into public.meetings (company_id, created_by, title, meeting_date) values (ca, ea1, 'Rapat uji peserta lihat', today) returning id into mp;
+    insert into public.meeting_attendees (meeting_id, user_id, name) values (mp, ea2, 'x'), (mp, null, 'Tamu Uji');
+    insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date) values (mp, 'Tugas peserta', ea2, today + 3);
+
+    perform pg_temp.t_as(ea2);
+    select count(*) into n from public.meetings where id = mp;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Selama masih draft, peserta belum melihat notulensi', n = 0, format('terlihat=%s', n));
+
+    update public.meetings set submitted_at = now() where id = mp;
+
+    perform pg_temp.t_as(ea2);
+    select count(*) into n from public.meetings where id = mp;
+    select count(*) into n2 from public.meeting_attendees where meeting_id = mp;
+    select count(*) into n3 from public.meeting_action_items where meeting_id = mp;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Setelah Submit, peserta melihat notulensi, daftar peserta, dan tindak lanjutnya', n = 1 and n2 = 2 and n3 = 1, format('notulensi=%s, peserta=%s, tindak lanjut=%s', n, n2, n3));
+
+    perform pg_temp.t_as(eb1);
+    select count(*) into n from public.meetings where id = mp;
+    reset role;
+    perform pg_temp.t_as(eb2);
+    select count(*) into n2 from public.meetings where id = mp;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Karyawan yang bukan peserta (company lain) tidak melihat notulensi itu', n = 0 and n2 = 0, format('terlihat=%s dan %s', n, n2));
+
+    perform pg_temp.t_as(ea2);
+    update public.meetings set title = 'diubah peserta' where id = mp;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Peserta tidak bisa mengubah notulensi', n = 0, format('baris terubah=%s', n));
+
+    begin
+      perform pg_temp.t_as(ea2);
+      insert into public.meeting_attendees (meeting_id, user_id, name) values (mp, ea1, 'x');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Peserta tidak bisa menambah peserta', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(ea2);
+    delete from public.meetings where id = mp;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Peserta tidak bisa menghapus notulensi', n = 0, format('baris terhapus=%s', n));
+
+    perform pg_temp.t_as(ma);
+    select count(*) into n from public.meetings where id = mp;
+    reset role;
+    perform pg_temp.t_as(uo);
+    select count(*) into n2 from public.meetings where id = mp;
+    reset role;
+    res := res || pg_temp.t_line(36, 'Manager company-nya dan Owner tetap melihat notulensi', n = 1 and n2 = 1, format('manager=%s, owner=%s', n, n2));
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

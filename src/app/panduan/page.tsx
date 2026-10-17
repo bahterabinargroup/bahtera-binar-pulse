@@ -269,7 +269,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           Dashboard hanya untuk Manager dan Owner.
         </Faq>
         <Faq q="Saya tidak bisa melihat notulensi rekan.">
-          Notulensi hanya terlihat oleh penulisnya, Manager di company yang sama, dan Owner.
+          Notulensi terlihat oleh penulisnya, <b>peserta</b> yang disebut di notulensi (setelah penulis menekan Submit), Manager di company yang sama, dan Owner.
         </Faq>
         <Faq q="Notulensi saya tidak bisa diubah lagi.">
           Notulensi yang sudah di-Submit terkunci. Minta Owner kalau perlu dikoreksi.

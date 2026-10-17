@@ -106,7 +106,7 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 
 ## Notulensi Meeting (milestone M3b — setelah M2)
 KEPUTUSAN PEMILIK 6 Okt 2026 MENGGANTIKAN brief 5b di poin-poin berikut (database: bagian 13 schema / `supabase/002_...sql`):
-- Visibilitas: Owner semua; Manager company-nya saja; karyawan hanya notulensi buatannya. Opsi "Seluruh holding" TIDAK dipakai (sembunyikan di UI; kolom visibility tetap 'company').
+- Visibilitas: Owner semua; Manager company-nya saja; karyawan notulensi buatannya + notulensi yang menyebutnya sebagai PESERTA (hanya setelah Submit, hanya melihat; keputusan pemilik 17 Okt, `supabase/018`, fungsi `is_meeting_participant`). Owner boleh membuat notulensi untuk company mana pun (`017`). Opsi "Seluruh holding" TIDAK dipakai (sembunyikan di UI; kolom visibility tetap 'company').
 - Semua peran boleh membuat. Penulis = pembuat (otomatis, `created_by_name`).
 - Draft → Submit: draft disimpan manual + AUTO SAVE (mulai setelah judul diisi; judul wajib di DB). Tombol "Submit" (dengan konfirmasi) mengunci notulensi (`submitted_at`, waktu dari server). Setelah submit hanya Owner yang bisa mengoreksi. PIC tetap bisa ubah STATUS tindak lanjut.
 - Lokasi: dropdown "Kantor 1" / "Kantor 2" / "Online" di `location`; link meeting di `meeting_link` bila Online.

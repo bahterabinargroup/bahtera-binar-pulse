@@ -19,7 +19,7 @@ type Item = {
   meeting_action_items: { status: string }[];
 };
 
-// Daftar notulensi. RLS: Owner semua, Manager company-nya, karyawan buatannya sendiri.
+// Daftar notulensi. RLS: Owner semua, Manager company-nya, pembuat miliknya, peserta (karyawan) setelah Submit.
 export default async function NotulensiPage({ searchParams }: PageProps<"/notulensi">) {
   const { profile } = await getCurrentUser();
   if (!profile) return null;

@@ -3689,3 +3689,49 @@ drop trigger if exists trg_meetings_check_creator_company on public.meetings;
 create trigger trg_meetings_check_creator_company
   before insert or update of created_by, company_id on public.meetings
   for each row execute function public.meetings_check_creator_company();
+
+
+-- =====================================================================
+-- 23. PESERTA BISA MELIHAT NOTULENSI (setelah Submit; hanya melihat)
+--     (sama dengan supabase/018_peserta_lihat_notulensi.sql; menggantikan
+--      aturan meetings_select di bagian 13)
+-- =====================================================================
+
+-- Fungsi ini membaca tabel tanpa melewati aturan akses (security definer) agar tidak
+-- terjadi putaran tak berujung antara aturan notulensi dan aturan peserta.
+create or replace function public.is_meeting_participant(p_meeting uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.meeting_attendees a
+    join public.meetings m on m.id = a.meeting_id
+    where a.meeting_id = p_meeting
+      and a.user_id = (select auth.uid())
+      and m.submitted_at is not null
+      and (select public.current_user_role()) is not null
+  )
+$$;
+
+revoke all on function public.is_meeting_participant(uuid) from public, anon;
+grant execute on function public.is_meeting_participant(uuid) to authenticated;
+
+drop policy if exists meetings_select on public.meetings;
+create policy meetings_select on public.meetings
+  for select to authenticated
+  using (
+    (select public.current_user_role()) = 'owner'
+    or (
+      (select public.current_user_role()) = 'manager'
+      and company_id = (select public.current_company_id())
+    )
+    or (
+      created_by = (select auth.uid())
+      and (select public.current_user_role()) is not null
+    )
+    or public.is_meeting_participant(id)
+  );
