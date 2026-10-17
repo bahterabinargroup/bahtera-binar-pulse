@@ -371,7 +371,8 @@ begin
     st := 'OK';
   exception when others then st := sqlstate; end;
   reset role;
-  res := res || pg_temp.t_line(10, 'Karyawan tidak bisa membuat notulensi di company lain', st = '42501', 'hasil=' || st);
+  -- Ditolak oleh pemicu company pembuat (23503) atau aturan akses (42501); keduanya berarti tidak bisa
+  res := res || pg_temp.t_line(10, 'Karyawan tidak bisa membuat notulensi di company lain', st in ('42501', '23503'), 'hasil=' || st);
 
   begin
     perform pg_temp.t_as(ea1);
@@ -1829,7 +1830,7 @@ begin
       st := 'OK';
     exception when others then st := sqlstate; end;
     reset role;
-    res := res || pg_temp.t_line(35, 'Manager tetap tidak bisa membuat notulensi di company lain', st = '42501', 'hasil=' || st);
+    res := res || pg_temp.t_line(35, 'Manager tetap tidak bisa membuat notulensi di company lain', st in ('42501', '23503'), 'hasil=' || st);
   end;
 
   -- =====================================================================
