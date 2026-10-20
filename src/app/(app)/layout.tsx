@@ -2,6 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
 import { BackToHome } from "@/components/BackToHome";
+import { DesktopNav, MobileNav } from "@/components/nav/AppNav";
+import { navFor } from "@/lib/menu";
+import { getNavBadges } from "@/lib/nav-badges";
 import { getCurrentUser, ROLE_LABEL } from "@/lib/profile";
 
 // Bingkai semua halaman setelah login: kepala halaman berisi identitas
@@ -36,21 +39,28 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
+  // Sidebar: folder dan menu sesuai role (aturan akses yang sudah ada); penanda angka dari database
+  const groups = navFor(profile.role);
+  const badges = await getNavBadges(profile);
+
   return (
     <>
       <header className="border-b-4 border-gold bg-white">
-        <div className="mx-auto w-full max-w-5xl px-4 py-3">
+        <div className="mx-auto w-full max-w-7xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" aria-label="Beranda">
-              <Image
-                src="/brand/logo-horizontal.png"
-                alt="Bahtera Binar Group"
-                width={941}
-                height={360}
-                priority
-                className="h-12 w-auto"
-              />
-            </Link>
+            <div className="flex min-w-0 items-center gap-3">
+              <MobileNav groups={groups} badges={badges} />
+              <Link href="/" aria-label="Beranda">
+                <Image
+                  src="/brand/logo-horizontal.png"
+                  alt="Bahtera Binar Group"
+                  width={941}
+                  height={360}
+                  priority
+                  className="h-12 w-auto"
+                />
+              </Link>
+            </div>
             {logoutButton}
           </div>
           <Link href="/" className="mt-1 block min-w-0">
@@ -64,10 +74,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-        <BackToHome />
-        {children}
-      </main>
+      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6">
+        <DesktopNav groups={groups} badges={badges} />
+        <main className="min-w-0 max-w-5xl flex-1">
+          {/* Di layar lebar, tombol Beranda sudah ada di sidebar */}
+          <div className="md:hidden">
+            <BackToHome />
+          </div>
+          {children}
+        </main>
+      </div>
     </>
   );
 }

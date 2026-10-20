@@ -37,3 +37,78 @@ export const MENU: MenuItem[] = [
 export function menuFor(role: UserRole) {
   return MENU.filter((m) => m.roles.includes(role));
 }
+
+// ---------- Sidebar navigasi dua tingkat ----------
+// Hanya navigasi. Menu yang tampil memakai role dari MENU di atas (aturan akses yang sudah ada);
+// keamanan sebenarnya tetap di database dan di tiap halaman.
+export type NavGroupDef = { id: string; label: string; hrefs: { label: string; href: string }[] };
+
+export const NAV_GROUPS: NavGroupDef[] = [
+  {
+    id: "laporan",
+    label: "Laporan",
+    hrefs: [
+      { label: "Laporan Hari Ini", href: "/laporan" },
+      { label: "Riwayat Laporan", href: "/riwayat" },
+    ],
+  },
+  {
+    id: "kehadiran",
+    label: "Kehadiran",
+    hrefs: [
+      { label: "Presensi", href: "/presensi" },
+      { label: "Cuti / Izin", href: "/cuti" },
+      { label: "Kalender Cuti", href: "/cuti/kalender" },
+      { label: "Rekap Presensi", href: "/presensi/rekap" },
+      { label: "Persetujuan Cuti/Izin", href: "/cuti/persetujuan" },
+    ],
+  },
+  {
+    id: "meeting",
+    label: "Meeting",
+    hrefs: [
+      { label: "Notulensi", href: "/notulensi" },
+      { label: "Tugas Saya", href: "/tugas" },
+      { label: "Daftar Tindak Lanjut", href: "/tindak-lanjut" },
+    ],
+  },
+  {
+    id: "kinerja",
+    label: "Kinerja Tim",
+    hrefs: [
+      { label: "Dashboard Tim", href: "/dashboard" },
+      { label: "Pantauan Kendala", href: "/pantauan" },
+      { label: "Atur Target", href: "/target" },
+      { label: "Tarikan Mingguan", href: "/owner/tarikan" },
+    ],
+  },
+  {
+    id: "informasi",
+    label: "Pusat Informasi",
+    hrefs: [
+      { label: "Panduan", href: "/panduan" },
+      { label: "Kelola Tautan", href: "/tautan" },
+    ],
+  },
+  {
+    id: "administrasi",
+    label: "Administrasi",
+    hrefs: [
+      { label: "Company", href: "/owner/company" },
+      { label: "Pengguna", href: "/owner/pengguna" },
+      { label: "Undangan Karyawan", href: "/owner/undangan" },
+      { label: "Pratinjau Form", href: "/laporan/pratinjau" },
+    ],
+  },
+];
+
+export type NavItem = { label: string; href: string };
+export type NavGroup = { id: string; label: string; items: NavItem[] };
+
+// Folder dan menu yang boleh dilihat role ini; folder tanpa menu terlihat disembunyikan.
+export function navFor(role: UserRole): NavGroup[] {
+  const allowed = new Set(menuFor(role).map((m) => m.href));
+  return NAV_GROUPS.map((g) => ({ id: g.id, label: g.label, items: g.hrefs.filter((h) => allowed.has(h.href)) })).filter(
+    (g) => g.items.length > 0,
+  );
+}

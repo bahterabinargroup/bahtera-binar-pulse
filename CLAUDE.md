@@ -65,7 +65,7 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 
 ## Peta kode
 - Form harian: `src/lib/report/` (tipe + konversi) dan `src/components/report/` (FormRenderer, ReportForm). Pratinjau lokal tanpa login: `npm run dev` lalu `/dev/pratinjau/ADV` (dst.).
-- Menu per role: `src/lib/menu.ts`. Profil login: `src/lib/profile.ts`. Tanggal WIB: `src/lib/date.ts`.
+- Menu per role: `src/lib/menu.ts` (`MENU` = kartu Beranda + aturan akses per menu; `NAV_GROUPS`/`navFor()` = sidebar dua tingkat, hanya navigasi, memakai role dari `MENU`, tanpa aturan akses baru; komponen `src/components/nav/`, penanda angka `src/lib/nav-badges.ts`). Profil login: `src/lib/profile.ts`. Tanggal WIB: `src/lib/date.ts`.
 
 ## Tautan penting (inventaris link) — keputusan pemilik 9 Okt 2026
 - Tabel `resource_links` (`supabase/005_tautan_penting.sql`, bagian 15 schema): `company_id` kosong = semua company (hanya Owner), `position_id` kosong = semua divisi, kategori tetap `tracker|aset|sop|lainnya`, URL harus http/https.
