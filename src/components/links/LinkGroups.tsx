@@ -22,7 +22,7 @@ export function LinkGroups({
           <h3 className="mb-2 text-xs font-bold tracking-wide text-zinc-600 uppercase">
             {categoryLabel(g.value)} <span className="font-normal text-zinc-400">({g.items.length})</span>
           </h3>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {g.items.map((l) => (
               <li key={l.id}>
                 <a
