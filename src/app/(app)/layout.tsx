@@ -1,8 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
-import { BackToHome } from "@/components/BackToHome";
-import { DesktopNav, MobileNav } from "@/components/nav/AppNav";
+import { AppShell } from "@/components/nav/AppShell";
 import { navFor } from "@/lib/menu";
 import { getNavBadges } from "@/lib/nav-badges";
 import { getCurrentUser, ROLE_LABEL } from "@/lib/profile";
@@ -44,46 +42,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const badges = await getNavBadges(profile);
 
   return (
-    <>
-      <header className="border-b-4 border-gold bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <MobileNav groups={groups} badges={badges} />
-              <Link href="/" aria-label="Beranda">
-                <Image
-                  src="/brand/logo-horizontal.png"
-                  alt="Bahtera Binar Group"
-                  width={941}
-                  height={360}
-                  priority
-                  className="h-12 w-auto"
-                />
-              </Link>
-            </div>
-            {logoutButton}
-          </div>
-          <Link href="/" className="mt-1 block min-w-0">
-            <p className="truncate font-bold text-accent">{profile.full_name}</p>
-            <p className="truncate text-sm text-zinc-600">
-              {[profile.position?.name, profile.company?.name].filter(Boolean).join(" · ")}
-              <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-white">
-                {ROLE_LABEL[profile.role]}
-              </span>
-            </p>
-          </Link>
-        </div>
-      </header>
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6">
-        <DesktopNav groups={groups} badges={badges} />
-        <main className="min-w-0 max-w-5xl flex-1">
-          {/* Di layar lebar, tombol Beranda sudah ada di sidebar */}
-          <div className="md:hidden">
-            <BackToHome />
-          </div>
-          {children}
-        </main>
-      </div>
-    </>
+    <AppShell
+      groups={groups}
+      badges={badges}
+      name={profile.full_name}
+      subtitle={[profile.position?.name, profile.company?.name].filter(Boolean).join(" · ")}
+      roleLabel={ROLE_LABEL[profile.role]}
+      logoutButton={logoutButton}
+    >
+      {children}
+    </AppShell>
   );
 }

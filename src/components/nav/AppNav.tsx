@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 import type { NavGroup } from "@/lib/menu";
 import { NavList } from "./NavList";
 
-// Sidebar tetap di layar lebar.
+// Sidebar menempel di tepi kiri layar lebar, setinggi layar di bawah kepala halaman.
 export function DesktopNav({ groups, badges }: { groups: NavGroup[]; badges: Record<string, number> }) {
   return (
-    <aside className="hidden w-60 shrink-0 md:block">
-      <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
+    <aside className="hidden w-64 shrink-0 border-r border-zinc-200 bg-white md:block">
+      <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-3">
         <NavList groups={groups} badges={badges} />
       </div>
     </aside>
