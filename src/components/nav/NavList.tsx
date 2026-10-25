@@ -42,7 +42,10 @@ export function NavList({ groups, badges, onNavigate }: { groups: NavGroup[]; ba
   return (
     <nav aria-label="Navigasi utama" className="space-y-1">
       <Link href="/" onClick={onNavigate} aria-current={pathname === "/" ? "page" : undefined} className={linkCls(pathname === "/")}>
-        <span aria-hidden="true">🏠</span> <span className="font-bold">Beranda</span>
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
+          <path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1v-8z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+        <span className="font-bold">Beranda</span>
       </Link>
 
       {groups.map((g) => {

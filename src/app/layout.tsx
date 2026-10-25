@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Lora } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import { EmailLinkHandler } from "@/components/EmailLinkHandler";
 import "./globals.css";
 
 const lora = Lora({ variable: "--font-lora", subsets: ["latin"], display: "swap" });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Bahtera Binar Pulse",
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${lora.variable} h-full antialiased`}>
+    <html lang="id" className={`${lora.variable} ${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <EmailLinkHandler />
         {children}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { ActionCard, AttentionList, ClockIcon, DocIcon, type Attention } from "@/components/home/HomeBlocks";
 import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { parsePeriode } from "@/lib/dashboard";
 import { addDays, formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
@@ -7,7 +8,6 @@ import { kindLabel } from "@/lib/leave";
 import { statusLabel } from "@/lib/presensi";
 import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
-import { menuFor } from "@/lib/menu";
 import { canViewTeam, getCurrentUser, isManagerial, leadPositionIds } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,7 +15,6 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const { profile } = await getCurrentUser();
   if (!profile) return null; // ditangani layout
   const params = await searchParams;
-  const items = menuFor(profile.role);
 
   // Ringkasan hari ini. Bila satu pertanyaan ke database gagal, kartunya dilewati (Beranda tetap tampil).
   const supabase = await createClient();
@@ -99,6 +98,59 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
     };
   }
 
+  // ---- Kartu aksi utama: keadaan + satu tombol ajakan ----
+  const reportCard: Omit<Parameters<typeof ActionCard>[0], "href" | "icon" | "title"> | null =
+    reportAt === undefined
+      ? null
+      : !reportAt && excusedToday
+        ? { status: "Tidak wajib hari ini", detail: `Anda ${excusedToday === "sakit" ? "Sakit" : kindLabel(excusedToday)}, jadi daily report gugur.`, cta: "Lihat form", todo: false }
+        : reportAt
+          ? { status: "Sudah tersimpan", detail: `Diperbarui pukul ${formatJam(reportAt)} WIB`, cta: "Lanjutkan mengisi", todo: false }
+          : { status: "Belum diisi", detail: "Boleh diisi sedikit demi sedikit; tersimpan otomatis.", cta: "Isi laporan", todo: true };
+
+  const presCard: Omit<Parameters<typeof ActionCard>[0], "href" | "icon" | "title"> | null = (() => {
+    if (!myPres) return null;
+    const r = myPres.row;
+    const noOut = !!r && !r.check_out_at && r.status !== "izin" && r.status !== "sakit";
+    const leaveKind = !r && !isSunday && (excusedToday === "cuti" || excusedToday === "izin") ? excusedToday : null;
+    if (leaveKind) return { status: `Hari ini ${kindLabel(leaveKind)} (disetujui)`, detail: "Tidak perlu presensi dan daily report.", cta: "Lihat", todo: false };
+    if (!r) return { status: "Belum Check-In", detail: "Check-In saat Anda mulai bekerja.", cta: "Check-In sekarang", todo: true };
+    if (noOut) return { status: `Check-In pukul ${formatJam(r.check_in_at)}`, detail: "Belum Check-Out. Lakukan saat pulang.", cta: "Check-Out", todo: true };
+    return {
+      status: `${statusLabel(r.status)} · selesai`,
+      detail: `Check-In ${formatJam(r.check_in_at)}${r.check_out_at ? `, Check-Out ${formatJam(r.check_out_at)}` : ""}`,
+      cta: "Lihat",
+      todo: false,
+    };
+  })();
+
+  // ---- "Perlu perhatian Anda": hanya yang butuh tindakan ----
+  const attention: Attention[] = [];
+  if (leaveWaiting) attention.push({ key: "cuti", href: "/cuti/persetujuan", text: `${leaveWaiting} pengajuan cuti/izin menunggu keputusan`, detail: "Termasuk pengajuan pembatalan", tone: "warn", count: leaveWaiting });
+  if (deleteRequests) attention.push({ key: "hapus", href: "/notulensi?status=hapus", text: `${deleteRequests} permintaan hapus notulensi menunggu persetujuan`, tone: "warn", count: deleteRequests });
+  if (presTim && presTim.belum > 0)
+    attention.push({ key: "presensi-tim", href: "/presensi/rekap", text: `${presTim.belum} orang belum Check-In hari ini`, detail: `${presTim.sudah} sudah Check-In${presTim.cuti > 0 ? `, ${presTim.cuti} cuti/izin` : ""}`, tone: "warn", count: presTim.belum });
+  if (missing) attention.push({ key: "belum-lapor", href: "/dashboard", text: `${missing} orang belum mengisi laporan hari ini`, tone: "warn", count: missing });
+  if (kendalaOpen) attention.push({ key: "kendala", href: "/pantauan", text: `${kendalaOpen} kendala belum ditangani`, detail: "Dari laporan 7 hari terakhir", tone: "warn", count: kendalaOpen });
+  if (aiOpen)
+    attention.push({
+      key: "tindak-lanjut",
+      href: "/tindak-lanjut",
+      text: aiLate ? `${aiLate} tindak lanjut notulensi lewat tenggat` : `${aiOpen} tindak lanjut notulensi belum selesai`,
+      detail: aiLate ? `${aiOpen} belum selesai seluruhnya` : undefined,
+      tone: aiLate ? "danger" : "info",
+      count: aiLate || aiOpen,
+    });
+  if (tasks && tasks.length > 0)
+    attention.push({
+      key: "tugas",
+      href: "/tugas",
+      text: overdue ? `${overdue} tugas Anda lewat tenggat` : `${tasks.length} tugas Anda belum selesai`,
+      detail: overdue ? `${tasks.length} belum selesai seluruhnya` : undefined,
+      tone: overdue ? "danger" : "info",
+      count: overdue || tasks.length,
+    });
+
   return (
     <div>
       {params.pesan === "password-tersimpan" && (
@@ -114,128 +166,15 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         </p>
       )}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {reportAt !== undefined && (
-          <Link
-            href="/laporan"
-            className={`rounded-xl border p-4 shadow-sm ${reportAt || excusedToday ? "border-green-300 bg-green-50" : "border-amber-300 bg-amber-50"}`}
-          >
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Laporan hari ini</p>
-            {!reportAt && excusedToday ? (
-              <>
-                <p className="mt-1 font-bold text-green-800">Tidak wajib hari ini</p>
-                <p className="text-sm text-zinc-600">Anda {excusedToday === "sakit" ? "Sakit" : kindLabel(excusedToday)}, jadi daily report gugur.</p>
-              </>
-            ) : reportAt ? (
-              <>
-                <p className="mt-1 font-bold text-green-800">✓ Sudah tersimpan</p>
-                <p className="text-sm text-zinc-600">Terakhir diperbarui pukul {formatJam(reportAt)} WIB. Ketuk untuk melanjutkan.</p>
-              </>
-            ) : (
-              <>
-                <p className="mt-1 font-bold text-amber-900">Belum diisi</p>
-                <p className="text-sm text-zinc-600">Ketuk untuk mengisi laporan hari ini.</p>
-              </>
-            )}
-          </Link>
-        )}
-        {myPres && (() => {
-          const r = myPres.row;
-          const noOut = !!r && !r.check_out_at && r.status !== "izin" && r.status !== "sakit";
-          const leaveKind = !r && !isSunday && (excusedToday === "cuti" || excusedToday === "izin") ? excusedToday : null;
-          const tone = leaveKind ? "border-green-300 bg-green-50" : !r ? "border-amber-300 bg-amber-50" : noOut ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50";
-          return (
-            <Link href="/presensi" className={`rounded-xl border p-4 shadow-sm ${tone}`}>
-              <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Presensi hari ini</p>
-              {leaveKind ? (
-                <>
-                  <p className="mt-1 font-bold text-green-800">✓ Hari ini {kindLabel(leaveKind)} (disetujui)</p>
-                  <p className="text-sm text-zinc-600">Tidak perlu presensi dan daily report.</p>
-                </>
-              ) : !r ? (
-                <>
-                  <p className="mt-1 font-bold text-amber-900">Belum Check-In</p>
-                  <p className="text-sm text-zinc-600">Ketuk untuk Check-In.</p>
-                </>
-              ) : noOut ? (
-                <>
-                  <p className="mt-1 font-bold text-amber-900">Check-In {formatJam(r.check_in_at)} · belum Check-Out</p>
-                  <p className="text-sm text-zinc-600">Ketuk untuk Check-Out saat pulang.</p>
-                </>
-              ) : (
-                <>
-                  <p className="mt-1 font-bold text-green-800">✓ {statusLabel(r.status)} · selesai</p>
-                  <p className="text-sm text-zinc-600">Check-In {formatJam(r.check_in_at)}{r.check_out_at ? `, Check-Out ${formatJam(r.check_out_at)}` : ""}.</p>
-                </>
-              )}
-            </Link>
-          );
-        })()}
-        {presTim && (
-          <Link
-            href="/presensi/rekap"
-            className={`rounded-xl border p-4 shadow-sm ${presTim.belum ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}`}
-          >
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Presensi tim hari ini</p>
-            <p className={`mt-1 font-bold ${presTim.belum ? "text-amber-900" : "text-green-800"}`}>
-              {presTim.belum === 0 ? "Semua sudah Check-In" : `${presTim.belum} orang belum Check-In`}
-            </p>
-            <p className="text-sm text-zinc-600">
-              {presTim.sudah} sudah Check-In{presTim.cuti > 0 ? `, ${presTim.cuti} cuti/izin` : ""}. Ketuk untuk rekap.
-            </p>
-          </Link>
-        )}
-        {leaveWaiting !== null && leaveWaiting > 0 && (
-          <Link href="/cuti/persetujuan" className="rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Cuti / Izin</p>
-            <p className="mt-1 font-bold text-amber-900">{leaveWaiting} pengajuan menunggu keputusan</p>
-            <p className="text-sm text-zinc-600">Termasuk pengajuan pembatalan. Ketuk untuk memproses.</p>
-          </Link>
-        )}
-        {kendalaOpen !== null && (
-          <Link href="/pantauan" className={`rounded-xl border p-4 shadow-sm ${kendalaOpen ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}`}>
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Pantauan kendala</p>
-            <p className={`mt-1 font-bold ${kendalaOpen ? "text-amber-900" : "text-green-800"}`}>{kendalaOpen === 0 ? "Semua kendala sudah ditangani" : `${kendalaOpen} kendala belum ditangani`}</p>
-            <p className="text-sm text-zinc-600">Laporan 7 hari terakhir. Ketuk untuk membaca dan menandai.</p>
-          </Link>
-        )}
-        {aiOpen !== null && aiOpen > 0 && (
-          <Link href="/tindak-lanjut" className={`rounded-xl border p-4 shadow-sm ${aiLate ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white"}`}>
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Tindak lanjut notulensi</p>
-            <p className={`mt-1 font-bold ${aiLate ? "text-red-800" : "text-accent"}`}>{aiOpen} belum selesai</p>
-            {aiLate > 0 && <p className="text-sm font-bold text-red-700">{aiLate} lewat tenggat</p>}
-          </Link>
-        )}
-        {tasks && (
-          <Link
-            href="/tugas"
-            className={`rounded-xl border p-4 shadow-sm ${overdue ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white"}`}
-          >
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Tugas saya</p>
-            <p className={`mt-1 font-bold ${overdue ? "text-red-800" : "text-accent"}`}>
-              {tasks.length === 0 ? "Tidak ada tugas terbuka" : `${tasks.length} tugas belum selesai`}
-            </p>
-            {overdue > 0 && <p className="text-sm font-bold text-red-700">{overdue} lewat tenggat</p>}
-          </Link>
-        )}
-        {missing !== null && (
-          <Link
-            href="/dashboard"
-            className={`rounded-xl border p-4 shadow-sm ${missing ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}`}
-          >
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Tim hari ini</p>
-            <p className={`mt-1 font-bold ${missing ? "text-amber-900" : "text-green-800"}`}>
-              {missing === 0 ? "Semua sudah mengisi" : `${missing} orang belum mengisi`}
-            </p>
-            <p className="text-sm text-zinc-600">Ketuk untuk melihat dashboard.</p>
-          </Link>
-        )}
-        {deleteRequests !== null && deleteRequests > 0 && (
-          <Link href="/notulensi?status=hapus" className="rounded-xl border border-red-300 bg-red-50 p-4 shadow-sm">
-            <p className="text-xs font-bold tracking-wide text-zinc-600 uppercase">Menunggu persetujuan Anda</p>
-            <p className="mt-1 font-bold text-red-800">{deleteRequests} permintaan hapus notulensi</p>
-          </Link>
-        )}
+      {(presCard || reportCard) && (
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {presCard && <ActionCard href="/presensi" icon={<ClockIcon />} title="Presensi hari ini" {...presCard} />}
+          {reportCard && <ActionCard href="/laporan" icon={<DocIcon />} title="Laporan hari ini" {...reportCard} />}
+        </div>
+      )}
+
+      <div className="mt-5">
+        <AttentionList items={attention} />
       </div>
 
       {isLeader && (
@@ -276,39 +215,6 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
         </section>
       )}
 
-      <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-        {items.map((item) => {
-          const body = (
-            <>
-              <p className="flex items-center justify-between gap-2 font-bold">
-                {item.label}
-                {!item.ready && (
-                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-normal text-zinc-500">
-                    Segera hadir
-                  </span>
-                )}
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">{item.description}</p>
-            </>
-          );
-          return (
-            <li key={item.href}>
-              {item.ready ? (
-                <Link
-                  href={item.href}
-                  className="block h-full rounded-xl border border-zinc-200 bg-white p-4 shadow-sm hover:border-gold hover:shadow-md"
-                >
-                  {body}
-                </Link>
-              ) : (
-                <div className="h-full rounded-xl border border-dashed border-zinc-300 bg-white/60 p-4 text-zinc-500">
-                  {body}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
 
       <p className="mt-8 text-center text-sm">
         <Link href="/atur-password" className="text-accent hover:underline">

@@ -58,7 +58,10 @@ export function PhotoField({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt="Pratinjau foto" className="max-h-56 rounded-lg border border-zinc-200" />
         ) : (
-          <span aria-hidden="true" className="text-4xl">📷</span>
+          <svg viewBox="0 0 24 24" className="h-10 w-10 text-accent" aria-hidden="true">
+            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+            <circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
         )}
         <span className="text-base font-bold text-accent">{url ? "Ganti foto" : buttonText}</span>
         <input type="file" accept="image/*" capture={camera} onChange={onFile} className="sr-only" />

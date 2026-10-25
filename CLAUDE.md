@@ -99,7 +99,7 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - `/tindak-lanjut` (Owner/Manager): semua `meeting_action_items` yang terlihat (RLS), filter status/PIC/company, ringkasan belum selesai/lewat tenggat/selesai bulan ini; hanya melihat (status diubah PIC). Kartu Beranda untuk pengelola: kendala 7 hari belum ditangani dan tindak lanjut belum selesai.
 
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
-- Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`next/font`, variabel `--font-lora`) untuk seluruh antarmuka.
+- Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`--font-lora`) HANYA untuk judul h1–h4 dan identitas brand; isi, tabel, tombol, label, dan form memakai **Inter** (`--font-inter`) (keputusan pemilik 26 Okt 2026, menggantikan "Lora untuk seluruh antarmuka"). Ikon memakai SVG, bukan emoji.
 - PENGECUALIAN: form harian per jabatan tetap Arial dan berwarna per jabatan (meniru PDF referensi). Notulensi memakai Lora + navy brand (menggantikan "aksen biru #2E75B6" di brief).
 - Logo di `public/brand/`: `logo-utama.png` (vertikal navy+emas; halaman Masuk/Atur password), `logo-horizontal.png` (tulisan ke kanan; header aplikasi), `logo-2warna.png` (ubin navy putih; cadangan, mis. cetak/OG). Ikon tab/ponsel: `src/app/icon.png` & `apple-icon.png` (hanya gambar layar perahu di latar navy).
 - Referensi brand (tidak ditayangkan): `aset-brand/warna-brand.webp`, `aset-brand/tipografi-brand.webp`. Jika pemilik punya file logo asli beresolusi tinggi/SVG, ganti file di `public/brand/` dengan nama yang sama.
