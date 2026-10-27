@@ -5,11 +5,17 @@ import { MAX_PHOTO_BYTES } from "./presensi";
 export async function compressImage(file: File, maxBytes: number = MAX_PHOTO_BYTES): Promise<Blob> {
   if (!file.type.startsWith("image/")) throw new Error("Berkas harus berupa foto (JPG, PNG, atau HEIC dari ponsel).");
 
+  // Hemat memori: dikecilkan SAAT dibaca. Foto kamera ponsel modern (50–200 megapiksel) kalau dibuka
+  // penuh bisa memakan ratusan MB dan membuat peramban di ponsel RAM kecil dimatikan sistem.
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image", resizeWidth: 1600, resizeQuality: "medium" });
   } catch {
-    throw new Error("Foto tidak bisa dibaca. Coba foto lain atau ambil ulang.");
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: "from-image" }); // peramban lama tanpa opsi kecilkan
+    } catch {
+      throw new Error("Foto tidak bisa dibaca. Coba foto lain atau ambil ulang.");
+    }
   }
 
   let side = 1280; // sisi terpanjang awal (px)
