@@ -207,7 +207,8 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
       <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-zinc-500">
         <li>Angka status dihitung dalam hari. Izin dan Cuti termasuk yang disetujui lewat menu Cuti / Izin (hari yang sudah punya presensi tidak dihitung dua kali; Minggu tidak dihitung).</li>
         <li>&quot;Total di kantor&quot; = selisih Check-In dan Check-Out pada hari WFO. Tugas Luar tidak dihitung sebagai waktu di kantor; hari tanpa Check-Out juga tidak dihitung.</li>
-        <li>&quot;Tanpa keterangan&quot; = hari kerja (Senin–Sabtu) sejak akun dibuat sampai kemarin tanpa presensi dan tanpa cuti/izin disetujui. Hari libur nasional belum dikenali sistem, jadi tanggal merah ikut terhitung di sini.</li>
+        {(loaded.libur?.length ?? 0) > 0 && <li>Hari libur bulan ini: {loaded.libur!.map((d) => formatTanggalPendek(d)).join(", ")}.</li>}
+        <li>&quot;Tanpa keterangan&quot; = hari kerja (Senin–Sabtu) sejak akun dibuat sampai kemarin tanpa presensi dan tanpa cuti/izin disetujui. Tanggal yang terdaftar di menu Hari Libur tidak dihitung.</li>
         <li>Jam rata-rata mencakup hari WFO dan Tugas Luar (WIB).</li>
       </ul>
     </div>

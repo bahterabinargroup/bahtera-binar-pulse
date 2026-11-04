@@ -1895,6 +1895,54 @@ begin
   end;
 
   -- =====================================================================
+  -- HARI LIBUR (butuh supabase/019_hari_libur.sql)
+  -- =====================================================================
+  begin
+    insert into public.holidays (holiday_date, name) values (date '2099-01-01', 'Libur uji');
+
+    perform pg_temp.t_as(ea1);
+    select count(*) into n from public.holidays where holiday_date = date '2099-01-01';
+    reset role;
+    res := res || pg_temp.t_line(37, 'Karyawan boleh melihat daftar hari libur', n = 1, format('terlihat=%s', n));
+
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.holidays (holiday_date, name) values (date '2099-01-02', 'Libur karyawan');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(37, 'Karyawan tidak bisa menambah hari libur', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ma);
+      insert into public.holidays (holiday_date, name) values (date '2099-01-03', 'Libur manager');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(37, 'Manager tidak bisa menambah hari libur', st = '42501', 'hasil=' || st);
+
+    perform pg_temp.t_as(ma);
+    delete from public.holidays where holiday_date = date '2099-01-01';
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(37, 'Manager tidak bisa menghapus hari libur', n = 0, format('baris terhapus=%s', n));
+
+    begin
+      perform pg_temp.t_as(uo);
+      insert into public.holidays (holiday_date, name) values (date '2099-01-04', 'Libur owner');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(37, 'Owner bisa menambah hari libur', st = 'OK', 'hasil=' || st);
+
+    perform pg_temp.t_as(uo);
+    delete from public.holidays where holiday_date = date '2099-01-04';
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(37, 'Owner bisa menghapus hari libur', n = 1, format('baris terhapus=%s', n));
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

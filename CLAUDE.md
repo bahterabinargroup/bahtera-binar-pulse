@@ -81,6 +81,7 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 ## Presensi harian — 11 Okt 2026
 - Tabel `presensi` + bucket privat `presensi` (`supabase/008`–`010`, bagian 17 schema). Status: `wfo`, `tugas_luar`, `izin`, `sakit`. Catatan wajib untuk tugas_luar/izin/sakit; foto bukti WAJIB untuk tugas_luar; Izin/Sakit otomatis Check-Out; Check-Out wajib foto selfie, sekali saja; hari lampau terkunci. Foto dikompres di browser (<200 KB, `src/lib/image-compress.ts`).
 - UI: `/presensi` (karyawan, semua peran), `/presensi/rekap` + `/presensi/rekap/unduh` (CSV bulanan; Owner/Manager).
+- Hari libur (4 Nov): tabel `holidays` (`supabase/019`, bagian 24 schema), satu daftar untuk semua company, Owner menambah/menghapus di `/libur`, semua pengguna membaca. Dipakai Ringkasan Presensi (tidak dihitung "tanpa keterangan"); BELUM dipakai dashboard kepatuhan / `get_missing_reports`.
 - Ringkasan per karyawan sebulan (4 Nov): `/presensi/ringkasan` + `/unduh` (Owner/Manager/Lead, RLS), kode `src/lib/presensi-ringkasan.ts`. Lama di kantor = hanya hari WFO yang sudah Check-Out; Tugas Luar tidak dihitung sebagai di kantor.
 
 ## Cuti / izin — keputusan pemilik 14 Okt 2026

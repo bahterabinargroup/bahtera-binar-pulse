@@ -41,7 +41,7 @@ export type Ringkasan = {
 const menitWib = (iso: string) => (Math.floor(new Date(iso).getTime() / 60000) + 7 * 60) % 1440;
 const rata = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
-export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], from: string, to: string): Ringkasan {
+export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], from: string, to: string, libur: Set<string> = new Set()): Ringkasan {
   const r: Ringkasan = { person, harian: [], hadir: 0, wfo: 0, tugasLuar: 0, izin: 0, sakit: 0, cuti: 0, belumPulang: 0, lupaOut: [], tanpaKet: [], avgMasukMenit: null, avgPulangMenit: null, kantorMenit: 0, kantorHari: 0 };
   const masuk: number[] = [];
   const pulang: number[] = [];
@@ -85,14 +85,14 @@ export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], f
       r.harian.push({ date: day, status: l.kind === "cuti" ? "cuti" : "izin_disetujui", masuk: null, pulang: null, otomatis: false, menit: null });
     }
   }
-  // Tanpa keterangan: hari kerja sejak akun dibuat sampai kemarin (hari ini masih bisa Check-In) tanpa presensi dan tanpa cuti/izin disetujui.
+  // Tanpa keterangan: hari kerja (bukan hari libur) sejak akun dibuat sampai kemarin (hari ini masih bisa Check-In) tanpa presensi dan tanpa cuti/izin disetujui.
   const kemarin = addDays(todayJakarta(), -1);
   const awal = todayJakarta(new Date(person.created_at));
   const dari = awal > from ? awal : from;
   const sampai = to < kemarin ? to : kemarin;
   if (dari <= sampai) {
     for (const day of eachDay(dari, sampai)) {
-      if (!isWorkday(day) || adaPresensi.has(day) || cutiHari.has(day)) continue;
+      if (!isWorkday(day) || libur.has(day) || adaPresensi.has(day) || cutiHari.has(day)) continue;
       r.tanpaKet.push(day);
       r.harian.push({ date: day, status: "tanpa_keterangan", masuk: null, pulang: null, otomatis: false, menit: null });
     }
@@ -109,7 +109,7 @@ export const fmtJamWib = (iso: string | null) => (iso ? fmtMenitJam(menitWib(iso
 export const statusHari = (st: string) => (st === "cuti" ? "Cuti (disetujui)" : st === "izin_disetujui" ? "Izin (disetujui)" : st === "tanpa_keterangan" ? "Tanpa keterangan" : st === "wfo" ? "WFO" : st === "tugas_luar" ? "Tugas Luar" : st === "izin" ? "Izin" : st === "sakit" ? "Sakit" : st);
 export const fmtDurasi = (m: number) => (m <= 0 ? "—" : `${Math.floor(m / 60)} j ${String(m % 60).padStart(2, "0")} m`);
 
-export type Loaded = { list: Ringkasan[]; from: string; to: string; tableMissing: boolean };
+export type Loaded = { list: Ringkasan[]; from: string; to: string; tableMissing: boolean; libur?: string[] };
 
 // company: kosong = semua company yang boleh dilihat (Owner); Manager dan Lead tetap dibatasi RLS.
 export async function loadRingkasan(sb: Sb, profile: Profile, month: string, company: string): Promise<Loaded> {
@@ -147,7 +147,9 @@ export async function loadRingkasan(sb: Sb, profile: Profile, month: string, com
     leaveQ = leaveQ.eq("company_id", companyId);
     peopleQ = peopleQ.eq("company_id", companyId);
   }
-  const [leaveRes, peopleRes] = await Promise.all([leaveQ, peopleQ]);
+  const [leaveRes, peopleRes, holRes] = await Promise.all([leaveQ, peopleQ, sb.from("holidays").select("holiday_date").gte("holiday_date", from).lte("holiday_date", end).limit(400)]);
+  // Tabel hari libur belum dibuat (019 belum dijalankan) = anggap tidak ada hari libur.
+  const libur = new Set((holRes.error ? [] : ((holRes.data ?? []) as { holiday_date: string }[])).map((h) => h.holiday_date));
   if (peopleRes.error) throw new Error(`Gagal memuat pengguna: ${peopleRes.error.message}`);
   const people = (peopleRes.data ?? []) as unknown as Person[];
   const leaves = (leaveRes.error ? [] : (leaveRes.data ?? [])) as (LeaveRow & { user_id: string })[];
@@ -157,6 +159,6 @@ export async function loadRingkasan(sb: Sb, profile: Profile, month: string, com
   const byUserLeaves = new Map<string, LeaveRow[]>();
   for (const l of leaves) byUserLeaves.set(l.user_id, [...(byUserLeaves.get(l.user_id) ?? []), l]);
 
-  const list = people.map((p) => summarize(p, byUserRows.get(p.id) ?? [], byUserLeaves.get(p.id) ?? [], from, to));
-  return { list, from, to, tableMissing: false };
+  const list = people.map((p) => summarize(p, byUserRows.get(p.id) ?? [], byUserLeaves.get(p.id) ?? [], from, to, libur));
+  return { list, from, to, tableMissing: false, libur: [...libur].sort() };
 }
