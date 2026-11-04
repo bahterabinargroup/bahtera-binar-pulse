@@ -1,10 +1,36 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatTanggalPendek, todayJakarta } from "@/lib/date";
-import { fmtDurasi, fmtJamWib, fmtMenitJam, loadRingkasan, statusHari } from "@/lib/presensi-ringkasan";
+import { fmtDurasi, fmtJamWib, fmtMenitJam, loadRingkasan, statusHari, type Ringkasan } from "@/lib/presensi-ringkasan";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { monthLabel, monthStart, parseMonth, prevMonth } from "@/lib/target";
+
+type Item = { r: Ringkasan; dates: string[] };
+function Insight({ title, hint, tone, items, detailHref, showCompany, compName }: { title: string; hint: string; tone: "red" | "amber"; items: Item[]; detailHref: (id: string) => string; showCompany: boolean; compName: Map<string, string> }) {
+  const cls = tone === "red" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50";
+  const total = items.reduce((a, i) => a + i.dates.length, 0);
+  return (
+    <section className={`rounded-xl border p-3 ${cls}`}>
+      <h2 className="font-bold">{title} <span className="font-normal text-zinc-600">· {items.length} orang, {total} hari</span></h2>
+      <p className="text-xs text-zinc-600">{hint}</p>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-green-800">Tidak ada.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5 text-sm">
+          {items.map(({ r, dates }) => (
+            <li key={r.person.id}>
+              <Link href={detailHref(r.person.id)} className="font-bold text-accent underline">{r.person.full_name}</Link>
+              <span className="text-zinc-600"> · {r.person.position?.name ?? "—"}{showCompany ? ` · ${compName.get(r.person.company_id) ?? ""}` : ""} · </span>
+              <b>{dates.length} hari</b>
+              <span className="block text-xs text-zinc-600">{dates.map((d) => formatTanggalPendek(d)).join(", ")}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
@@ -76,11 +102,18 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
         <Link href="/presensi/rekap" className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-bold">Rekap harian</Link>
       </form>
 
+      {list.length > 0 && (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <Insight title="Tanpa keterangan" hint="Tidak ada presensi, tidak izin, dan tidak cuti disetujui" tone="red" items={list.filter((r) => r.tanpaKet.length).map((r) => ({ r, dates: r.tanpaKet })).sort((a, b) => b.dates.length - a.dates.length)} detailHref={detailHref} showCompany={showCompany} compName={compName} />
+          <Insight title="Tidak Check-Out" hint="Sudah Check-In tetapi tidak Check-Out (WFO atau Tugas Luar)" tone="amber" items={list.filter((r) => r.lupaOut.length).map((r) => ({ r, dates: r.lupaOut })).sort((a, b) => b.dates.length - a.dates.length)} detailHref={detailHref} showCompany={showCompany} compName={compName} />
+        </div>
+      )}
+
       {list.length === 0 ? (
         <p className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 text-sm">Belum ada karyawan untuk ditampilkan.</p>
       ) : (
         <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1060px] text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-600">
               <tr>
                 <th className="p-2">Nama</th>
@@ -91,6 +124,7 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
                 <th className="p-2 text-center">Izin</th>
                 <th className="p-2 text-center">Sakit</th>
                 <th className="p-2 text-center">Cuti</th>
+                <th className="p-2 text-center">Tanpa keterangan</th>
                 <th className="p-2 text-center">Rata-rata masuk</th>
                 <th className="p-2 text-center">Rata-rata pulang</th>
                 <th className="p-2 text-center">Total di kantor</th>
@@ -110,10 +144,11 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
                   <td className="p-2 text-center">{num(r.izin)}</td>
                   <td className="p-2 text-center">{num(r.sakit)}</td>
                   <td className="p-2 text-center">{num(r.cuti)}</td>
+                  <td className="p-2 text-center">{r.tanpaKet.length ? <b className="text-red-700">{r.tanpaKet.length}</b> : num(0)}</td>
                   <td className="p-2 text-center">{fmtMenitJam(r.avgMasukMenit)}</td>
                   <td className="p-2 text-center">
                     {fmtMenitJam(r.avgPulangMenit)}
-                    {r.belumPulang > 0 && <span className="block text-xs text-red-700">{r.belumPulang}x lupa Check-Out</span>}
+                    {r.belumPulang > 0 && <span className="block text-xs text-red-700">{r.belumPulang}x tidak Check-Out</span>}
                   </td>
                   <td className="p-2 text-center">{fmtDurasi(r.kantorMenit)}</td>
                   <td className="p-2 text-center">{r.kantorHari ? fmtDurasi(Math.round(r.kantorMenit / r.kantorHari)) : "—"}</td>
@@ -172,6 +207,7 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
       <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-zinc-500">
         <li>Angka status dihitung dalam hari. Izin dan Cuti termasuk yang disetujui lewat menu Cuti / Izin (hari yang sudah punya presensi tidak dihitung dua kali; Minggu tidak dihitung).</li>
         <li>&quot;Total di kantor&quot; = selisih Check-In dan Check-Out pada hari WFO. Tugas Luar tidak dihitung sebagai waktu di kantor; hari tanpa Check-Out juga tidak dihitung.</li>
+        <li>&quot;Tanpa keterangan&quot; = hari kerja (Senin–Sabtu) sejak akun dibuat sampai kemarin tanpa presensi dan tanpa cuti/izin disetujui. Hari libur nasional belum dikenali sistem, jadi tanggal merah ikut terhitung di sini.</li>
         <li>Jam rata-rata mencakup hari WFO dan Tugas Luar (WIB).</li>
       </ul>
     </div>

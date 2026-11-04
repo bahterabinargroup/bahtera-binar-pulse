@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   }
 
   const body = csvBody(
-    ["Nama", "Company", "Jabatan", "WFO (hari)", "Tugas Luar (hari)", "Izin (hari)", "Sakit (hari)", "Cuti (hari)", "Hari lupa Check-Out", "Rata-rata jam masuk (WIB)", "Rata-rata jam pulang (WIB)", "Total di kantor", "Total di kantor (menit)", "Rata-rata di kantor per hari WFO"],
+    ["Nama", "Company", "Jabatan", "WFO (hari)", "Tugas Luar (hari)", "Izin (hari)", "Sakit (hari)", "Cuti (hari)", "Tanpa keterangan (hari)", "Tidak Check-Out (hari)", "Tanggal tanpa keterangan", "Tanggal tidak Check-Out", "Rata-rata jam masuk (WIB)", "Rata-rata jam pulang (WIB)", "Total di kantor", "Total di kantor (menit)", "Rata-rata di kantor per hari WFO"],
     list.map((r) => [
       r.person.full_name,
       comps.get(r.person.company_id) ?? "",
@@ -48,7 +48,10 @@ export async function GET(request: Request) {
       r.izin,
       r.sakit,
       r.cuti,
+      r.tanpaKet.length,
       r.belumPulang,
+      r.tanpaKet.join(" "),
+      r.lupaOut.join(" "),
       fmtMenitJam(r.avgMasukMenit),
       fmtMenitJam(r.avgPulangMenit),
       fmtDurasi(r.kantorMenit),

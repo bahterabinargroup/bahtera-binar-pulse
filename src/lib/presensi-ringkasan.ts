@@ -1,6 +1,7 @@
 // Ringkasan presensi per karyawan untuk satu bulan: jam masuk/pulang rata-rata, lama di kantor, dan hitungan status.
 // Hanya membaca (tanpa mengubah database); data disaring RLS.
-import { todayJakarta } from "@/lib/date";
+import { eachDay, isWorkday } from "@/lib/dashboard";
+import { addDays, todayJakarta } from "@/lib/date";
 import { leaveDaysIn } from "@/lib/leave";
 import type { Profile } from "@/lib/profile";
 import { leadPositionIds } from "@/lib/profile";
@@ -28,6 +29,8 @@ export type Ringkasan = {
   sakit: number;
   cuti: number; // hari cuti disetujui
   belumPulang: number; // hari WFO/Tugas Luar tanpa Check-Out
+  lupaOut: string[]; // tanggal-tanggalnya
+  tanpaKet: string[]; // tanggal kerja (Senin–Sabtu) tanpa presensi, tanpa cuti/izin disetujui
   avgMasukMenit: number | null; // rata-rata jam Check-In (menit sejak 00.00 WIB), WFO + Tugas Luar
   avgPulangMenit: number | null;
   kantorMenit: number; // total lama di kantor (WFO yang sudah Check-Out)
@@ -39,7 +42,7 @@ const menitWib = (iso: string) => (Math.floor(new Date(iso).getTime() / 60000) +
 const rata = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
 export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], from: string, to: string): Ringkasan {
-  const r: Ringkasan = { person, harian: [], hadir: 0, wfo: 0, tugasLuar: 0, izin: 0, sakit: 0, cuti: 0, belumPulang: 0, avgMasukMenit: null, avgPulangMenit: null, kantorMenit: 0, kantorHari: 0 };
+  const r: Ringkasan = { person, harian: [], hadir: 0, wfo: 0, tugasLuar: 0, izin: 0, sakit: 0, cuti: 0, belumPulang: 0, lupaOut: [], tanpaKet: [], avgMasukMenit: null, avgPulangMenit: null, kantorMenit: 0, kantorHari: 0 };
   const masuk: number[] = [];
   const pulang: number[] = [];
   const adaPresensi = new Set(rows.map((x) => x.attendance_date));
@@ -66,17 +69,32 @@ export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], f
         }
       } else if (x.attendance_date < todayJakarta()) {
         r.belumPulang++; // hari ini belum dihitung (masih bisa Check-Out)
+        r.lupaOut.push(x.attendance_date);
       }
     } else if (x.status === "izin") r.izin++;
     else if (x.status === "sakit") r.sakit++;
   }
   // Cuti/izin disetujui pada hari yang tidak punya presensi (tidak dihitung ganda).
+  const cutiHari = new Set<string>();
   for (const l of leaves) {
     for (const day of leaveDaysIn(l, from, to)) {
+      cutiHari.add(day);
       if (adaPresensi.has(day)) continue;
       if (l.kind === "cuti") r.cuti++;
       else r.izin++;
       r.harian.push({ date: day, status: l.kind === "cuti" ? "cuti" : "izin_disetujui", masuk: null, pulang: null, otomatis: false, menit: null });
+    }
+  }
+  // Tanpa keterangan: hari kerja sejak akun dibuat sampai kemarin (hari ini masih bisa Check-In) tanpa presensi dan tanpa cuti/izin disetujui.
+  const kemarin = addDays(todayJakarta(), -1);
+  const awal = todayJakarta(new Date(person.created_at));
+  const dari = awal > from ? awal : from;
+  const sampai = to < kemarin ? to : kemarin;
+  if (dari <= sampai) {
+    for (const day of eachDay(dari, sampai)) {
+      if (!isWorkday(day) || adaPresensi.has(day) || cutiHari.has(day)) continue;
+      r.tanpaKet.push(day);
+      r.harian.push({ date: day, status: "tanpa_keterangan", masuk: null, pulang: null, otomatis: false, menit: null });
     }
   }
   r.harian.sort((a, b) => a.date.localeCompare(b.date));
@@ -88,7 +106,7 @@ export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], f
 export const fmtMenitJam = (m: number | null) => (m === null ? "—" : `${String(Math.floor(m / 60)).padStart(2, "0")}.${String(m % 60).padStart(2, "0")}`);
 // Jam WIB "HH.mm" dari waktu ISO.
 export const fmtJamWib = (iso: string | null) => (iso ? fmtMenitJam(menitWib(iso)) : "—");
-export const statusHari = (st: string) => (st === "cuti" ? "Cuti (disetujui)" : st === "izin_disetujui" ? "Izin (disetujui)" : st === "wfo" ? "WFO" : st === "tugas_luar" ? "Tugas Luar" : st === "izin" ? "Izin" : st === "sakit" ? "Sakit" : st);
+export const statusHari = (st: string) => (st === "cuti" ? "Cuti (disetujui)" : st === "izin_disetujui" ? "Izin (disetujui)" : st === "tanpa_keterangan" ? "Tanpa keterangan" : st === "wfo" ? "WFO" : st === "tugas_luar" ? "Tugas Luar" : st === "izin" ? "Izin" : st === "sakit" ? "Sakit" : st);
 export const fmtDurasi = (m: number) => (m <= 0 ? "—" : `${Math.floor(m / 60)} j ${String(m % 60).padStart(2, "0")} m`);
 
 export type Loaded = { list: Ringkasan[]; from: string; to: string; tableMissing: boolean };
