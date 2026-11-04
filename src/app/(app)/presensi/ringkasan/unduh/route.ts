@@ -1,6 +1,6 @@
 import { csvBody } from "@/lib/csv";
 import { todayJakarta } from "@/lib/date";
-import { fmtDurasi, fmtMenitJam, loadRingkasan } from "@/lib/presensi-ringkasan";
+import { fmtDurasi, fmtJamWib, fmtMenitJam, loadRingkasan, statusHari } from "@/lib/presensi-ringkasan";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { parseMonth } from "@/lib/target";
@@ -17,6 +17,25 @@ export async function GET(request: Request) {
 
   const compRes = profile.role === "owner" ? await supabase.from("companies").select("id, name") : { data: null };
   const comps = new Map(((compRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+
+  if (url.searchParams.get("rinci")) {
+    // Satu baris per karyawan per tanggal, lalu satu baris "Rata-rata" per karyawan.
+    const out: unknown[][] = [];
+    for (const r of list) {
+      const nama = [r.person.full_name, comps.get(r.person.company_id) ?? "", r.person.position?.name ?? ""];
+      for (const h of r.harian) {
+        out.push([...nama, h.date, statusHari(h.status), fmtJamWib(h.masuk) === "—" ? "" : fmtJamWib(h.masuk), h.pulang ? fmtJamWib(h.pulang) + (h.otomatis ? " (otomatis)" : "") : "", h.menit ?? "", h.menit !== null ? fmtDurasi(h.menit) : ""]);
+      }
+      out.push([...nama, "RATA-RATA", "", fmtMenitJam(r.avgMasukMenit) === "—" ? "" : fmtMenitJam(r.avgMasukMenit), fmtMenitJam(r.avgPulangMenit) === "—" ? "" : fmtMenitJam(r.avgPulangMenit), r.kantorHari ? Math.round(r.kantorMenit / r.kantorHari) : "", r.kantorHari ? fmtDurasi(Math.round(r.kantorMenit / r.kantorHari)) : ""]);
+    }
+    return new Response(csvBody(["Nama", "Company", "Jabatan", "Tanggal", "Status", "Jam masuk (WIB)", "Jam pulang (WIB)", "Lama di kantor (menit)", "Lama di kantor"], out), {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="presensi-per-tanggal-${month.slice(0, 7)}.csv"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
 
   const body = csvBody(
     ["Nama", "Company", "Jabatan", "WFO (hari)", "Tugas Luar (hari)", "Izin (hari)", "Sakit (hari)", "Cuti (hari)", "Hari lupa Check-Out", "Rata-rata jam masuk (WIB)", "Rata-rata jam pulang (WIB)", "Total di kantor", "Total di kantor (menit)", "Rata-rata di kantor per hari WFO"],

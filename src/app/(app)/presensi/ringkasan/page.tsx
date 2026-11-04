@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { cardCls } from "@/components/owner/ui";
-import { todayJakarta } from "@/lib/date";
-import { fmtDurasi, fmtMenitJam, loadRingkasan } from "@/lib/presensi-ringkasan";
+import { formatTanggalPendek, todayJakarta } from "@/lib/date";
+import { fmtDurasi, fmtJamWib, fmtMenitJam, loadRingkasan, statusHari } from "@/lib/presensi-ringkasan";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { monthLabel, monthStart, parseMonth, prevMonth } from "@/lib/target";
@@ -44,6 +43,8 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
   if (!months.includes(month)) months.push(month);
   const inputCls = "rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm";
   const num = (n: number) => (n ? String(n) : <span className="text-zinc-400">0</span>);
+  const pilih = list.find((r) => r.person.id === one(sp.karyawan)) ?? null;
+  const detailHref = (id: string) => `/presensi/ringkasan?${new URLSearchParams({ bulan: month, ...(company ? { company } : {}), karyawan: id })}#rincian`;
   const csv = new URLSearchParams({ bulan: month, ...(company ? { company } : {}) });
 
   return (
@@ -70,7 +71,8 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
           </select>
         )}
         <button type="submit" className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-bold text-white">Terapkan</button>
-        <a href={`/presensi/ringkasan/unduh?${csv}`} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">Unduh CSV</a>
+        <a href={`/presensi/ringkasan/unduh?${csv}`} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">Unduh ringkasan (CSV)</a>
+        <a href={`/presensi/ringkasan/unduh?${csv}&rinci=1`} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">Unduh per tanggal (CSV)</a>
         <Link href="/presensi/rekap" className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-bold">Rekap harian</Link>
       </form>
 
@@ -98,7 +100,9 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
             <tbody>
               {list.map((r) => (
                 <tr key={r.person.id} className="border-t border-zinc-100 align-top">
-                  <td className="p-2 font-bold">{r.person.full_name}</td>
+                  <td className="p-2 font-bold">
+                    <Link href={detailHref(r.person.id)} className="text-accent underline">{r.person.full_name}</Link>
+                  </td>
                   {showCompany && <td className="p-2">{compName.get(r.person.company_id) ?? "—"}</td>}
                   <td className="p-2">{r.person.position?.name ?? "—"}</td>
                   <td className="p-2 text-center">{num(r.wfo)}</td>
@@ -119,12 +123,57 @@ export default async function RingkasanPresensiPage({ searchParams }: PageProps<
           </table>
         </div>
       )}
+      <p className="mt-2 text-xs text-zinc-600">Klik nama karyawan untuk melihat jam masuk, jam pulang, dan lama di kantor tiap tanggal.</p>
+
+      {pilih && (
+        <section id="rincian" className="mt-6 scroll-mt-20">
+          <h2 className="text-lg font-bold">Rincian per tanggal — {pilih.person.full_name}</h2>
+          <p className="text-sm text-zinc-600">{pilih.person.position?.name ?? "—"} · {monthLabel(month)}</p>
+          {pilih.harian.length === 0 ? (
+            <p className="mt-2 rounded-lg border border-zinc-200 bg-white p-4 text-sm">Belum ada presensi pada bulan ini.</p>
+          ) : (
+            <div className="mt-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="bg-zinc-50 text-xs uppercase text-zinc-600">
+                  <tr>
+                    <th className="p-2">Tanggal</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2 text-center">Masuk</th>
+                    <th className="p-2 text-center">Pulang</th>
+                    <th className="p-2 text-center">Lama di kantor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pilih.harian.map((h) => (
+                    <tr key={h.date + h.status} className="border-t border-zinc-100">
+                      <td className="p-2">{formatTanggalPendek(h.date)}</td>
+                      <td className="p-2">{statusHari(h.status)}</td>
+                      <td className="p-2 text-center">{fmtJamWib(h.masuk)}</td>
+                      <td className="p-2 text-center">
+                        {h.pulang ? `${fmtJamWib(h.pulang)}${h.otomatis ? " (otomatis)" : ""}` : h.masuk && !h.otomatis ? <span className="text-red-700">Belum</span> : "—"}
+                      </td>
+                      <td className="p-2 text-center">{h.menit !== null ? fmtDurasi(h.menit) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t-2 border-zinc-200 bg-zinc-50 font-bold">
+                  <tr>
+                    <td className="p-2" colSpan={2}>Rata-rata</td>
+                    <td className="p-2 text-center">{fmtMenitJam(pilih.avgMasukMenit)}</td>
+                    <td className="p-2 text-center">{fmtMenitJam(pilih.avgPulangMenit)}</td>
+                    <td className="p-2 text-center">{pilih.kantorHari ? fmtDurasi(Math.round(pilih.kantorMenit / pilih.kantorHari)) : "—"}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
       <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-zinc-500">
         <li>Angka status dihitung dalam hari. Izin dan Cuti termasuk yang disetujui lewat menu Cuti / Izin (hari yang sudah punya presensi tidak dihitung dua kali; Minggu tidak dihitung).</li>
         <li>&quot;Total di kantor&quot; = selisih Check-In dan Check-Out pada hari WFO. Tugas Luar tidak dihitung sebagai waktu di kantor; hari tanpa Check-Out juga tidak dihitung.</li>
         <li>Jam rata-rata mencakup hari WFO dan Tugas Luar (WIB).</li>
       </ul>
-      <p className={`${cardCls} mt-3 text-xs text-zinc-600`}>Butuh rincian per hari? Buka Rekap harian lalu unduh CSV bulanan (sekarang memuat kolom lama di kantor).</p>
     </div>
   );
 }

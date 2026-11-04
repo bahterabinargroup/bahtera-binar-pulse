@@ -15,8 +15,12 @@ export type PresRow = { user_id: string; attendance_date: string; status: string
 type LeaveRow = { user_id: string; kind: string; start_date: string; end_date: string };
 export type Person = { id: string; full_name: string; company_id: string; created_at: string; position: { name: string } | null };
 
+// Satu baris per tanggal untuk daftar rinci seorang karyawan.
+export type HariRow = { date: string; status: string; masuk: string | null; pulang: string | null; otomatis: boolean; menit: number | null };
+
 export type Ringkasan = {
   person: Person;
+  harian: HariRow[]; // urut tanggal; termasuk cuti/izin disetujui yang tidak punya presensi
   hadir: number; // hari WFO + Tugas Luar
   wfo: number;
   tugasLuar: number;
@@ -35,11 +39,20 @@ const menitWib = (iso: string) => (Math.floor(new Date(iso).getTime() / 60000) +
 const rata = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
 export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], from: string, to: string): Ringkasan {
-  const r: Ringkasan = { person, hadir: 0, wfo: 0, tugasLuar: 0, izin: 0, sakit: 0, cuti: 0, belumPulang: 0, avgMasukMenit: null, avgPulangMenit: null, kantorMenit: 0, kantorHari: 0 };
+  const r: Ringkasan = { person, harian: [], hadir: 0, wfo: 0, tugasLuar: 0, izin: 0, sakit: 0, cuti: 0, belumPulang: 0, avgMasukMenit: null, avgPulangMenit: null, kantorMenit: 0, kantorHari: 0 };
   const masuk: number[] = [];
   const pulang: number[] = [];
   const adaPresensi = new Set(rows.map((x) => x.attendance_date));
   for (const x of rows) {
+    const auto = x.status === "izin" || x.status === "sakit";
+    r.harian.push({
+      date: x.attendance_date,
+      status: x.status,
+      masuk: x.check_in_at,
+      pulang: x.check_out_at,
+      otomatis: auto,
+      menit: x.status === "wfo" && x.check_out_at ? Math.max(0, Math.round((new Date(x.check_out_at).getTime() - new Date(x.check_in_at).getTime()) / 60000)) : null,
+    });
     if (x.status === "wfo" || x.status === "tugas_luar") {
       r.hadir++;
       if (x.status === "wfo") r.wfo++;
@@ -63,14 +76,19 @@ export function summarize(person: Person, rows: PresRow[], leaves: LeaveRow[], f
       if (adaPresensi.has(day)) continue;
       if (l.kind === "cuti") r.cuti++;
       else r.izin++;
+      r.harian.push({ date: day, status: l.kind === "cuti" ? "cuti" : "izin_disetujui", masuk: null, pulang: null, otomatis: false, menit: null });
     }
   }
+  r.harian.sort((a, b) => a.date.localeCompare(b.date));
   r.avgMasukMenit = rata(masuk);
   r.avgPulangMenit = rata(pulang);
   return r;
 }
 
 export const fmtMenitJam = (m: number | null) => (m === null ? "—" : `${String(Math.floor(m / 60)).padStart(2, "0")}.${String(m % 60).padStart(2, "0")}`);
+// Jam WIB "HH.mm" dari waktu ISO.
+export const fmtJamWib = (iso: string | null) => (iso ? fmtMenitJam(menitWib(iso)) : "—");
+export const statusHari = (st: string) => (st === "cuti" ? "Cuti (disetujui)" : st === "izin_disetujui" ? "Izin (disetujui)" : st === "wfo" ? "WFO" : st === "tugas_luar" ? "Tugas Luar" : st === "izin" ? "Izin" : st === "sakit" ? "Sakit" : st);
 export const fmtDurasi = (m: number) => (m <= 0 ? "—" : `${Math.floor(m / 60)} j ${String(m % 60).padStart(2, "0")} m`);
 
 export type Loaded = { list: Ringkasan[]; from: string; to: string; tableMissing: boolean };
