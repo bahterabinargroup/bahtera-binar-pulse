@@ -270,6 +270,10 @@ export default async function RekapPresensiPage({ searchParams }: PageProps<"/pr
           ))}
         </ul>
       )}
+      <p className="mt-6 text-sm">
+        <Link href="/presensi/ringkasan" className="font-bold text-accent underline">Ringkasan per karyawan sebulan</Link>
+        <span className="text-zinc-600"> — jam masuk/pulang rata-rata, lama di kantor, jumlah WFO, tugas luar, izin, sakit, dan cuti.</span>
+      </p>
       <form action="/presensi/rekap/unduh" className={`${cardCls} mt-6 flex flex-wrap items-center gap-2 text-sm`}>
         <span className="font-bold">Unduh rekap bulanan (CSV, bisa dibuka di Excel):</span>
         <select name="bulan" defaultValue={tanggalMonth} className={inputCls} aria-label="Bulan">

@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   const people = new Map(((usersRes.data ?? []) as unknown as { id: string; full_name: string; position: { name: string } | null }[]).map((u) => [u.id, u]));
   const comps = new Map(((compRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
 
-  const header = ["Tanggal", "Nama", "Company", "Jabatan", "Status", "Catatan", "Jam masuk (WIB)", "Lat masuk", "Lng masuk", "Peta masuk", "Jam pulang (WIB)", "Lat pulang", "Lng pulang", "Peta pulang", "Foto masuk", "Foto pulang"];
+  const header = ["Tanggal", "Nama", "Company", "Jabatan", "Status", "Catatan", "Jam masuk (WIB)", "Lat masuk", "Lng masuk", "Peta masuk", "Jam pulang (WIB)", "Lat pulang", "Lng pulang", "Peta pulang", "Foto masuk", "Foto pulang", "Lama di kantor (menit)"];
   const lines = [header.join(",")];
   for (const r of rows) {
     const p = people.get(r.user_id);
@@ -101,6 +101,7 @@ export async function GET(request: Request) {
         r.check_out_lat !== null && r.check_out_lng !== null ? mapsUrl(r.check_out_lat, r.check_out_lng) : "",
         r.check_in_photo_path ? "Ada" : "",
         r.check_out_photo_path ? "Ada" : "",
+        r.status === "wfo" && r.check_out_at ? Math.max(0, Math.round((new Date(r.check_out_at).getTime() - new Date(r.check_in_at).getTime()) / 60000)) : "",
       ]
         .map(cell)
         .join(","),
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
       if (hasRow.has(`${l.user_id}|${day}`)) continue;
       leaveLines.push({
         date: day,
-        line: [day, p?.full_name ?? "", comps.get(l.company_id) ?? "", p?.position?.name ?? "", `${kindLabel(l.kind)} (disetujui)`, l.reason, "", "", "", "", "", "", "", "", "", ""].map(cell).join(","),
+        line: [day, p?.full_name ?? "", comps.get(l.company_id) ?? "", p?.position?.name ?? "", `${kindLabel(l.kind)} (disetujui)`, l.reason, "", "", "", "", "", "", "", "", "", "", ""].map(cell).join(","),
       });
     }
   }
