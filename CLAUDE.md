@@ -101,7 +101,7 @@ Jabatan (SPV, ADV, ADV_MH, CC, AM, RND) menentukan ISI FORM; role (owner/manager
 - `/tindak-lanjut` (Owner/Manager): semua `meeting_action_items` yang terlihat (RLS), filter status/PIC/company, ringkasan belum selesai/lewat tenggat/selesai bulan ini; hanya melihat (status diubah PIC). Kartu Beranda untuk pengelola: kendala 7 hari belum ditangani dan tindak lanjut belum selesai.
 
 ## Kalkulator Budget Iklan — 10 Nov 2026
-- `/budget`: untuk jabatan ADV, SPV, dan Owner (menu punya `positions` di `src/lib/menu.ts`). Hitungan angka (penyesuaian rahasia fase bulan) HANYA di server: `src/lib/budget-hitung.ts` (`server-only`); jangan dipindah ke komponen client dan jangan ditampilkan di layar. Aturan isian + teks WhatsApp di `src/lib/budget.ts`. Format teks WhatsApp dibaca script tracker Google Sheets pemilik: ubah label hanya bila pemilik setuju.
+- `/budget`: untuk jabatan ADV, ADV_MH, SPV, dan Owner (menu punya `positions` di `src/lib/menu.ts`). Hitungan angka (penyesuaian rahasia fase bulan) HANYA di server: `src/lib/budget-hitung.ts` (`server-only`); jangan dipindah ke komponen client dan jangan ditampilkan di layar. Aturan isian + teks WhatsApp di `src/lib/budget.ts`. Format teks WhatsApp dibaca script tracker Google Sheets pemilik: ubah label hanya bila pemilik setuju.
 
 ## Brand (Bahtera Binar Group) — dari pemilik, 7 Okt 2026
 - Warna: Navy `#012C4E` (primer → `--accent`/`bg-accent`/`text-accent`), Gold `#C4A251` (sekunder → `--gold`/`text-gold`/`border-gold`). Font: **Lora** (`--font-lora`) HANYA untuk judul h1–h4 dan identitas brand; isi, tabel, tombol, label, dan form memakai **Inter** (`--font-inter`) (keputusan pemilik 26 Okt 2026, menggantikan "Lora untuk seluruh antarmuka"). Ikon memakai SVG, bukan emoji.

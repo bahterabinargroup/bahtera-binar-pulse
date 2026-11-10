@@ -3,7 +3,7 @@ import { BudgetCalculator } from "@/components/budget/BudgetCalculator";
 import { canUseBudget } from "@/lib/menu";
 import { getCurrentUser } from "@/lib/profile";
 
-// Kalkulator pengajuan budget iklan. Jabatan ADV dan SPV, serta Owner.
+// Kalkulator pengajuan budget iklan. Jabatan ADV, ADV_MH, SPV, serta Owner.
 export default async function BudgetPage() {
   const { profile } = await getCurrentUser();
   if (!profile || !canUseBudget(profile.role, profile.position?.code)) redirect("/");

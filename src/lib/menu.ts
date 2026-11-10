@@ -10,8 +10,8 @@ export type MenuItem = {
   ready: boolean; // false = halaman belum dibangun (milestone berikutnya)
 };
 
-// Kalkulator Budget Iklan: jabatan ADV dan SPV, serta Owner.
-export const BUDGET_POSITIONS = ["ADV", "SPV"];
+// Kalkulator Budget Iklan: jabatan ADV, ADV_MH, dan SPV, serta Owner.
+export const BUDGET_POSITIONS = ["ADV", "ADV_MH", "SPV"];
 export const canUseBudget = (role: UserRole, positionCode?: string | null) =>
   role === "owner" || (!!positionCode && BUDGET_POSITIONS.includes(positionCode));
 
