@@ -287,3 +287,6 @@ Keputusan pemilik: satu pengajuan cuti/izin maksimal 2 hari berturut-turut; kuot
 
 ## Supabase CLI terpasang — 10 Nov 2026
 Atas persetujuan pemilik, Supabase CLI (3.1.0, Homebrew) dipasang di Mac pemilik dan sudah login (`supabase login`, token di Mac, bukan di chat). Proyek: `qrnnznemlnpuyvubcujk` (Bahtera Binar Project, PRODUKSI). Cara: `supabase db query --remote=qrnnznemlnpuyvubcujk [--yes] -f <berkas.sql>` (produksi butuh `--yes`; untuk baca saja pakai `--read-only`). ATURAN: jalankan hanya migrasi yang sudah disetujui pemilik; perubahan skema baru tetap TANYA DULU. Keluaran uji keamanan terpotong oleh CLI; gunakan salinan sementara dengan ringkasan di akhir (lihat riwayat sesi 10 Nov).
+
+## Repositori GitHub — 10 Nov 2026
+Kode diunggah ke repositori PRIVAT https://github.com/bahterabinargroup/bahtera-binar-pulse (akun `bahterabinargroup`, cabang `main`, remote `origin`). GitHub CLI (`gh`) terpasang dan sudah login. Dicek sebelum unggah: tidak ada `.env.local`/kunci rahasia di berkas maupun riwayat git. Vercel TIDAK terhubung ke GitHub (penayangan tetap lewat `vercel deploy --prod`). Langkah berikutnya untuk laptop istri pemilik: undang akunnya sebagai kolaborator, `git clone`, buat `.env.local` dari `.env.example` lewat jalur aman, kerja di cabang sendiri.
