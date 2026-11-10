@@ -14,6 +14,7 @@ Kemajuan & langkah berikutnya: `STATUS.md` — baca di awal setiap sesi, perbaru
 - PDF di `referensi-form/` adalah acuan VISUAL wajib untuk form. Buka dan LIHAT PDF-nya, bukan hanya teksnya.
 
 ## Teknologi
+- Supabase CLI terpasang & sudah login (10 Nov 2026): jalankan migrasi yang SUDAH DISETUJUI pemilik dengan `supabase db query --remote=qrnnznemlnpuyvubcujk --yes -f supabase/NNN_*.sql` (produksi!). Perubahan skema baru tetap TANYA DULU. Jangan minta kata sandi/kunci di chat.
 - Next.js (App Router) + TypeScript + Tailwind CSS. Versi Next.js di proyek ini baru (lihat AGENTS.md): cek dokumen di `node_modules/next/dist/docs/` sebelum menulis kode.
 - Supabase Auth + PostgreSQL via `@supabase/supabase-js` dan `@supabase/ssr` (`src/lib/supabase/client.ts` untuk browser, `server.ts` untuk server).
 - Hosting Vercel. Mobile-first. Antarmuka Bahasa Indonesia. Zona waktu Asia/Jakarta (WIB).
