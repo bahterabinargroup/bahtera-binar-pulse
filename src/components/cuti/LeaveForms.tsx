@@ -5,7 +5,7 @@ import { cancelLeave, decideLeave, decideLeaveCancel, requestLeaveCancel, submit
 import type { ActionResult } from "@/app/(app)/owner/actions";
 import { Result } from "@/components/owner/ActionForm";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
-import { LEAVE_KINDS, LEAVE_QUOTA_PER_MONTH, monthName } from "@/lib/leave";
+import { LEAVE_KINDS, LEAVE_MAX_DAYS, LEAVE_QUOTA_PER_MONTH, monthName, workdaysBetween } from "@/lib/leave";
 
 const btn = "rounded-lg px-3 py-1.5 text-sm font-bold disabled:opacity-60";
 
@@ -13,9 +13,13 @@ const btn = "rounded-lg px-3 py-1.5 text-sm font-bold disabled:opacity-60";
 // usage: jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per bulan tanggal mulai, mis. {"2026-10": 2}.
 export function LeaveRequestForm({ today, usage }: { today: string; usage: Record<string, number> }) {
   const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
   const [state, action, pending] = useActionState(async (prev: ActionResult | null, f: FormData) => {
     const res = await submitLeave(prev, f);
-    if (res.ok) setStart("");
+    if (res.ok) {
+      setStart("");
+      setEnd("");
+    }
     return res;
   }, null);
   const ref = useRef<HTMLFormElement>(null);
@@ -25,6 +29,8 @@ export function LeaveRequestForm({ today, usage }: { today: string; usage: Recor
   const monthKey = (start || today).slice(0, 7);
   const used = usage[monthKey] ?? 0;
   const full = used >= LEAVE_QUOTA_PER_MONTH;
+  const days = start && end && end >= start ? workdaysBetween(start, end) : 0;
+  const tooLong = days > LEAVE_MAX_DAYS;
   return (
     <form ref={ref} action={action} className={`${cardCls} mt-4 space-y-3`}>
       <h2 className="text-lg font-bold text-accent">Ajukan cuti atau izin</h2>
@@ -44,7 +50,7 @@ export function LeaveRequestForm({ today, usage }: { today: string; usage: Recor
         </label>
         <label className={labelCls}>
           Tanggal selesai
-          <input type="date" name="end_date" required min={today} className={inputCls} />
+          <input type="date" name="end_date" required min={start || today} value={end} onChange={(e) => setEnd(e.target.value)} className={inputCls} />
         </label>
       </div>
       <label className={labelCls}>
@@ -59,9 +65,14 @@ export function LeaveRequestForm({ today, usage }: { today: string; usage: Recor
           ? `Kuota pengajuan telah habis: ${monthName(monthKey)} sudah ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan. Pilih tanggal di bulan lain, atau batalkan pengajuan yang masih menunggu.`
           : `Kuota ${monthName(monthKey)}: ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan terpakai (cuti dan izin digabung, dihitung dari tanggal mulai).`}
       </p>
-      <p className="text-xs text-zinc-600">Boleh diajukan jauh-jauh hari. Hari Minggu tidak dihitung. Setelah disetujui, pada hari itu Anda tidak perlu presensi maupun mengisi daily report.</p>
+      {tooLong && (
+        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-2 text-sm font-bold text-red-800">
+          Pengajuan ini {days} hari kerja. Satu pengajuan maksimal {LEAVE_MAX_DAYS} hari berturut-turut; ubah tanggal selesai.
+        </p>
+      )}
+      <p className="text-xs text-zinc-600">Boleh diajukan jauh-jauh hari. Maksimal {LEAVE_MAX_DAYS} hari berturut-turut per pengajuan. Hari Minggu tidak dihitung. Setelah disetujui, pada hari itu Anda tidak perlu presensi maupun mengisi daily report.</p>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={pending || full} className={`${btn} bg-accent text-white hover:brightness-110`}>
+        <button type="submit" disabled={pending || full || tooLong} className={`${btn} bg-accent text-white hover:brightness-110`}>
           {pending ? "Mengirim…" : "Kirim pengajuan"}
         </button>
         {state && <Result result={state} />}

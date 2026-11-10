@@ -2693,6 +2693,13 @@ begin
     ) then
       raise exception 'Sudah ada pengajuan lain pada tanggal tersebut.' using errcode = '23505';
     end if;
+    -- Lama maksimal 2 hari kerja berturut-turut (Senin–Sabtu; hari Minggu tidak dihitung).
+    if (
+      select count(*) from generate_series(new.start_date, new.end_date, interval '1 day') g(d)
+      where extract(isodow from g.d) <> 7
+    ) > 2 then
+      raise exception 'Pengajuan cuti/izin maksimal 2 hari berturut-turut (hari Minggu tidak dihitung).' using errcode = '22023';
+    end if;
     -- Kuota: maksimal 2 pengajuan (cuti dan izin digabung) per bulan, menurut bulan tanggal mulai.
     -- Yang ditolak atau dibatalkan tidak dihitung.
     if (

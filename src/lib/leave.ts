@@ -64,6 +64,8 @@ export function leaveDaysIn(r: { start_date: string; end_date: string }, from: s
 
 // Kuota: maksimal 2 pengajuan (cuti + izin) per bulan menurut bulan tanggal mulai. Dijaga database (supabase/015).
 export const LEAVE_QUOTA_PER_MONTH = 2;
+// Lama satu pengajuan: maksimal 2 hari kerja berturut-turut (Senin–Sabtu). Dijaga database (supabase/020).
+export const LEAVE_MAX_DAYS = 2;
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 export const monthName = (ym: string) => `${BULAN[Number(ym.slice(5, 7)) - 1] ?? ym} ${ym.slice(0, 4)}`;

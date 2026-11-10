@@ -1099,7 +1099,7 @@ begin
     -- 24. Mengajukan
     perform pg_temp.t_as(ea2);
     insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
-      values (ca, ea2, 'cuti', d, d + 2, 'Acara keluarga') returning id into lv1;
+      values (ca, ea2, 'cuti', d, d + 1, 'Acara keluarga') returning id into lv1;
     select status into st from public.leave_requests where id = lv1;
     reset role;
     res := res || pg_temp.t_line(24, 'Karyawan bisa mengajukan cuti; status otomatis menunggu', st = 'pending', 'status=' || coalesce(st, '-'));
@@ -1406,7 +1406,7 @@ begin
     -- Cuti yang sudah berjalan: dipotong sampai kemarin
     perform pg_temp.t_as(ea1);
     insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason)
-      values (ca, ea1, 'cuti', d2 + 60, d2 + 63, 'Liburan') returning id into lv5;
+      values (ca, ea1, 'cuti', d2 + 60, d2 + 61, 'Liburan') returning id into lv5;
     reset role;
     perform pg_temp.t_as(ma);
     perform public.decide_leave(lv5, true, null);
@@ -1940,6 +1940,37 @@ begin
     get diagnostics n = row_count;
     reset role;
     res := res || pg_temp.t_line(37, 'Owner bisa menghapus hari libur', n = 1, format('baris terhapus=%s', n));
+  end;
+
+  -- =====================================================================
+  -- BATAS LAMA CUTI/IZIN: MAKS 2 HARI BERTURUT-TURUT (butuh supabase/020_batas_lama_cuti.sql)
+  -- =====================================================================
+  declare
+    mon date := date_trunc('week', date '2099-03-10')::date; -- hari Senin
+  begin
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', mon, mon + 2, 'Tiga hari kerja');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(38, 'Pengajuan 3 hari kerja berturut-turut ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', mon, mon + 1, 'Dua hari kerja');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(38, 'Pengajuan 2 hari kerja berturut-turut diterima', st = 'OK', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'izin', mon + 5, mon + 7, 'Sabtu sampai Senin');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(38, 'Sabtu–Senin (hari Minggu tidak dihitung = 2 hari kerja) diterima', st = 'OK', 'hasil=' || st);
   end;
 
   -- =====================================================================
