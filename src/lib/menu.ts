@@ -5,8 +5,15 @@ export type MenuItem = {
   description: string;
   href: string;
   roles: UserRole[];
+  // Bila diisi: hanya jabatan ini (kode, mis. "ADV") yang melihat menu, ditambah Owner. Kosong = semua yang punya role-nya.
+  positions?: string[];
   ready: boolean; // false = halaman belum dibangun (milestone berikutnya)
 };
+
+// Kalkulator Budget Iklan: jabatan ADV dan SPV, serta Owner.
+export const BUDGET_POSITIONS = ["ADV", "SPV"];
+export const canUseBudget = (role: UserRole, positionCode?: string | null) =>
+  role === "owner" || (!!positionCode && BUDGET_POSITIONS.includes(positionCode));
 
 const ALL: UserRole[] = ["owner", "manager", "lead", "employee"];
 
@@ -29,6 +36,7 @@ export const MENU: MenuItem[] = [
   { label: "Panduan", description: "Cara memakai aplikasi, langkah demi langkah", href: "/panduan", roles: ALL, ready: true },
   { label: "Kelola Tautan", description: "Kumpulkan link tracker, aset, dan SOP untuk tim", href: "/tautan", roles: ["owner", "manager"], ready: true },
   { label: "Dashboard Tim", description: "Siapa yang belum mengisi dan rekap kepatuhan", href: "/dashboard", roles: ["owner", "manager", "lead"], ready: true },
+  { label: "Kalkulator Budget", description: "Hitung pengajuan budget iklan mingguan dan salin ringkasannya ke WhatsApp", href: "/budget", roles: ALL, positions: BUDGET_POSITIONS, ready: true },
   { label: "Atur Target", description: "Tetapkan target omzet bulanan tiap ADV", href: "/target", roles: ["owner"], ready: true },
   { label: "Company", description: "Kelola holding dan anak usaha", href: "/owner/company", roles: ["owner"], ready: true },
   { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: true },
@@ -36,8 +44,8 @@ export const MENU: MenuItem[] = [
   { label: "Tarikan Mingguan", description: "Tabel dan unduh laporan satu minggu", href: "/owner/tarikan", roles: ["owner"], ready: true },
 ];
 
-export function menuFor(role: UserRole) {
-  return MENU.filter((m) => m.roles.includes(role));
+export function menuFor(role: UserRole, positionCode?: string | null) {
+  return MENU.filter((m) => m.roles.includes(role) && (!m.positions || role === "owner" || (!!positionCode && m.positions.includes(positionCode))));
 }
 
 // ---------- Sidebar navigasi dua tingkat ----------
@@ -65,6 +73,11 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { label: "Ringkasan Presensi", href: "/presensi/ringkasan" },
       { label: "Persetujuan Cuti/Izin", href: "/cuti/persetujuan" },
     ],
+  },
+  {
+    id: "iklan",
+    label: "Iklan",
+    hrefs: [{ label: "Kalkulator Budget", href: "/budget" }],
   },
   {
     id: "meeting",
@@ -110,8 +123,8 @@ export type NavItem = { label: string; href: string };
 export type NavGroup = { id: string; label: string; items: NavItem[] };
 
 // Folder dan menu yang boleh dilihat role ini; folder tanpa menu terlihat disembunyikan.
-export function navFor(role: UserRole): NavGroup[] {
-  const allowed = new Set(menuFor(role).map((m) => m.href));
+export function navFor(role: UserRole, positionCode?: string | null): NavGroup[] {
+  const allowed = new Set(menuFor(role, positionCode).map((m) => m.href));
   return NAV_GROUPS.map((g) => ({ id: g.id, label: g.label, items: g.hrefs.filter((h) => allowed.has(h.href)) })).filter(
     (g) => g.items.length > 0,
   );

@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   }
 
   // Sidebar: folder dan menu sesuai role (aturan akses yang sudah ada); penanda angka dari database
-  const groups = navFor(profile.role);
+  const groups = navFor(profile.role, profile.position?.code);
   const badges = await getNavBadges(profile);
 
   return (
