@@ -6,11 +6,12 @@ import { checkIn } from "@/app/(app)/presensi/actions";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
 import { noteRequired, photoPath, PRESENSI_BUCKET, PRESENSI_STATUS } from "@/lib/presensi";
 import { createClient } from "@/lib/supabase/client";
+import { cekLokasi, lokasiBoleh, type AbsenPoint } from "@/lib/geo";
 import { GpsBox } from "./GpsBox";
 import { PhotoField } from "./PhotoField";
 import { useGps } from "./useGps";
 
-export function CheckInForm({ companyId, userId, today }: { companyId: string; userId: string; today: string }) {
+export function CheckInForm({ companyId, userId, today, points }: { companyId: string; userId: string; today: string; points: AbsenPoint[] }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [note, setNote] = useState("");
@@ -19,6 +20,7 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
+  const cek = cekLokasi(gps.s === "ok" ? gps.gps : null, points, status === "wfo");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +28,7 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
     if (!status) return setError("Pilih status kehadiran.");
     if (noteRequired(status) && !note.trim()) return setError("Alasan / catatan wajib diisi untuk status ini.");
     if (status === "tugas_luar" && !photo) return setError("Foto bukti diminta tugas luar wajib diunggah.");
+    if (!lokasiBoleh(cek)) return setError("Absen WFO hanya bisa di dalam radius titik absen. Lihat keterangan lokasi di atas.");
 
     setBusy(true);
     try {
@@ -70,7 +73,7 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={1000} className={inputCls} />
       </label>
 
-      <GpsBox gps={gps} onRetry={retry} />
+      <GpsBox gps={gps} onRetry={retry} cek={cek} />
 
       {status === "tugas_luar" && (
         <PhotoField key="tugas_luar" label="Foto bukti diminta tugas luar" required buttonText="Ketuk untuk ambil / pilih foto bukti" onChange={setPhoto} />
@@ -87,7 +90,7 @@ export function CheckInForm({ companyId, userId, today }: { companyId: string; u
           {error}
         </p>
       )}
-      <button type="submit" disabled={busy} className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+      <button type="submit" disabled={busy || !lokasiBoleh(cek)} className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
         {busy ? "Menyimpan…" : "Check-In"}
       </button>
     </form>

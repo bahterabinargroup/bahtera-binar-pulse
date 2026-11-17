@@ -18,6 +18,7 @@ export type CheckInInput = {
 };
 
 function dbError(error: { code?: string; message: string }): string {
+  if (error.code === "22023") return error.message; // aturan lokasi/cuti dari database (sudah berbahasa Indonesia)
   if (error.code === "23505") return "Anda sudah Check-In hari ini.";
   if (error.code === "42501" || /row-level security/i.test(error.message)) return "Akses ditolak. Check-In hanya untuk diri sendiri dan hari ini.";
   if (error.code === "23514") return "Isian tidak memenuhi aturan (catatan wajib untuk Tugas Luar, Izin, atau Sakit; foto bukti wajib untuk Tugas Luar).";

@@ -1974,6 +1974,136 @@ begin
   end;
 
   -- =====================================================================
+  -- TITIK ABSEN + RADIUS WFO (butuh supabase/021_titik_absen.sql)
+  -- =====================================================================
+  declare
+    pt uuid; msg text;
+  begin
+    delete from public.presensi where user_id = eb2;
+
+    -- Company tanpa titik aktif: belum dibatasi (WFO tanpa GPS diterima)
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status) values (cb, eb2, 'wfo');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Company tanpa titik absen belum dibatasi', st = 'OK', 'hasil=' || st);
+    delete from public.presensi where user_id = eb2;
+
+    -- Pengelolaan titik: hanya Owner
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi_locations (company_id, name, lat, lng) values (cb, 'Titik karyawan', -6.2, 106.816666);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Karyawan tidak bisa menambah titik absen', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      insert into public.presensi_locations (company_id, name, lat, lng) values (cb, 'Titik manager', -6.2, 106.816666);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Manager tidak bisa menambah titik absen', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(uo);
+      insert into public.presensi_locations (company_id, name, lat, lng) values (cb, 'Kantor Uji', -6.2, 106.816666) returning id into pt;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Owner bisa menambah titik absen (radius bawaan 15 m)', st = 'OK' and (select radius_m from public.presensi_locations where id = pt) = 15, 'hasil=' || st);
+
+    perform pg_temp.t_as(eb2);
+    select count(*) into n from public.presensi_locations where company_id = cb;
+    reset role;
+    perform pg_temp.t_as(ea1);
+    select count(*) into n2 from public.presensi_locations where company_id = cb;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Karyawan melihat titik company-nya, bukan titik company lain', n = 1 and n2 = 0, format('company sendiri=%s, company lain=%s', n, n2));
+
+    perform pg_temp.t_as(eb2);
+    update public.presensi_locations set radius_m = 500 where id = pt;
+    get diagnostics n = row_count;
+    delete from public.presensi_locations where id = pt;
+    get diagnostics n2 = row_count;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Karyawan tidak bisa mengubah atau menghapus titik absen', n = 0 and n2 = 0, format('ubah=%s, hapus=%s', n, n2));
+
+    -- WFO Check-In dengan titik aktif
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status) values (cb, eb2, 'wfo');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'WFO tanpa lokasi ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng, check_in_accuracy_m) values (cb, eb2, 'wfo', -6.2, 106.816666, 40);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'WFO dengan akurasi GPS buruk (40 m) ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng, check_in_accuracy_m) values (cb, eb2, 'wfo', -6.201, 106.816666, 8);
+      st := 'OK';
+    exception when others then st := sqlstate; get stacked diagnostics msg = message_text; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'WFO sekitar 111 m dari titik ditolak, pesan menyebut jarak dan radius', st = '22023' and msg like '%radius 15 m%', 'hasil=' || st || ' ' || coalesce(msg, ''));
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng, check_in_accuracy_m) values (cb, eb2, 'wfo', -6.20009, 106.816666, 8);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'WFO sekitar 10 m dari titik diterima', st = 'OK', 'hasil=' || st);
+
+    -- Check-Out WFO
+    begin
+      perform pg_temp.t_as(eb2);
+      update public.presensi set check_out_lat = -6.201, check_out_lng = 106.816666, check_out_accuracy_m = 8, check_out_photo_path = cb::text || '/' || eb2::text || '/f.jpg' where user_id = eb2 and attendance_date = today;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Check-Out WFO di luar radius ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      update public.presensi set check_out_lat = -6.20005, check_out_lng = 106.816666, check_out_accuracy_m = 8, check_out_photo_path = cb::text || '/' || eb2::text || '/f.jpg' where user_id = eb2 and attendance_date = today;
+      get diagnostics n = row_count;
+      st := 'OK';
+    exception when others then st := sqlstate; n := 0; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Check-Out WFO dalam radius diterima', st = 'OK' and n = 1, format('hasil=%s, baris=%s', st, n));
+
+    -- Status lain bebas lokasi
+    delete from public.presensi where user_id = eb2;
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+        values (cb, eb2, 'tugas_luar', 'Kunjungan klien', -6.3, 106.9, 60, cb::text || '/' || eb2::text || '/t.jpg');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Tugas Luar jauh dari titik tetap diterima (bebas lokasi)', st = 'OK', 'hasil=' || st);
+    delete from public.presensi where user_id = eb2;
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note) values (cb, eb2, 'sakit', 'Demam');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(39, 'Sakit tanpa lokasi tetap diterima (bebas lokasi)', st = 'OK', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

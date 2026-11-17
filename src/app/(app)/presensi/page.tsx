@@ -3,6 +3,7 @@ import { CheckOutForm } from "@/components/presensi/CheckOutForm";
 import { cardCls } from "@/components/owner/ui";
 import { formatHariTanggal, formatJam, todayJakarta } from "@/lib/date";
 import { fmtRentang, kindLabel } from "@/lib/leave";
+import type { AbsenPoint } from "@/lib/geo";
 import { mapsUrl, PRESENSI_BUCKET, statusLabel } from "@/lib/presensi";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +53,14 @@ export default async function PresensiPage() {
       .maybeSingle();
     leave = lv ?? null;
   }
+
+  // Titik absen company (aturan radius WFO). Kosong = company belum dibatasi.
+  const { data: ptData } = await supabase
+    .from("presensi_locations")
+    .select("id, name, lat, lng, radius_m")
+    .eq("company_id", profile.company.id)
+    .eq("is_active", true);
+  const points: AbsenPoint[] = ((ptData ?? []) as { id: string; name: string; lat: number | string; lng: number | string; radius_m: number }[]).map((p) => ({ ...p, lat: Number(p.lat), lng: Number(p.lng) }));
 
   const sign = async (path: string | null) => {
     if (!path) return null;
@@ -108,7 +117,7 @@ export default async function PresensiPage() {
           )}
         </div>
       ) : (
-        <CheckInForm companyId={profile.company.id} userId={profile.id} today={today} />
+        <CheckInForm companyId={profile.company.id} userId={profile.id} today={today} points={points} />
       )}
 
       {row?.check_out_at && (
@@ -131,7 +140,7 @@ export default async function PresensiPage() {
           )}
         </div>
       )}
-      {needCheckOut && <CheckOutForm companyId={profile.company.id} userId={profile.id} today={today} />}
+      {needCheckOut && <CheckOutForm companyId={profile.company.id} userId={profile.id} today={today} status={row!.status} points={points} />}
       {row && !row.check_out_at && !needCheckOut && <p className="mt-3 text-xs text-zinc-600">Status {statusLabel(row.status)} tidak perlu Check-Out.</p>}
     </div>
   );

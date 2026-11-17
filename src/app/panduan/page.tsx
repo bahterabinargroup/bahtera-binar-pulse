@@ -59,6 +59,22 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
     ),
   },
   {
+    id: "presensi",
+    title: "Presensi: Check-In dan Check-Out",
+    body: (
+      <>
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>Buka menu <b>Presensi</b>. Pilih <b>status</b> (WFO, Tugas Luar, Izin, atau Sakit), tulis catatan bila diminta, lalu tekan <b>Check-In</b>. Sore hari, ambil foto selfie dan tekan <b>Check-Out</b>.</li>
+          <li><b>WFO wajib di lokasi kantor.</b> Check-In dan Check-Out WFO hanya bisa dilakukan dalam <b>radius 15 meter</b> dari titik absen kantor Anda. Layar menampilkan jarak Anda, misalnya &quot;Anda 8 m dari Kantor 1. Bisa absen&quot;. Bila terlalu jauh, tombol tidak aktif.</li>
+          <li>Tugas Luar, Izin, dan Sakit <b>tidak dibatasi</b> lokasi.</li>
+        </ol>
+        <Tip>
+          Bila muncul &quot;Akurasi GPS kurang tepat&quot;, tunggu beberapa detik atau berdiri dekat jendela atau tempat terbuka, lalu tekan <b>Ambil lokasi ulang</b>. Pastikan GPS dan izin lokasi peramban aktif.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: "cuti",
     title: "Cuti dan izin",
     body: (
@@ -230,6 +246,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
       <>
         <ul className="list-disc space-y-2 pl-5">
           <li><b>Company:</b> tambah, ubah, atau nonaktifkan holding dan anak usaha.</li>
+          <li><b>Titik Absen</b> (Administrasi → Titik Absen): tetapkan lokasi kantor tiap company dan radiusnya (bawaan 15 meter). Berdiri di titik kantor lalu tekan <b>Pakai lokasi saya sekarang</b>, atau tempel tautan Google Maps. Satu company boleh punya beberapa titik. Company yang belum punya titik belum dibatasi.</li>
           <li>
             <b>Undangan Karyawan:</b> isi email, nama, company, role, dan jabatan, lalu <b>Kirim undangan</b>. Kalau email tertahan,
             ketuk <b>🔗 Salin link undangan</b> dan kirim lewat WhatsApp. Untuk akun yang <b>Belum pernah masuk</b>, ketuk
