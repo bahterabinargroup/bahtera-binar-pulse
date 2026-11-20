@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { checkOut } from "@/app/(app)/presensi/actions";
 import { photoPath, PRESENSI_BUCKET } from "@/lib/presensi";
 import { createClient } from "@/lib/supabase/client";
-import { cekLokasi, lokasiBoleh, type AbsenPoint } from "@/lib/geo";
+import { cekLokasi, lokasiBoleh, pointKindFor, type AbsenPoint } from "@/lib/geo";
 import { GpsBox } from "./GpsBox";
 import { PhotoField } from "./PhotoField";
 import { useGps } from "./useGps";
@@ -18,13 +18,14 @@ export function CheckOutForm({ companyId, userId, today, status, points }: { com
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
-  const cek = cekLokasi(gps.s === "ok" ? gps.gps : null, points, status === "wfo");
+  const kind = pointKindFor(status);
+  const cek = cekLokasi(gps.s === "ok" ? gps.gps : null, points.filter((p) => p.kind === kind), kind !== null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!photo) return setError("Foto selfie / bukti pulang wajib diisi.");
-    if (!lokasiBoleh(cek)) return setError("Check-Out WFO hanya bisa di dalam radius titik absen. Lihat keterangan lokasi di bawah foto.");
+    if (!lokasiBoleh(cek)) return setError(kind === "tujuan" ? "Check-Out Tugas Luar hanya bisa di dalam radius titik tujuan yang sudah didaftarkan. Lihat keterangan lokasi di bawah foto." : "Check-Out WFO hanya bisa di dalam radius titik absen. Lihat keterangan lokasi di bawah foto.");
     setBusy(true);
     try {
       const path = photoPath(companyId, userId, today, "pulang");
@@ -50,7 +51,7 @@ export function CheckOutForm({ companyId, userId, today, status, points }: { com
         <p className="mt-1 text-sm text-zinc-600">Dua langkah: <b>1)</b> ambil foto selfie, <b>2)</b> tekan tombol Check-Out.</p>
       </div>
       <PhotoField label="Langkah 1 — Foto selfie / bukti pulang" required camera="user" buttonText="Ketuk di sini untuk ambil foto selfie" onChange={setPhoto} />
-      <GpsBox gps={gps} onRetry={retry} cek={cek} />
+      <GpsBox gps={gps} onRetry={retry} cek={cek} kind={kind} />
       {error && (
         <p role="alert" className="text-sm text-red-700">
           {error}
@@ -64,7 +65,7 @@ export function CheckOutForm({ companyId, userId, today, status, points }: { com
         >
           {busy ? "Menyimpan…" : "Langkah 2 — Check-Out"}
         </button>
-        {!photo && <p className="mt-1 text-xs text-zinc-600">Tombol aktif setelah foto selfie siap{cek.s !== "bebas" ? " dan lokasi Anda di dalam radius kantor" : ""}.</p>}
+        {!photo && <p className="mt-1 text-xs text-zinc-600">Tombol aktif setelah foto selfie siap{cek.s !== "bebas" ? " dan lokasi Anda di dalam radius titik absen" : ""}.</p>}
       </div>
     </form>
   );

@@ -54,13 +54,13 @@ export default async function PresensiPage() {
     leave = lv ?? null;
   }
 
-  // Titik absen company (aturan radius WFO). Kosong = company belum dibatasi.
+  // Titik company: kantor (WFO) dan tujuan (Tugas Luar). Jenis yang kosong = belum dibatasi.
   const { data: ptData } = await supabase
     .from("presensi_locations")
-    .select("id, name, lat, lng, radius_m")
+    .select("id, name, lat, lng, radius_m, kind")
     .eq("company_id", profile.company.id)
     .eq("is_active", true);
-  const points: AbsenPoint[] = ((ptData ?? []) as { id: string; name: string; lat: number | string; lng: number | string; radius_m: number }[]).map((p) => ({ ...p, lat: Number(p.lat), lng: Number(p.lng) }));
+  const points: AbsenPoint[] = ((ptData ?? []) as { id: string; name: string; lat: number | string; lng: number | string; radius_m: number; kind: "kantor" | "tujuan" }[]).map((p) => ({ ...p, lat: Number(p.lat), lng: Number(p.lng) }));
 
   const sign = async (path: string | null) => {
     if (!path) return null;

@@ -2104,6 +2104,148 @@ begin
   end;
 
   -- =====================================================================
+  -- TITIK TUJUAN TUGAS LUAR (butuh supabase/022_titik_tujuan.sql)
+  -- =====================================================================
+  declare
+    pt2 uuid; msg text; foto text;
+  begin
+    delete from public.presensi where user_id = eb2;
+    foto := cb::text || '/' || eb2::text || '/t.jpg';
+
+    -- Belum ada titik tujuan: Tugas Luar belum dibatasi
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+        values (cb, eb2, 'tugas_luar', 'Kunjungan', -6.9, 107.9, 10, foto);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Company tanpa titik tujuan: Tugas Luar belum dibatasi', st = 'OK', 'hasil=' || st);
+    delete from public.presensi where user_id = eb2;
+
+    -- Pengelolaan titik tujuan
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi_locations (company_id, name, lat, lng, radius_m, kind) values (cb, 'Tujuan karyawan', -6.3, 106.9, 50, 'tujuan');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Karyawan tidak bisa menambah titik tujuan', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      insert into public.presensi_locations (company_id, name, lat, lng, radius_m, kind) values (ca, 'Tujuan company lain', -6.3, 106.9, 50, 'tujuan');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Manager tidak bisa menambah titik tujuan di company lain', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      insert into public.presensi_locations (company_id, name, lat, lng, radius_m, kind) values (cb, 'Kantor manager', -6.3, 106.9, 50, 'kantor');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Manager tidak bisa menambah titik kantor', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      insert into public.presensi_locations (company_id, name, lat, lng, radius_m, kind) values (cb, 'Redigma Uji', -6.3, 106.9, 50, 'tujuan') returning id into pt2;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Manager bisa menambah titik tujuan di company-nya', st = 'OK' and pt2 is not null, 'hasil=' || st);
+
+    perform pg_temp.t_as(mb);
+    update public.presensi_locations set radius_m = 500 where company_id = cb and kind = 'kantor';
+    get diagnostics n = row_count;
+    delete from public.presensi_locations where company_id = cb and kind = 'kantor';
+    get diagnostics n2 = row_count;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Manager tidak bisa mengubah atau menghapus titik kantor', n = 0 and n2 = 0, format('ubah=%s, hapus=%s', n, n2));
+
+    perform pg_temp.t_as(mb);
+    update public.presensi_locations set radius_m = 80 where id = pt2;
+    get diagnostics n = row_count;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Manager bisa mengubah radius titik tujuan company-nya', n = 1 and (select radius_m from public.presensi_locations where id = pt2) = 80, format('baris=%s', n));
+    update public.presensi_locations set radius_m = 50 where id = pt2;
+
+    -- Tugas Luar Check-In
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_photo_path) values (cb, eb2, 'tugas_luar', 'Kunjungan', foto);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Tugas Luar tanpa lokasi ditolak (company punya titik tujuan)', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+        values (cb, eb2, 'tugas_luar', 'Kunjungan', -6.2, 106.816666, 8, foto);
+      st := 'OK';
+    exception when others then st := sqlstate; get stacked diagnostics msg = message_text; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Tugas Luar di luar tujuan terdaftar ditolak, pesan menyebut daftarkan dulu', st = '22023' and msg like '%mendaftarkan tujuan%', 'hasil=' || st || ' ' || coalesce(msg, ''));
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+        values (cb, eb2, 'tugas_luar', 'Kunjungan', -6.3, 106.9, 40, foto);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Tugas Luar dengan akurasi GPS buruk (40 m) ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+        values (cb, eb2, 'tugas_luar', 'Kunjungan', -6.30009, 106.9, 8, foto);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Tugas Luar sekitar 10 m dari titik tujuan diterima', st = 'OK', 'hasil=' || st);
+
+    -- Tugas Luar Check-Out
+    begin
+      perform pg_temp.t_as(eb2);
+      update public.presensi set check_out_lat = -6.2, check_out_lng = 106.816666, check_out_accuracy_m = 8, check_out_photo_path = cb::text || '/' || eb2::text || '/p.jpg' where user_id = eb2 and attendance_date = today;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Check-Out Tugas Luar di luar tujuan ditolak', st = '22023', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      update public.presensi set check_out_lat = -6.30005, check_out_lng = 106.9, check_out_accuracy_m = 8, check_out_photo_path = cb::text || '/' || eb2::text || '/p.jpg' where user_id = eb2 and attendance_date = today;
+      get diagnostics n = row_count;
+      st := 'OK';
+    exception when others then st := sqlstate; n := 0; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Check-Out Tugas Luar di tujuan diterima', st = 'OK' and n = 1, format('hasil=%s, baris=%s', st, n));
+    delete from public.presensi where user_id = eb2;
+
+    -- WFO tetap memakai titik kantor, bukan titik tujuan
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, check_in_lat, check_in_lng, check_in_accuracy_m) values (cb, eb2, 'wfo', -6.3, 106.9, 8);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'WFO di titik tujuan (bukan kantor) tetap ditolak', st = '22023', 'hasil=' || st);
+
+    -- Izin/Sakit tetap bebas lokasi
+    begin
+      perform pg_temp.t_as(eb2);
+      insert into public.presensi (company_id, user_id, status, note) values (cb, eb2, 'izin', 'Urusan keluarga');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(40, 'Izin tanpa lokasi tetap diterima (bebas lokasi)', st = 'OK', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

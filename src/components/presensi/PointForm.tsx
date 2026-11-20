@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { addPoint } from "@/app/(app)/presensi/titik/actions";
 import { Result } from "@/components/owner/ActionForm";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
-import { DEFAULT_RADIUS_M } from "@/lib/geo";
+import { DEFAULT_RADIUS_M, DEFAULT_TUJUAN_RADIUS_M, type PointKind } from "@/lib/geo";
 
 // Ambil koordinat dari teks: "-6.2, 106.81" atau tautan Google Maps (@lat,lng / q=lat,lng / !3d..!4d..).
 function parseCoords(text: string): { lat: string; lng: string } | null {
@@ -12,7 +12,8 @@ function parseCoords(text: string): { lat: string; lng: string } | null {
   return m ? { lat: m[1], lng: m[2] } : null;
 }
 
-export function PointForm({ companies }: { companies: { id: string; name: string }[] }) {
+export function PointForm({ companies, kind, fixedCompany }: { companies: { id: string; name: string }[]; kind: PointKind; fixedCompany?: boolean }) {
+  const tujuan = kind === "tujuan";
   const [state, action, pending] = useActionState(addPoint, null);
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
@@ -31,7 +32,7 @@ export function PointForm({ companies }: { companies: { id: string; name: string
   }, [state]);
 
   function useMyLocation() {
-    setMsg("Mengambil lokasi… berdirilah tepat di titik absen.");
+    setMsg(`Mengambil lokasi… berdirilah tepat di ${tujuan ? "lokasi tujuan" : "titik absen"}.`);
     navigator.geolocation.getCurrentPosition(
       (p) => {
         setLat(p.coords.latitude.toFixed(6));
@@ -55,24 +56,32 @@ export function PointForm({ companies }: { companies: { id: string; name: string
 
   return (
     <form ref={ref} action={action} className={`${cardCls} mt-4 space-y-3`}>
-      <h2 className="font-bold">Tambah titik absen</h2>
+      <h2 className="font-bold">{tujuan ? "Tambah titik tujuan Tugas Luar" : "Tambah titik absen kantor"}</h2>
+      <input type="hidden" name="kind" value={kind} />
       <div className="grid gap-3 sm:grid-cols-3">
+        {fixedCompany && companies.length === 1 ? (
+          <p className={labelCls}>
+            Company
+            <span className={`${inputCls} block bg-zinc-50`}>{companies[0].name}</span>
+          </p>
+        ) : (
+          <label className={labelCls}>
+            Company *
+            <select name="company_id" required defaultValue="" className={inputCls}>
+              <option value="" disabled>— Pilih —</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className={labelCls}>
-          Company *
-          <select name="company_id" required defaultValue="" className={inputCls}>
-            <option value="" disabled>— Pilih —</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </label>
-        <label className={labelCls}>
-          Nama titik *
-          <input name="name" required maxLength={80} placeholder="mis. Kantor 1" className={inputCls} />
+          {tujuan ? "Nama tujuan *" : "Nama titik *"}
+          <input name="name" required maxLength={80} placeholder={tujuan ? "mis. Redigma" : "mis. Kantor 1"} className={inputCls} />
         </label>
         <label className={labelCls}>
           Radius (meter)
-          <input name="radius_m" type="number" min={5} max={500} defaultValue={DEFAULT_RADIUS_M} className={inputCls} />
+          <input name="radius_m" type="number" min={5} max={500} defaultValue={tujuan ? DEFAULT_TUJUAN_RADIUS_M : DEFAULT_RADIUS_M} className={inputCls} />
         </label>
       </div>
       <div className="rounded-lg bg-zinc-50 p-3 text-sm">
@@ -98,7 +107,7 @@ export function PointForm({ companies }: { companies: { id: string; name: string
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
-          {pending ? "Menyimpan…" : "Tambah titik"}
+          {pending ? "Menyimpan…" : tujuan ? "Tambah tujuan" : "Tambah titik"}
         </button>
         {state && <Result result={state} />}
       </div>

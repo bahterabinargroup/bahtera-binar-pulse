@@ -1,9 +1,14 @@
 // Jarak ke titik absen (WFO). Aturan sebenarnya dijaga database (supabase/021); ini hanya untuk tampilan agar karyawan tahu lebih dulu.
 import type { Gps } from "@/lib/presensi";
 
-export type AbsenPoint = { id: string; name: string; lat: number; lng: number; radius_m: number };
+export type PointKind = "kantor" | "tujuan"; // kantor = titik absen WFO; tujuan = titik tujuan Tugas Luar
+export type AbsenPoint = { id: string; name: string; lat: number; lng: number; radius_m: number; kind: PointKind };
 
-export const DEFAULT_RADIUS_M = 15;
+export const DEFAULT_RADIUS_M = 15; // titik kantor (WFO)
+export const DEFAULT_TUJUAN_RADIUS_M = 50; // titik tujuan Tugas Luar
+
+// Jenis titik yang berlaku untuk status presensi; null = status bebas lokasi (Izin, Sakit).
+export const pointKindFor = (status: string): PointKind | null => (status === "wfo" ? "kantor" : status === "tugas_luar" ? "tujuan" : null);
 export const MAX_ACCURACY_M = 25; // akurasi GPS terburuk yang diterima untuk WFO
 
 // Rumus haversine (meter).

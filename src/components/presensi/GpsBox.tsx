@@ -2,11 +2,12 @@
 
 import { labelCls } from "@/components/owner/ui";
 import { mapsUrl } from "@/lib/presensi";
-import type { LokasiCek } from "@/lib/geo";
+import type { LokasiCek, PointKind } from "@/lib/geo";
 import { MAX_ACCURACY_M } from "@/lib/geo";
 import type { GpsState } from "./useGps";
 
-export function GpsBox({ gps, onRetry, cek }: { gps: GpsState; onRetry: () => void; cek?: LokasiCek }) {
+export function GpsBox({ gps, onRetry, cek, kind }: { gps: GpsState; onRetry: () => void; cek?: LokasiCek; kind?: PointKind | null }) {
+  const tujuan = kind === "tujuan";
   return (
     <div>
       <p className={labelCls}>Lokasi (otomatis)</p>
@@ -26,7 +27,7 @@ export function GpsBox({ gps, onRetry, cek }: { gps: GpsState; onRetry: () => vo
         )}
         {gps.s === "ok" && cek?.s === "jauh" && (
           <p role="alert" className="mt-2 font-bold text-red-700">
-            Anda {Math.round(cek.dist)} m dari {cek.point.name}. Absen WFO hanya bisa dalam radius {cek.point.radius_m} m. Datangi lokasi kantor, lalu ambil lokasi ulang.
+            Anda {Math.round(cek.dist)} m dari {cek.point.name}. {tujuan ? "Tugas Luar" : "Absen WFO"} hanya bisa dalam radius {cek.point.radius_m} m. {tujuan ? "Datangi lokasi tujuan, atau minta Owner/Manager mendaftarkan tujuan Anda lebih dulu, lalu ambil lokasi ulang." : "Datangi lokasi kantor, lalu ambil lokasi ulang."}
           </p>
         )}
         {gps.s === "ok" && cek?.s === "akurasi" && (
@@ -34,7 +35,7 @@ export function GpsBox({ gps, onRetry, cek }: { gps: GpsState; onRetry: () => vo
             Akurasi GPS kurang tepat (±{Math.round(cek.accuracy)} m, harus {MAX_ACCURACY_M} m atau lebih baik). Tunggu sebentar atau dekat jendela, lalu tekan &quot;Ambil lokasi ulang&quot;.
           </p>
         )}
-        {gps.s === "gagal" && cek && cek.s !== "bebas" && <p className="mt-2 font-bold text-red-700">Absen WFO wajib di lokasi kantor, jadi lokasi harus terbaca.</p>}
+        {gps.s === "gagal" && cek && cek.s !== "bebas" && <p className="mt-2 font-bold text-red-700">{tujuan ? "Tugas Luar wajib di titik tujuan terdaftar" : "Absen WFO wajib di lokasi kantor"}, jadi lokasi harus terbaca.</p>}
         {gps.s !== "mencari" && (
           <button type="button" onClick={onRetry} className="mt-2 rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-bold">
             Ambil lokasi ulang
