@@ -184,7 +184,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
         <ol className="list-decimal space-y-2 pl-5">
           <li>Ketuk <b>Notulensi</b>, lalu <b>+ Buat Notulensi</b>.</li>
           <li>Isi <b>Nama meeting</b> terlebih dulu. Setelah itu notulensi <b>tersimpan otomatis</b> beberapa detik setelah Anda berhenti mengetik. Ketuk <b>Simpan</b> kalau ingin menyimpan sekarang.</li>
-          <li>Isi tanggal, jam, <b>Lokasi</b> (Kantor 1, Kantor 2, atau Online lengkap dengan link), peserta, agenda, pembahasan, dan keputusan.</li>
+          <li>Isi tanggal, jam, <b>Lokasi</b> (Kantor 1, Kantor 2, Kantor Redigma, atau Online lengkap dengan link), peserta, agenda, pembahasan, dan keputusan.</li>
           <li><b>Peserta:</b> pilih rekan dari daftar, atau ketik nama tamu yang tidak punya akun.</li>
           <li><b>Tindak lanjut:</b> tulis tugasnya, pilih <b>PIC</b> (orang yang bertanggung jawab), tenggat, dan statusnya.</li>
           <li>Di akhir meeting, ketuk <b>Submit</b>. Notulensi lalu <b>terkunci</b> dan tidak bisa diubah lagi (hanya Owner yang bisa mengoreksi). Pastikan isinya sudah benar sebelum Submit.</li>
