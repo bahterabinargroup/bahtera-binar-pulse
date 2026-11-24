@@ -11,7 +11,7 @@ export default async function OwnerPenggunaPage({ searchParams }: PageProps<"/ow
 
   let q = supabase
     .from("users")
-    .select("id, full_name, email, employee_code, role, position_id, lead_position_ids, is_active, company_id, company:companies(name)")
+    .select("id, full_name, email, employee_code, role, position_id, lead_position_ids, work_start_date, is_active, company_id, company:companies(name)")
     .order("is_active", { ascending: false })
     .order("full_name");
   if (company) q = q.eq("company_id", company);

@@ -5,13 +5,14 @@ import { cancelLeave, decideLeave, decideLeaveCancel, requestLeaveCancel, submit
 import type { ActionResult } from "@/app/(app)/owner/actions";
 import { Result } from "@/components/owner/ActionForm";
 import { cardCls, inputCls, labelCls } from "@/components/owner/ui";
-import { LEAVE_KINDS, LEAVE_MAX_DAYS, LEAVE_QUOTA_PER_MONTH, monthName, workdaysBetween } from "@/lib/leave";
+import { fmtRentang, LEAVE_KINDS, LEAVE_MAX_DAYS, LEAVE_QUOTA_PER_MONTH, leavePeriod, workdaysBetween } from "@/lib/leave";
 
 const btn = "rounded-lg px-3 py-1.5 text-sm font-bold disabled:opacity-60";
 
 // Form pengajuan baru (karyawan dan manager).
-// usage: jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per bulan tanggal mulai, mis. {"2026-10": 2}.
-export function LeaveRequestForm({ today, usage }: { today: string; usage: Record<string, number> }) {
+// usage: jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per periode kuota (kunci = tanggal awal periode).
+// anchor: tanggal mulai kerja (kosong = periode mengikuti bulan kalender).
+export function LeaveRequestForm({ today, usage, anchor }: { today: string; usage: Record<string, number>; anchor: string | null }) {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [state, action, pending] = useActionState(async (prev: ActionResult | null, f: FormData) => {
@@ -26,8 +27,9 @@ export function LeaveRequestForm({ today, usage }: { today: string; usage: Recor
   useEffect(() => {
     if (state?.ok) ref.current?.reset();
   }, [state]);
-  const monthKey = (start || today).slice(0, 7);
-  const used = usage[monthKey] ?? 0;
+  const period = leavePeriod(anchor, start || today);
+  const periodLabel = fmtRentang(period.start, period.end);
+  const used = usage[period.start] ?? 0;
   const full = used >= LEAVE_QUOTA_PER_MONTH;
   const days = start && end && end >= start ? workdaysBetween(start, end) : 0;
   const tooLong = days > LEAVE_MAX_DAYS;
@@ -62,8 +64,8 @@ export function LeaveRequestForm({ today, usage }: { today: string; usage: Recor
         className={`rounded-lg border p-2 text-sm ${full ? "border-red-300 bg-red-50 font-bold text-red-800" : "border-zinc-200 bg-zinc-50 text-zinc-700"}`}
       >
         {full
-          ? `Kuota pengajuan telah habis: ${monthName(monthKey)} sudah ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan. Pilih tanggal di bulan lain, atau batalkan pengajuan yang masih menunggu.`
-          : `Kuota ${monthName(monthKey)}: ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan terpakai (cuti dan izin digabung, dihitung dari tanggal mulai).`}
+          ? `Kuota pengajuan telah habis: periode ${periodLabel} sudah ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan. Pilih tanggal di periode lain, atau batalkan pengajuan yang masih menunggu.`
+          : `Kuota periode ${periodLabel}: ${used} dari ${LEAVE_QUOTA_PER_MONTH} pengajuan terpakai (cuti dan izin digabung, dihitung dari tanggal mulai). Kuota ${anchor ? "direset setiap tanggal " + Number(anchor.slice(8, 10)) + " (sesuai tanggal mulai kerja Anda)" : "direset setiap tanggal 1"}.`}
       </p>
       {tooLong && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-2 text-sm font-bold text-red-800">

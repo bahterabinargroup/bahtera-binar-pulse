@@ -1,5 +1,5 @@
 // Cuti / izin: label, bentuk data, dan hitungan tanggal. Aturan sebenarnya dijaga database (supabase/011 dan 012).
-import { dateFromYmd } from "@/lib/date";
+import { addDays, dateFromYmd } from "@/lib/date";
 import { eachDay, isWorkday } from "@/lib/dashboard";
 
 export type LeaveKind = "cuti" | "izin";
@@ -62,7 +62,7 @@ export function leaveDaysIn(r: { start_date: string; end_date: string }, from: s
   return a > b ? [] : eachDay(a, b).filter(isWorkday);
 }
 
-// Kuota: maksimal 2 pengajuan (cuti + izin) per bulan menurut bulan tanggal mulai. Dijaga database (supabase/015).
+// Kuota: maksimal 2 pengajuan (cuti + izin) per periode menurut tanggal mulai. Dijaga database (supabase/015, 023).
 export const LEAVE_QUOTA_PER_MONTH = 2;
 // Lama satu pengajuan: maksimal 2 hari kerja berturut-turut (Senin–Sabtu). Dijaga database (supabase/020).
 export const LEAVE_MAX_DAYS = 2;
@@ -70,12 +70,31 @@ export const LEAVE_MAX_DAYS = 2;
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 export const monthName = (ym: string) => `${BULAN[Number(ym.slice(5, 7)) - 1] ?? ym} ${ym.slice(0, 4)}`;
 
-// Jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per bulan tanggal mulai.
-export function quotaUsage(rows: { status: string; start_date: string }[]): Record<string, number> {
+// Periode kuota. Kuota direset menurut TANGGAL MULAI KERJA: masuk tanggal 21 berarti periodenya 21 Nov–20 Des, dst.
+// Tanpa tanggal mulai kerja = bulan kalender (tanggal 1). Sama dengan public.leave_period_start di database (supabase/023).
+const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m = 1..12
+function periodStartIn(anchorDay: number, y: number, m: number): string {
+  return `${y}-${String(m).padStart(2, "0")}-${String(Math.min(anchorDay, daysInMonth(y, m))).padStart(2, "0")}`;
+}
+export function leavePeriod(anchor: string | null | undefined, date: string): { start: string; end: string } {
+  const y = Number(date.slice(0, 4));
+  const m = Number(date.slice(5, 7));
+  const day = anchor ? Number(anchor.slice(8, 10)) : 1;
+  const nextY = m === 12 ? y + 1 : y;
+  const nextM = m === 12 ? 1 : m + 1;
+  const prevY = m === 1 ? y - 1 : y;
+  const prevM = m === 1 ? 12 : m - 1;
+  const cur = periodStartIn(day, y, m);
+  if (cur <= date) return { start: cur, end: addDays(periodStartIn(day, nextY, nextM), -1) };
+  return { start: periodStartIn(day, prevY, prevM), end: addDays(cur, -1) };
+}
+
+// Jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per periode kuota (kunci = tanggal awal periode).
+export function quotaUsage(rows: { status: string; start_date: string }[], anchor?: string | null): Record<string, number> {
   const out: Record<string, number> = {};
   for (const r of rows) {
     if (r.status !== "pending" && r.status !== "approved") continue;
-    const k = r.start_date.slice(0, 7);
+    const k = leavePeriod(anchor, r.start_date).start;
     out[k] = (out[k] ?? 0) + 1;
   }
   return out;

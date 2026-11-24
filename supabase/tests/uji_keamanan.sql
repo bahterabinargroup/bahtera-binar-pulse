@@ -2246,6 +2246,68 @@ begin
   end;
 
   -- =====================================================================
+  -- KUOTA CUTI/IZIN PER PERIODE MENURUT TANGGAL MULAI KERJA (butuh supabase/023_tanggal_mulai_kerja.sql)
+  -- =====================================================================
+  declare
+    p0 date := date_trunc('week', date '2099-05-27')::date; -- hari Senin
+    d date;
+  begin
+    -- Fungsi awal periode
+    res := res || pg_temp.t_line(41, 'Periode tanggal 21: 20 Des masih periode 21 Nov', public.leave_period_start(date '2026-11-21', date '2026-12-20') = date '2026-11-21', 'hasil=' || public.leave_period_start(date '2026-11-21', date '2026-12-20'));
+    res := res || pg_temp.t_line(41, 'Periode tanggal 21: 21 Des mulai periode baru', public.leave_period_start(date '2026-11-21', date '2026-12-21') = date '2026-12-21', 'hasil=' || public.leave_period_start(date '2026-11-21', date '2026-12-21'));
+    res := res || pg_temp.t_line(41, 'Periode tanggal 21 melewati pergantian tahun', public.leave_period_start(date '2026-11-21', date '2027-01-10') = date '2026-12-21', 'hasil=' || public.leave_period_start(date '2026-11-21', date '2027-01-10'));
+    res := res || pg_temp.t_line(41, 'Tanggal dasar 31 dipendekkan di bulan pendek (28 Feb)', public.leave_period_start(date '2026-01-31', date '2026-03-05') = date '2026-02-28', 'hasil=' || public.leave_period_start(date '2026-01-31', date '2026-03-05'));
+    res := res || pg_temp.t_line(41, 'Tanpa tanggal mulai kerja = bulan kalender', public.leave_period_start(null, date '2026-12-20') = date '2026-12-01', 'hasil=' || public.leave_period_start(null, date '2026-12-20'));
+
+    -- Kuota per periode: tanggal mulai kerja 21 -> periode 21 Mei-20 Jun 2099
+    delete from public.leave_requests where user_id = ea1 and start_date >= date '2099-05-01';
+    update public.users set work_start_date = date '2099-01-21' where id = ea1;
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0, p0, 'Uji periode 1');
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'izin', p0 + 14, p0 + 14, 'Uji periode 2');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(41, 'Dua pengajuan di satu periode (beda bulan kalender) diterima', st = 'OK', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0 + 21, p0 + 21, 'Uji periode 3');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(41, 'Pengajuan ketiga di periode yang sama ditolak (kuota habis)', st = '22023', 'hasil=' || st || ' p0+21=' || (p0 + 21));
+
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0 + 28, p0 + 28, 'Uji periode berikutnya');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(41, 'Pengajuan di periode berikutnya (setelah tanggal 21) diterima', st = 'OK', 'hasil=' || st || ' tanggal=' || (p0 + 28));
+
+    -- Tanpa tanggal mulai kerja: aturan lama (per bulan kalender)
+    delete from public.leave_requests where user_id = ea1 and start_date >= date '2099-05-01';
+    update public.users set work_start_date = null where id = ea1;
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0 + 14, p0 + 14, 'Uji kalender 1');
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0 + 21, p0 + 21, 'Uji kalender 2');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(41, 'Tanpa tanggal mulai kerja: dua pengajuan di bulan kalender yang sama diterima', st = 'OK', 'hasil=' || st);
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', p0 + 22, p0 + 22, 'Uji kalender 3');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(41, 'Tanpa tanggal mulai kerja: pengajuan ketiga di bulan kalender sama ditolak', st = '22023', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

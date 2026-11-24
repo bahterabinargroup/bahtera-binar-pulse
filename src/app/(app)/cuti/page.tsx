@@ -28,11 +28,14 @@ export default async function CutiPage() {
   const tableMissing = error?.code === "42P01" || error?.code === "PGRST205";
   if (error && !tableMissing) throw new Error(`Gagal memuat pengajuan: ${error.message}`);
   const rows = (data ?? []) as unknown as LeaveRow[];
+  // Tanggal mulai kerja menentukan awal periode kuota (kosong = bulan kalender). Kolom baru dari 023; bila belum ada, anggap kosong.
+  const { data: me } = await supabase.from("users").select("work_start_date").eq("id", profile.id).maybeSingle();
+  const anchor = ((me as { work_start_date?: string | null } | null)?.work_start_date ?? null) as string | null;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-accent">Cuti / Izin</h1>
-      <p className="mt-1 text-sm text-zinc-600">Ajukan cuti atau izin, bahkan jauh-jauh hari (maksimal 2 pengajuan per bulan). Atasan akan menyetujui atau menolak. Bila disetujui, pada harinya presensi dan daily report tidak diperlukan.</p>
+      <p className="mt-1 text-sm text-zinc-600">Ajukan cuti atau izin, bahkan jauh-jauh hari (maksimal 2 pengajuan per periode; periode dihitung dari tanggal mulai kerja Anda). Atasan akan menyetujui atau menolak. Bila disetujui, pada harinya presensi dan daily report tidak diperlukan.</p>
 
       {tableMissing ? (
         <p role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -41,7 +44,7 @@ export default async function CutiPage() {
       ) : profile.role === "owner" ? (
         <p className="mt-4 rounded-lg border border-zinc-200 bg-white p-3 text-sm">Owner tidak mengajukan cuti. Untuk memutuskan pengajuan tim, buka <b>Persetujuan Cuti/Izin</b>.</p>
       ) : (
-        <LeaveRequestForm today={today} usage={quotaUsage(rows)} />
+        <LeaveRequestForm today={today} usage={quotaUsage(rows, anchor)} anchor={anchor} />
       )}
 
       <h2 className="mt-6 text-lg font-bold">Pengajuan saya</h2>

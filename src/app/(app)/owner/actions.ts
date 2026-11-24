@@ -220,6 +220,7 @@ export async function updateUser(input: {
   position_id: number | null;
   is_active: boolean;
   lead_position_ids?: number[];
+  work_start_date?: string | null; // tanggal mulai kerja (YYYY-MM-DD); kosong = reset kuota cuti tanggal 1
 }): Promise<ActionResult> {
   const owner = await requireOwnerAction();
   if (!owner) return NOT_OWNER;
@@ -233,10 +234,14 @@ export async function updateUser(input: {
       ? [...new Set((input.lead_position_ids ?? []).filter((n) => Number.isInteger(n) && n > 0 && n !== input.position_id))]
       : [];
   if (input.role === "lead" && !input.position_id) return { ok: false, error: "Lead perlu punya jabatan (divisinya)." };
+  const start = input.work_start_date ? String(input.work_start_date) : null;
+  if (start !== null && (!/^\d{4}-\d{2}-\d{2}$/.test(start) || Number.isNaN(Date.parse(start)) || start < "2000-01-01" || start > "2100-12-31")) {
+    return { ok: false, error: "Tanggal mulai kerja tidak valid." };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
-    .update({ role: input.role, position_id: input.position_id, is_active: input.is_active, lead_position_ids: leadIds })
+    .update({ role: input.role, position_id: input.position_id, is_active: input.is_active, lead_position_ids: leadIds, work_start_date: start })
     .eq("id", input.id)
     .select("id");
   if (error) return { ok: false, error: dbError(error) };

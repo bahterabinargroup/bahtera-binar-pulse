@@ -13,6 +13,7 @@ export type UserRowData = {
   role: UserRole;
   position_id: number | null;
   lead_position_ids: number[];
+  work_start_date: string | null;
   is_active: boolean;
   company_name: string;
 };
@@ -30,10 +31,11 @@ export function UserRow({
   const [role, setRole] = useState(user.role);
   const [positionId, setPositionId] = useState(user.position_id ? String(user.position_id) : "");
   const [active, setActive] = useState(user.is_active);
+  const [startDate, setStartDate] = useState(user.work_start_date ?? "");
   const [leadIds, setLeadIds] = useState<number[]>(user.lead_position_ids ?? []);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, start] = useTransition();
-  const changed = role !== user.role || positionId !== (user.position_id ? String(user.position_id) : "") || active !== user.is_active || (role === "lead" && JSON.stringify([...leadIds].sort()) !== JSON.stringify([...(user.lead_position_ids ?? [])].sort()));
+  const changed = role !== user.role || positionId !== (user.position_id ? String(user.position_id) : "") || active !== user.is_active || startDate !== (user.work_start_date ?? "") || (role === "lead" && JSON.stringify([...leadIds].sort()) !== JSON.stringify([...(user.lead_position_ids ?? [])].sort()));
   const sel = "rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm disabled:bg-zinc-100";
 
   return (
@@ -63,6 +65,10 @@ export function UserRow({
           ))}
         </select>
         <label className="flex items-center gap-1 text-sm">
+          Mulai kerja
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={sel} aria-label="Tanggal mulai kerja" />
+        </label>
+        <label className="flex items-center gap-1 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} disabled={isSelf} /> Aktif
         </label>
         <button
@@ -77,6 +83,7 @@ export function UserRow({
                 position_id: positionId ? Number(positionId) : null,
                 is_active: active,
                 lead_position_ids: role === "lead" ? leadIds : [],
+                work_start_date: startDate || null,
               });
               setResult(res);
             });
@@ -87,6 +94,11 @@ export function UserRow({
         </button>
         {result && <Result result={result} />}
       </div>
+      <p className="mt-1 text-xs text-zinc-600">
+        {startDate
+          ? `Kuota cuti/izin direset setiap tanggal ${Number(startDate.slice(8, 10))}${Number(startDate.slice(8, 10)) > 1 ? ` (periode ${Number(startDate.slice(8, 10))} sampai ${Number(startDate.slice(8, 10)) - 1} bulan berikutnya)` : ""}.`
+          : "Tanggal mulai kerja kosong: kuota cuti/izin direset setiap tanggal 1."}
+      </p>
       {role === "lead" && (
         <fieldset className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2">
           <legend className="px-1 text-xs font-bold">Divisi yang dipantau (selain jabatannya sendiri)</legend>
