@@ -18,7 +18,7 @@ export async function getNavBadges(profile: Profile): Promise<NavBadges> {
         ? sb
             .from("leave_requests")
             .select("user_id")
-            .or("status.eq.pending,and(status.eq.approved,cancel_requested_at.not.is.null,cancel_outcome.is.null)")
+            .or(`and(status.eq.pending,end_date.gte.${today}),and(status.eq.approved,cancel_requested_at.not.is.null,cancel_outcome.is.null)`)
             .neq("user_id", profile.id)
             .limit(500)
         : Promise.resolve(null),

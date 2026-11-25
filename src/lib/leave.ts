@@ -4,16 +4,23 @@ import { eachDay, isWorkday } from "@/lib/dashboard";
 
 export type LeaveKind = "cuti" | "izin";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
+// Tampilan: "expired" = menunggu keputusan tetapi tanggal selesainya sudah lewat (tidak bisa diputuskan lagi).
+export type LeaveShownStatus = LeaveStatus | "expired";
 
 export const LEAVE_KINDS: { value: LeaveKind; label: string }[] = [
   { value: "cuti", label: "Cuti" },
   { value: "izin", label: "Izin" },
 ];
 
+// Menunggu keputusan tetapi tanggal selesainya sudah lewat = kedaluwarsa (database menolak keputusan atas tanggal lampau).
+export const isExpired = (r: { status: string; end_date: string }, today: string) => r.status === "pending" && r.end_date < today;
+export const shownStatus = (r: { status: LeaveStatus; end_date: string }, today: string): LeaveShownStatus => (isExpired(r, today) ? "expired" : r.status);
+
 export const kindLabel = (k: string) => (k === "cuti" ? "Cuti" : k === "izin" ? "Izin" : k);
 
-export const STATUS_LABEL: Record<LeaveStatus, string> = {
+export const STATUS_LABEL: Record<LeaveShownStatus, string> = {
   pending: "Menunggu keputusan",
+  expired: "Kedaluwarsa",
   approved: "Disetujui",
   rejected: "Ditolak",
   cancelled: "Dibatalkan",
@@ -90,10 +97,11 @@ export function leavePeriod(anchor: string | null | undefined, date: string): { 
 }
 
 // Jumlah pengajuan yang masih dihitung (menunggu atau disetujui) per periode kuota (kunci = tanggal awal periode).
-export function quotaUsage(rows: { status: string; start_date: string }[], anchor?: string | null): Record<string, number> {
+export function quotaUsage(rows: { status: string; start_date: string; end_date: string }[], anchor: string | null | undefined, today: string): Record<string, number> {
   const out: Record<string, number> = {};
   for (const r of rows) {
     if (r.status !== "pending" && r.status !== "approved") continue;
+    if (isExpired(r, today)) continue; // kedaluwarsa tidak menghabiskan kuota
     const k = leavePeriod(anchor, r.start_date).start;
     out[k] = (out[k] ?? 0) + 1;
   }

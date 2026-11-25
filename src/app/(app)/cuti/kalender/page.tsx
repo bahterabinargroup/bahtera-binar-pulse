@@ -42,7 +42,8 @@ export default async function KalenderCutiPage({ searchParams }: PageProps<"/cut
   const tableMissing = leaveRes.error?.code === "42P01" || leaveRes.error?.code === "PGRST205";
   if (tableMissing) return <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Fitur cuti/izin belum aktif. Jalankan supabase/011 dan 012.</p>;
   for (const r of [leaveRes, compRes]) if (r.error) throw new Error(`Gagal memuat kalender: ${r.error.message}`);
-  const rows = (leaveRes.data ?? []) as unknown as LeaveRow[];
+  // Pengajuan menunggu yang tanggalnya sudah lewat = kedaluwarsa, tidak ditampilkan.
+  const rows = ((leaveRes.data ?? []) as unknown as LeaveRow[]).filter((r) => r.status === "approved" || r.end_date >= today);
   const companies = compRes.data as { id: string; name: string }[] | null;
 
   const ids = [...new Set(rows.map((r) => r.user_id))];

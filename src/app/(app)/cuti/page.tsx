@@ -1,7 +1,7 @@
 import { CancelPendingForm, CancelRequestForm, LeaveRequestForm } from "@/components/cuti/LeaveForms";
 import { cardCls } from "@/components/owner/ui";
 import { todayJakarta } from "@/lib/date";
-import { cancelPending, fmtRentang, fmtTanggal, kindLabel, LEAVE_COLUMNS, quotaUsage, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
+import { cancelPending, fmtRentang, fmtTanggal, isExpired, kindLabel, LEAVE_COLUMNS, quotaUsage, shownStatus, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,6 +10,7 @@ const TONE: Record<string, string> = {
   approved: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
   cancelled: "bg-zinc-200 text-zinc-700",
+  expired: "bg-zinc-200 text-zinc-700",
 };
 
 // Pengajuan cuti/izin milik sendiri: ajukan baru, lihat status, batalkan, atau ajukan pembatalan.
@@ -44,7 +45,7 @@ export default async function CutiPage() {
       ) : profile.role === "owner" ? (
         <p className="mt-4 rounded-lg border border-zinc-200 bg-white p-3 text-sm">Owner tidak mengajukan cuti. Untuk memutuskan pengajuan tim, buka <b>Persetujuan Cuti/Izin</b>.</p>
       ) : (
-        <LeaveRequestForm today={today} usage={quotaUsage(rows, anchor)} anchor={anchor} />
+        <LeaveRequestForm today={today} usage={quotaUsage(rows, anchor, today)} anchor={anchor} />
       )}
 
       <h2 className="mt-6 text-lg font-bold">Pengajuan saya</h2>
@@ -62,7 +63,7 @@ export default async function CutiPage() {
                   <p className="font-bold">
                     {kindLabel(r.kind)} · {fmtRentang(r.start_date, r.end_date)} <span className="font-normal text-zinc-600">({hari} hari kerja)</span>
                   </p>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${TONE[shownStatus(r, today)]}`}>{STATUS_LABEL[shownStatus(r, today)]}</span>
                 </div>
                 <p className="mt-1">Alasan: {r.reason}</p>
                 {r.decision_note && <p className="mt-1 text-zinc-700">Catatan atasan: {r.decision_note}</p>}
@@ -77,7 +78,8 @@ export default async function CutiPage() {
                   </p>
                 )}
                 <div className="mt-2">
-                  {r.status === "pending" && <CancelPendingForm id={r.id} />}
+                  {r.status === "pending" && !isExpired(r, today) && <CancelPendingForm id={r.id} />}
+                  {isExpired(r, today) && <p className="rounded bg-zinc-100 p-2 text-zinc-700">Pengajuan ini tidak diputuskan sampai tanggalnya lewat, sehingga kedaluwarsa dan tidak menghabiskan kuota. Ajukan ulang bila perlu.</p>}
                   {canRequestCancel && <CancelRequestForm id={r.id} />}
                 </div>
               </li>

@@ -2308,6 +2308,82 @@ begin
   end;
 
   -- =====================================================================
+  -- KEDALUWARSA + TANGGAL MULAI KERJA OLEH MANAGER (butuh supabase/024_kedaluwarsa_dan_mulai_kerja_manager.sql)
+  -- =====================================================================
+  declare
+    lr1 uuid; lr2 uuid; td date := public.today_jakarta();
+  begin
+    -- Manager mengisi tanggal mulai kerja
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.set_work_start_date(eb2, date '2026-11-21');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Manager bisa mengisi tanggal mulai kerja karyawan di company-nya', st = 'OK' and (select work_start_date from public.users where id = eb2) = date '2026-11-21', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.set_work_start_date(ea1, date '2026-11-21');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Manager tidak bisa mengisi tanggal mulai kerja karyawan company lain', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(mb);
+      perform public.set_work_start_date(uo, date '2026-11-21');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Manager tidak bisa mengisi tanggal mulai kerja Owner', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(eb2);
+      perform public.set_work_start_date(eb2, date '2026-01-01');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Karyawan tidak bisa mengisi tanggal mulai kerja (termasuk miliknya)', st = '42501', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(uo);
+      perform public.set_work_start_date(ea1, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Owner bisa mengisi atau mengosongkan tanggal mulai kerja siapa pun', st = 'OK', 'hasil=' || st);
+
+    -- Pengajuan menunggu yang kedaluwarsa tidak menghabiskan kuota
+    delete from public.leave_requests where user_id = ea1 and start_date < date '2099-01-01';
+    update public.users set work_start_date = td - 10 where id = ea1;
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', td + 3, td + 3, 'Akan kedaluwarsa 1') returning id into lr1;
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'izin', td + 5, td + 5, 'Akan kedaluwarsa 2') returning id into lr2;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    update public.leave_requests set start_date = td - 3, end_date = td - 3 where id = lr1;
+    update public.leave_requests set start_date = td - 2, end_date = td - 2 where id = lr2;
+    begin
+      perform pg_temp.t_as(ea1);
+      insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', td + 1, td + 1, 'Setelah dua kedaluwarsa');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Dua pengajuan menunggu yang sudah kedaluwarsa tidak menghabiskan kuota', st = 'OK', 'hasil=' || st);
+
+    begin
+      perform pg_temp.t_as(ma);
+      perform public.decide_leave(lr1, true, null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(42, 'Pengajuan yang tanggalnya sudah lewat tidak bisa diputuskan', st = '22023', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

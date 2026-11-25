@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { DecideForm } from "@/components/cuti/LeaveForms";
 import { cardCls } from "@/components/owner/ui";
 import { todayJakarta } from "@/lib/date";
-import { cancelPending, fmtRentang, kindLabel, LEAVE_COLUMNS, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
+import { cancelPending, fmtRentang, isExpired, kindLabel, LEAVE_COLUMNS, shownStatus, STATUS_LABEL, workdaysBetween, type LeaveRow } from "@/lib/leave";
 import { getCurrentUser, isManagerial } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,7 +39,9 @@ export default async function PersetujuanCutiPage() {
   }
   for (const r of [openRes, histRes]) if (r.error) throw new Error(`Gagal memuat pengajuan: ${r.error.message}`);
   const open = (openRes.data ?? []) as unknown as LeaveRow[];
-  const hist = ((histRes.data ?? []) as unknown as LeaveRow[]).filter((r) => !open.some((o) => o.id === r.id));
+  // Menunggu tetapi tanggalnya sudah lewat = kedaluwarsa: pindah ke riwayat (tidak bisa diputuskan lagi).
+  const expired = open.filter((r) => isExpired(r, today));
+  const hist = [...expired, ...((histRes.data ?? []) as unknown as LeaveRow[]).filter((r) => !open.some((o) => o.id === r.id))];
 
   const ids = [...new Set([...open, ...hist].map((r) => r.user_id))];
   const { data: ppl } = ids.length
@@ -66,7 +68,7 @@ export default async function PersetujuanCutiPage() {
     </li>
   );
 
-  const pendings = open.filter((r) => r.status === "pending");
+  const pendings = open.filter((r) => r.status === "pending" && !isExpired(r, today));
   const cancels = open.filter(cancelPending);
 
   return (
@@ -103,7 +105,7 @@ export default async function PersetujuanCutiPage() {
                   <td className="p-2 font-bold">{label(r)}</td>
                   <td className="p-2">{kindLabel(r.kind)}</td>
                   <td className="p-2">{fmtRentang(r.start_date, r.end_date)}</td>
-                  <td className="p-2">{STATUS_LABEL[r.status]}{r.cancel_outcome === "approved" && r.status === "approved" ? " (dipotong)" : ""}</td>
+                  <td className="p-2">{STATUS_LABEL[shownStatus(r, today)]}{r.cancel_outcome === "approved" && r.status === "approved" ? " (dipotong)" : ""}</td>
                   <td className="p-2">{r.decision_note ?? r.cancel_note ?? <span className="text-zinc-400">—</span>}</td>
                 </tr>
               ))}
