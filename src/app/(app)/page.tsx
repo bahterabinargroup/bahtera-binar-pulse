@@ -10,6 +10,7 @@ import { LinkGroups } from "@/components/links/LinkGroups";
 import { LINK_SELECT, positionNameMap, type ResourceLink } from "@/lib/links";
 import { canViewTeam, getCurrentUser, isManagerial, leadPositionIds } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { countLeaveWaiting } from "@/lib/nav-badges";
 
 export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const { profile } = await getCurrentUser();
@@ -51,13 +52,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
     viewsTeam
       ? supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today).limit(1000)
       : Promise.resolve(null),
-    isLeader
-      ? supabase
-          .from("leave_requests")
-          .select("user_id, status, cancel_requested_at, cancel_outcome")
-          .or("status.eq.pending,and(status.eq.approved,cancel_requested_at.not.is.null,cancel_outcome.is.null)")
-          .limit(500)
-      : Promise.resolve(null),
+    isLeader ? countLeaveWaiting(supabase, profile, today) : Promise.resolve(null),
     // Pengelola: ringkasan tindak lanjut notulensi dan kendala 7 hari terakhir yang belum ditandai ditangani
     isLeader ? supabase.from("meeting_action_items").select("id", { count: "exact", head: true }).neq("status", "done") : Promise.resolve(null),
     isLeader ? supabase.from("meeting_action_items").select("id", { count: "exact", head: true }).neq("status", "done").lt("due_date", today) : Promise.resolve(null),
@@ -85,7 +80,7 @@ export default async function BerandaPage({ searchParams }: PageProps<"/">) {
   const aiLate = aiLateRes && !aiLateRes.error ? (aiLateRes.count ?? 0) : 0;
   const handledIds = new Set(handledRes && !handledRes.error ? ((handledRes.data ?? []) as { report_id: string }[]).map((r) => r.report_id) : []);
   const kendalaOpen = kendalaRes && !kendalaRes.error ? ((kendalaRes.data ?? []) as { id: string }[]).filter((r) => !handledIds.has(r.id)).length : null;
-  const leaveWaiting = leaveOpenRes && !leaveOpenRes.error ? ((leaveOpenRes.data ?? []) as unknown[]).length : null;
+  const leaveWaiting = leaveOpenRes ?? null;
   let presTim: { sudah: number; belum: number; cuti: number } | null = null;
   if (presTodayRes && peopleRes && !presTodayRes.error && !peopleRes.error) {
     const done = new Set(((presTodayRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
