@@ -43,7 +43,7 @@ export const MENU: MenuItem[] = [
   { label: "Company", description: "Kelola holding dan anak usaha", href: "/owner/company", roles: ["owner"], ready: true },
   { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: true },
   { label: "Pengguna", description: "Aktifkan, nonaktifkan, ubah role dan jabatan", href: "/owner/pengguna", roles: ["owner"], ready: true },
-  { label: "Tarikan Mingguan", description: "Tabel dan unduh laporan satu minggu", href: "/owner/tarikan", roles: ["owner"], ready: true },
+  { label: "Tarikan Laporan", description: "Tabel dan unduh laporan per minggu atau per bulan", href: "/owner/tarikan", roles: ["owner"], ready: true },
 ];
 
 export function menuFor(role: UserRole, positionCode?: string | null) {
@@ -99,7 +99,7 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { label: "Dashboard Tim", href: "/dashboard" },
       { label: "Pantauan Kendala", href: "/pantauan" },
       { label: "Atur Target", href: "/target" },
-      { label: "Tarikan Mingguan", href: "/owner/tarikan" },
+      { label: "Tarikan Laporan", href: "/owner/tarikan" },
     ],
   },
   {

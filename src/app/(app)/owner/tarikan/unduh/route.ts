@@ -1,9 +1,9 @@
 import { mondayOf, todayJakarta } from "@/lib/date";
 import { getCurrentUser } from "@/lib/profile";
 import { isUuid } from "@/lib/uuid";
-import { loadWeekly, toCsv } from "@/lib/weekly";
+import { isMonth, loadRange, loadWeekly, monthRange, toCsv } from "@/lib/weekly";
 
-// Unduh tarikan mingguan sebagai CSV atau JSON (khusus Owner).
+// Unduh tarikan mingguan atau bulanan sebagai CSV atau JSON (khusus Owner).
 export async function GET(request: Request) {
   const { profile } = await getCurrentUser();
   if (profile?.role !== "owner") return new Response("Hanya Owner.", { status: 403 });
@@ -14,8 +14,13 @@ export async function GET(request: Request) {
   const company = url.searchParams.get("company");
   const format = url.searchParams.get("format") === "json" ? "json" : "csv";
 
-  const rows = await loadWeekly(week, company && isUuid(company) ? company : null);
-  const filename = `laporan-mingguan-${week}.${format}`;
+  const companyId = company && isUuid(company) ? company : null;
+  const bulan = url.searchParams.get("bulan") ?? "";
+  const monthly = url.searchParams.get("mode") === "bulan" && isMonth(bulan);
+  const rows = monthly
+    ? await loadRange(monthRange(bulan).start, monthRange(bulan).end, companyId)
+    : await loadWeekly(week, companyId);
+  const filename = monthly ? `laporan-bulanan-${bulan}.${format}` : `laporan-mingguan-${week}.${format}`;
   const body = format === "json" ? JSON.stringify(rows, null, 2) : toCsv(rows);
   return new Response(body, {
     headers: {
