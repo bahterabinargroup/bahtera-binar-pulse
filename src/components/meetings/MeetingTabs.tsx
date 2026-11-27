@@ -1,7 +1,15 @@
 import Link from "next/link";
 
-// Tab di atas halaman Notulensi, Tugas saya, dan (Owner/Manager) Daftar tindak lanjut.
-export function MeetingTabs({ active, showFollowup = false }: { active: "notulensi" | "tugas" | "tindak"; showFollowup?: boolean }) {
+// Tab di atas halaman Notulensi, Tugas saya, (Owner/Manager) Daftar tindak lanjut, dan (Owner) Tarikan notulensi.
+export function MeetingTabs({
+  active,
+  showFollowup = false,
+  showTarikan = false,
+}: {
+  active: "notulensi" | "tugas" | "tindak" | "tarikan";
+  showFollowup?: boolean;
+  showTarikan?: boolean;
+}) {
   const cls = (on: boolean) =>
     `rounded-full px-4 py-1.5 text-sm font-bold ${on ? "bg-accent text-white" : "border border-zinc-300 bg-white text-zinc-700"}`;
   return (
@@ -15,6 +23,11 @@ export function MeetingTabs({ active, showFollowup = false }: { active: "notulen
       {showFollowup && (
         <Link href="/tindak-lanjut" className={cls(active === "tindak")}>
           Tindak lanjut
+        </Link>
+      )}
+      {showTarikan && (
+        <Link href="/notulensi/tarikan" className={cls(active === "tarikan")}>
+          Tarikan
         </Link>
       )}
     </nav>

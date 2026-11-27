@@ -70,7 +70,7 @@ export default async function NotulensiPage({ searchParams }: PageProps<"/notule
 
   return (
     <div>
-      <MeetingTabs active="notulensi" showFollowup={profile.role === "owner" || profile.role === "manager"} />
+      <MeetingTabs active="notulensi" showFollowup={profile.role === "owner" || profile.role === "manager"} showTarikan={profile.role === "owner"} />
       {pesan === "terhapus" && (
         <p role="status" className="mb-3 rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800">
           Notulensi sudah dihapus.

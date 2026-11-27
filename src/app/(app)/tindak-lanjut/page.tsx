@@ -71,7 +71,7 @@ export default async function TindakLanjutPage({ searchParams }: PageProps<"/tin
 
   return (
     <div>
-      <MeetingTabs active="tindak" showFollowup />
+      <MeetingTabs active="tindak" showFollowup showTarikan={profile.role === "owner"} />
       <h1 className="text-2xl font-bold text-accent">Daftar Tindak Lanjut</h1>
       <p className="mt-1 text-sm text-zinc-600">Semua tugas dari notulensi {isOwner ? "di semua company" : "di company Anda"}, urut tenggat terdekat.</p>
 

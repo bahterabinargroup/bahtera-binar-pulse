@@ -32,7 +32,7 @@ export default async function TugasSayaPage({ searchParams }: PageProps<"/tugas"
 
   return (
     <div>
-      <MeetingTabs active="tugas" showFollowup={profile.role === "owner" || profile.role === "manager"} />
+      <MeetingTabs active="tugas" showFollowup={profile.role === "owner" || profile.role === "manager"} showTarikan={profile.role === "owner"} />
       <h1 className="text-2xl font-bold">Tugas Saya</h1>
       <p className="mt-1 text-sm text-zinc-600">Tindak lanjut meeting yang ditugaskan kepada Anda, urut tenggat terdekat.</p>
       <p className="mt-2 text-sm">
