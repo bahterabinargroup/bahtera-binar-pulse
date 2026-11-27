@@ -2384,6 +2384,177 @@ begin
   end;
 
   -- =====================================================================
+  -- 43. API BOT (025): kunci, log, batas laju, laporan, notulensi
+  -- =====================================================================
+  declare
+    k1 text; k2 text; kid uuid; j jsonb; j2 jsonb; tx text;
+  begin
+    -- Karyawan tidak bisa membuat kunci
+    begin
+      perform pg_temp.t_as(ea1);
+      perform public.create_api_key('Bot karyawan');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Karyawan tidak bisa membuat kunci API', st = '42501', 'hasil=' || st);
+
+    -- Owner membuat kunci; kunci asli hanya di hasil fungsi
+    perform pg_temp.t_as(uo);
+    k1 := public.create_api_key('Bot uji');
+    reset role;
+    select id into kid from public.api_keys where key_prefix = left(k1, 12);
+    res := res || pg_temp.t_line(43, 'Owner membuat kunci (bbp_ + 64 hex), tersimpan hanya hash',
+      k1 ~ '^bbp_[0-9a-f]{64}$' and kid is not null
+      and (select key_hash = extensions.digest(k1, 'sha256') from public.api_keys where id = kid), left(k1, 8));
+
+    -- Anon dengan kunci benar -> health ok
+    begin
+      perform set_config('request.jwt.claims', '', true);
+      execute 'set local role anon';
+      j := public.bot_health(k1);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Bot dengan kunci benar: health ok', st = 'OK' and (j ->> 'ok')::boolean, 'hasil=' || st);
+
+    -- Kunci salah / kosong -> 28000
+    begin
+      execute 'set local role anon';
+      perform public.bot_health('bbp_' || repeat('0', 64));
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Kunci salah ditolak', st = '28000', 'hasil=' || st);
+    begin
+      execute 'set local role anon';
+      perform public.bot_health(null);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Tanpa kunci ditolak', st = '28000', 'hasil=' || st);
+
+    -- Tabel kunci & log tidak bisa dibaca anon; karyawan 0 baris; owner tidak bisa membaca hash
+    begin
+      execute 'set local role anon';
+      perform count(*) from public.api_keys;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Anon tidak bisa membaca tabel kunci', st = '42501', 'hasil=' || st);
+    perform pg_temp.t_as(ea1);
+    select count(*) into n from public.api_audit_log;
+    select count(*) into n2 from public.api_keys;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Karyawan tidak melihat kunci maupun log', n = 0 and n2 = 0, n || '/' || n2);
+    begin
+      perform pg_temp.t_as(uo);
+      perform key_hash from public.api_keys limit 1;
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Owner pun tidak bisa membaca hash kunci', st = '42501', 'hasil=' || st);
+
+    -- Fungsi pembantu tidak bisa dipanggil langsung
+    begin
+      execute 'set local role anon';
+      perform public.bot_begin(k1, 'x', '{}');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'bot_begin tidak bisa dipanggil dari luar', st = '42501', 'hasil=' || st);
+
+    -- Laporan: filter company + tanggal, null tetap null, tanpa foto/GPS/email
+    update public.daily_reports set performance_metrics = '{"kosong": null, "nol": 0}'::jsonb, insights = null where id = r_a1_past;
+    execute 'set local role anon';
+    j := public.bot_laporan(k1, today - 1, today, 'UJI_A');
+    j2 := public.bot_laporan(k1, today - 1, today, 'uji_b');
+    reset role;
+    res := res || pg_temp.t_line(43, 'Laporan: filter company + tanggal',
+      (j ->> 'total')::int >= 3
+      and not exists (select 1 from jsonb_array_elements(j -> 'data') e where e ->> 'company_code' <> 'UJI_A' or (e ->> 'report_date')::date < today - 1)
+      and not exists (select 1 from jsonb_array_elements(j2 -> 'data') e where e ->> 'company_code' <> 'UJI_B'),
+      'A=' || (j ->> 'total') || ' B=' || (j2 ->> 'total'));
+    select e into j2 from jsonb_array_elements(j -> 'data') e where e ->> 'full_name' = 'Uji Karyawan A1' and (e ->> 'report_date')::date = today - 1;
+    res := res || pg_temp.t_line(43, 'Laporan: null tetap null (bukan 0), 0 tetap 0',
+      jsonb_typeof(j2 -> 'performance_metrics' -> 'kosong') = 'null' and (j2 -> 'performance_metrics' ->> 'nol') = '0'
+      and jsonb_typeof(j2 -> 'insights') = 'null', coalesce(j2 ->> 'performance_metrics', '-'));
+    tx := j::text;
+    res := res || pg_temp.t_line(43, 'Laporan: tanpa foto, GPS, email, kata sandi',
+      tx !~* '(photo|foto_|latitude|longitude|"lat"|"lng"|email|password|key_hash)', '');
+
+    -- Halaman (cursor)
+    execute 'set local role anon';
+    j := public.bot_laporan(k1, today - 1, today, 'UJI_A', p_limit => 1);
+    j2 := public.bot_laporan(k1, today - 1, today, 'UJI_A', p_limit => 1, p_cursor => j ->> 'next_cursor');
+    reset role;
+    res := res || pg_temp.t_line(43, 'Laporan: halaman dengan cursor',
+      jsonb_array_length(j -> 'data') = 1 and j ->> 'next_cursor' is not null and jsonb_array_length(j2 -> 'data') = 1
+      and (j -> 'data' -> 0) <> (j2 -> 'data' -> 0), coalesce(j ->> 'next_cursor', '-'));
+
+    -- Ringkas: tanpa activities/performance_metrics; filter jabatan
+    execute 'set local role anon';
+    j := public.bot_laporan(k1, today - 1, today, 'UJI_A', p_fields => 'ringkas', p_position => 'RND');
+    reset role;
+    res := res || pg_temp.t_line(43, 'Laporan ringkas + filter jabatan',
+      (j ->> 'total')::int >= 1 and not (j -> 'data' -> 0 ? 'activities') and not (j -> 'data' -> 0 ? 'performance_metrics')
+      and not exists (select 1 from jsonb_array_elements(j -> 'data') e where e ->> 'position_code' <> 'RND'), j ->> 'total');
+
+    -- Rentang > 93 hari ditolak; company tak dikenal ditolak
+    begin
+      execute 'set local role anon';
+      perform public.bot_laporan(k1, today - 93, today);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Rentang lebih dari 93 hari ditolak', st = '22023', 'hasil=' || st);
+    begin
+      execute 'set local role anon';
+      perform public.bot_laporan(k1, today, today, 'TIDAK_ADA');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Kode company tak dikenal ditolak', st = '22023', 'hasil=' || st);
+
+    -- Notulensi: filter company, termasuk draft, ada peserta & tindak lanjut
+    execute 'set local role anon';
+    j := public.bot_notulensi(k1, today, today, 'UJI_B');
+    reset role;
+    res := res || pg_temp.t_line(43, 'Notulensi: filter company, draft ikut, berisi peserta & tindak lanjut',
+      exists (select 1 from jsonb_array_elements(j -> 'data') e where e ->> 'title' = 'Rapat uji B' and e ->> 'status' in ('Draft', 'Submit')
+              and jsonb_typeof(e -> 'attendees') = 'array' and jsonb_typeof(e -> 'action_items') = 'array')
+      and not exists (select 1 from jsonb_array_elements(j -> 'data') e where e ->> 'title' like 'Rapat uji A%'), j ->> 'total');
+
+    -- Log audit tercatat
+    select count(*) into n from public.api_audit_log where key_id = kid and endpoint = 'laporan' and row_count is not null;
+    res := res || pg_temp.t_line(43, 'Pemakaian tercatat di log audit (dengan jumlah baris)', n >= 3, 'log=' || n);
+
+    -- Kunci dicabut -> ditolak
+    perform pg_temp.t_as(uo);
+    perform public.revoke_api_key(kid);
+    reset role;
+    begin
+      execute 'set local role anon';
+      perform public.bot_health(k1);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Kunci yang dicabut ditolak', st = '28000', 'hasil=' || st);
+
+    -- Batas laju 60/menit
+    perform pg_temp.t_as(uo);
+    k2 := public.create_api_key('Bot laju');
+    reset role;
+    insert into public.api_audit_log (key_id, endpoint) select id, 'health' from public.api_keys, generate_series(1, 60) where key_prefix = left(k2, 12);
+    begin
+      execute 'set local role anon';
+      perform public.bot_health(k2);
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(43, 'Lebih dari 60 permintaan per menit ditolak', st = 'P0429', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;

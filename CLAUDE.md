@@ -125,5 +125,11 @@ KEPUTUSAN PEMILIK 6 Okt 2026 MENGGANTIKAN brief 5b di poin-poin berikut (databas
 - Tombol "Download PDF" notulensi (dibuat di aplikasi, tanpa layanan berbayar).
 - Tetap dari brief: peserta (karyawan se-company atau tamu; nama disalin trigger), PIC se-company (kecuali Owner), jam selesai ≥ mulai, lampiran link maks 20, agenda/pembahasan/keputusan/rapat berikutnya, daftar (terbaru dulu, cari judul, filter tanggal, filter company khusus Owner, jumlah tindak lanjut belum selesai), desain aksen biru `#2E75B6`.
 
+## API Tarikan untuk Bot — keputusan pemilik 28 Nov 2026
+- `/api/bot/v1` BACA-SAJA (hanya GET) untuk bot analisis di server terpisah (Rakazo). Kunci `Authorization: Bearer`; kunci setara Owner untuk MEMBACA semua company.
+- Jalur akses yang DISETUJUI: fungsi database `bot_*` (security definer) yang memeriksa hash kunci (`api_keys`), batas laju 60/menit/kunci, rentang ≤ 93 hari, mencatat `api_audit_log`, dan hanya mengembalikan kolom yang diizinkan. TIDAK memakai kunci admin/service role. Jangan kirim foto, GPS, email, password, token.
+- Kode: `supabase/025_api_bot.sql` (bagian 29 schema), `src/lib/bot-api.ts`, `src/app/api/bot/`, halaman Owner `/owner/api-bot`; `src/proxy.ts` melewati `/api/bot/`. Dokumen `docs/api-bot.md`. Uji: bagian 43 + `scripts/uji-api-bot.mjs`.
+- Tahap 1: health, laporan, notulensi. Tahap 2 (presensi, cuti, kendala, hari libur, pengguna, target) dan 3 (ringkasan) menyusul setelah pemilik setuju.
+
 ## Di luar cakupan
 Review harian manager, notifikasi, unggah file (hanya link), analisis AI dalam aplikasi, aplikasi native, tarikan otomatis Sabtu. Notulensi: unggah file, pengingat tenggat, rekaman/transkripsi, persetujuan/tanda tangan peserta.

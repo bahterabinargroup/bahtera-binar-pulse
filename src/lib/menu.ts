@@ -44,6 +44,7 @@ export const MENU: MenuItem[] = [
   { label: "Undangan Karyawan", description: "Daftarkan karyawan baru", href: "/owner/undangan", roles: ["owner"], ready: true },
   { label: "Pengguna", description: "Aktifkan, nonaktifkan, ubah role dan jabatan", href: "/owner/pengguna", roles: ["owner"], ready: true },
   { label: "Tarikan Laporan", description: "Tabel dan unduh laporan per minggu atau per bulan", href: "/owner/tarikan", roles: ["owner"], ready: true },
+  { label: "API Bot", description: "Kunci baca-saja untuk bot analisis dan log pemakaiannya", href: "/owner/api-bot", roles: ["owner"], ready: true },
   { label: "Tarikan Notulensi", description: "Tabel dan unduh notulensi meeting per minggu atau per bulan", href: "/notulensi/tarikan", roles: ["owner"], ready: true },
 ];
 
@@ -120,6 +121,7 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { label: "Pengguna", href: "/owner/pengguna" },
       { label: "Undangan Karyawan", href: "/owner/undangan" },
       { label: "Hari Libur", href: "/libur" },
+      { label: "API Bot", href: "/owner/api-bot" },
       { label: "Pratinjau Form", href: "/laporan/pratinjau" },
     ],
   },

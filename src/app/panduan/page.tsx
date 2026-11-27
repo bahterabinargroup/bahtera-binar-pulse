@@ -259,6 +259,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           <li><b>Koreksi laporan lama:</b> buka laporan lewat Dashboard Tim, lalu ketuk <b>Koreksi (Owner)</b>.</li>
           <li><b>Tarikan Laporan:</b> lihat laporan harian per minggu atau per bulan (pilih bulan, mis. November) dan unduh sebagai CSV (Excel) atau JSON.</li>
           <li><b>Tarikan Notulensi</b> (menu Meeting): lihat dan unduh notulensi meeting per minggu atau per bulan, lengkap dengan peserta dan tindak lanjut, sebagai CSV (Excel) atau JSON.</li>
+          <li><b>API Bot</b> (menu Administrasi): buat kunci untuk bot analisis (mis. Rakazo) agar bisa membaca laporan dan notulensi sendiri. Kunci hanya tampil sekali; cabut bila bocor. Log pemakaian ada di halaman yang sama.</li>
           <li><b>Pratinjau Form:</b> melihat form setiap jabatan tanpa menyimpan.</li>
         </ul>
         <Tip>
