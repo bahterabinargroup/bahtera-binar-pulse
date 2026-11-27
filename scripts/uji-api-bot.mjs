@@ -56,5 +56,27 @@ if (!key) {
   const n = await r.json().catch(() => ({}));
   cek("Notulensi: data + action_items", r.status === 200 && Array.isArray(n.data) && (n.data || []).every((d) => Array.isArray(d.action_items)), `total=${n.total}`);
 }
+
+const BARU = ["hari-libur", "cuti", "presensi", "kendala", "pengguna", "target", "ringkasan/kepatuhan", "ringkasan/tindak-lanjut", "ringkasan/magang", "ringkasan/konten", "ringkasan/adv"];
+for (const ep of BARU) {
+  const r0 = await get(`/${ep}`);
+  cek(`/${ep} tanpa kunci -> 401`, r0.status === 401, `status=${r0.status}`);
+  const rp = await fetch(`${api}/${ep}`, { method: "POST", redirect: "manual" });
+  cek(`POST /${ep} ditolak`, rp.status === 405, `status=${rp.status}`);
+}
+if (key) {
+  const minggu = "from=2026-11-23&to=2026-11-29";
+  for (const ep of BARU) {
+    const r1 = await get(`/${ep}?${ep === "pengguna" ? "" : minggu}`, key);
+    const teks = await r1.text();
+    cek(`/${ep} dengan kunci -> 200`, r1.status === 200, `status=${r1.status}, ${teks.length} karakter`);
+    cek(`/${ep} tanpa foto/GPS/email`, !/(photo|foto_|selfie|latitude|longitude|_lat"|_lng"|accuracy|email|phone|password|key_hash)/i.test(teks));
+    if (ep.startsWith("ringkasan/")) cek(`/${ep} 1 minggu < 20.000 karakter`, teks.length < 20000, `${teks.length}`);
+  }
+  const rk = await get("/ringkasan/kepatuhan?from=2026-01-01&to=2026-11-29", key);
+  cek("Ringkasan > 93 hari -> 400", rk.status === 400, `status=${rk.status}`);
+  const rs = await get("/kendala?status=apa", key);
+  cek("kendala status salah -> 400", rs.status === 400, `status=${rs.status}`);
+}
 console.log(`\nRINGKASAN: ${gagal} GAGAL`);
 process.exit(gagal ? 1 : 0);

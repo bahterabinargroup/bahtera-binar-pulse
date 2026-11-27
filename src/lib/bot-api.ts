@@ -93,3 +93,12 @@ export function commonParams(url: URL): Record<string, unknown> | Response {
     p_limit: limit,
   };
 }
+
+// Ringkasan: hanya from, to, company (tanpa halaman).
+export async function ringkasan(request: Request, fn: string) {
+  const url = new URL(request.url);
+  const from = dateParam(url, "from");
+  const to = dateParam(url, "to");
+  for (const v of [from, to]) if (v instanceof Error) return botError(400, v.message);
+  return callBot(request, fn, { p_from: from, p_to: to, p_company: textParam(url, "company", 50) });
+}

@@ -2555,6 +2555,144 @@ begin
   end;
 
   -- =====================================================================
+  -- 44. API BOT TAHAP 2-3 (026): data lain + ringkasan
+  -- =====================================================================
+  declare
+    k text; j jsonb; e jsonb; tx text; dh date; dl date; d date; mh int; lq uuid;
+  begin
+    perform pg_temp.t_as(uo);
+    k := public.create_api_key('Bot uji tahap 2');
+    reset role;
+
+    -- Pengubah angka: teks Indonesia jadi angka, teks bebas/kosong tetap null
+    res := res || pg_temp.t_line(44, 'Angka isian: "1.736.279", "Rp 785.300", 12 diubah; teks bebas/null tetap null',
+      public.bot_num('"1.736.279"') = 1736279 and public.bot_num('"Rp 785.300"') = 785300 and public.bot_num('12') = 12
+      and public.bot_num('"12,5"') = 12.5 and public.bot_num('"abc"') is null and public.bot_num('null') is null and public.bot_num(null) is null, '');
+
+    -- Siapkan: akun ea1 dibuat 10 hari lalu, satu hari libur, satu hari cuti disetujui (keduanya hari kerja sebelum kemarin)
+    update public.users set created_at = now() - interval '10 days' where id in (ea1, ea2);
+    for d in select g::date from generate_series(today - 6, today - 2, interval '1 day') g order by g loop
+      if extract(isodow from d) <> 7 then
+        if dh is null then dh := d; elsif dl is null then dl := d; end if;
+      end if;
+    end loop;
+    insert into public.holidays (holiday_date, name) values (dh, 'Libur uji') on conflict (holiday_date) do nothing;
+    insert into public.leave_requests (company_id, user_id, kind, start_date, end_date, reason) values (ca, ea1, 'cuti', today + 20, today + 20, 'Cuti uji') returning id into lq;
+    update public.leave_requests set start_date = dl, end_date = dl, status = 'approved', decided_at = now() where id = lq;
+
+    execute 'set local role anon';
+    j := public.bot_ringkasan_kepatuhan(k, today - 6, today, 'UJI_A');
+    reset role;
+    select x into e from jsonb_array_elements(j -> 'per_orang') x where x ->> 'nama' = 'Uji Karyawan A1';
+    res := res || pg_temp.t_line(44, 'Kepatuhan: hari libur tidak dihitung dan tidak dituduh tidak lapor',
+      not (j -> 'hari_dihitung' ? dh::text) and (j -> 'hari_libur') @> jsonb_build_array(jsonb_build_object('tanggal', dh))
+      and not coalesce((e -> 'tidak_lapor') ? dh::text, false), 'libur=' || dh);
+    res := res || pg_temp.t_line(44, 'Kepatuhan: cuti disetujui = gugur, bukan tidak lapor',
+      not coalesce((e -> 'tidak_lapor') ? dl::text, false)
+      and (e -> 'gugur') @> jsonb_build_array(jsonb_build_object('tanggal', dl, 'alasan', 'Cuti')), 'cuti=' || dl);
+    res := res || pg_temp.t_line(44, 'Kepatuhan: hari ini & Minggu tidak dihitung; laporan kemarin terhitung',
+      not (j -> 'hari_dihitung' ? today::text)
+      and not exists (select 1 from jsonb_array_elements_text(j -> 'hari_dihitung') h where extract(isodow from h::date) = 7)
+      and (extract(isodow from today - 1) = 7 or not coalesce((e -> 'tidak_lapor') ? (today - 1)::text, false))
+      and (e ->> 'hari_wajib')::int = jsonb_array_length(j -> 'hari_dihitung') - (case when extract(isodow from dl) <> 7 then 1 else 0 end),
+      'wajib=' || coalesce(e ->> 'hari_wajib', '-') || ' lapor=' || coalesce(e ->> 'hari_lapor', '-'));
+    res := res || pg_temp.t_line(44, 'Kepatuhan: hanya company yang difilter',
+      not exists (select 1 from jsonb_array_elements(j -> 'per_orang') x where x ->> 'company' <> 'UJI_A'), '');
+
+    -- Hari libur & cuti
+    execute 'set local role anon';
+    j := public.bot_hari_libur(k, today - 6, today);
+    reset role;
+    res := res || pg_temp.t_line(44, 'Hari libur: tanggal dalam rentang', (j -> 'data') @> jsonb_build_array(jsonb_build_object('tanggal', dh, 'nama', 'Libur uji')), j ->> 'total');
+    execute 'set local role anon';
+    j := public.bot_cuti(k, today - 6, today, 'UJI_A');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Cuti: pengajuan disetujui tampil dengan status Disetujui',
+      exists (select 1 from jsonb_array_elements(j -> 'data') x where x ->> 'alasan' = 'Cuti uji' and x ->> 'status' = 'Disetujui')
+      and not exists (select 1 from jsonb_array_elements(j -> 'data') x where x ->> 'company_code' <> 'UJI_A'), j ->> 'total');
+
+    -- Presensi: tanpa foto & GPS
+    begin
+      insert into public.presensi (company_id, user_id, attendance_date, status, check_in_lat, check_in_lng, check_in_accuracy_m, check_in_photo_path)
+      values (ca, ea2, today, 'wfo', -6.123456, 106.654321, 5, 'uji/rahasia-selfie.jpg');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    execute 'set local role anon';
+    j := public.bot_presensi(k, today, today, 'UJI_A');
+    reset role;
+    tx := j::text;
+    res := res || pg_temp.t_line(44, 'Presensi: ada datanya, TANPA foto/GPS/akurasi',
+      st = 'OK' and (j ->> 'total')::int >= 1 and tx !~* '(selfie|photo|foto|_lat|_lng|latitude|longitude|accuracy|106\.65|6\.123)', 'insert=' || st);
+
+    -- Kendala + tanda ditangani
+    update public.daily_reports set obstacles = 'Kendala uji bot' where id = r_a2_past;
+    insert into public.report_followups (report_id, company_id, handled_by, note) values (r_a2_past, ca, uo, 'Sudah dibantu');
+    execute 'set local role anon';
+    j := public.bot_kendala(k, today - 6, today, 'UJI_A', p_status => 'sudah');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Kendala: tanda sudah ditangani, oleh siapa',
+      exists (select 1 from jsonb_array_elements(j -> 'data') x where x ->> 'kendala' = 'Kendala uji bot' and (x ->> 'sudah_ditangani')::boolean and x ->> 'ditangani_oleh' = 'Uji Owner'), j ->> 'total');
+
+    -- Pengguna: tanpa email/no. HP
+    execute 'set local role anon';
+    j := public.bot_pengguna(k, 'UJI_A');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Pengguna: tanpa email/no. HP, hanya company yang difilter',
+      (j ->> 'total')::int >= 4 and j::text !~* '(email|example\.invalid|phone)'
+      and not exists (select 1 from jsonb_array_elements(j -> 'data') x where x ->> 'company_code' <> 'UJI_A'), j ->> 'total');
+
+    -- ADV: angka teks jadi angka, ads 0 -> efisiensi null, null tetap null; target
+    update public.daily_reports set performance_metrics = jsonb_build_object('data_toko', jsonb_build_array(
+        jsonb_build_object('nama', 'Toko Uji', 'gmv', '1.000.000', 'ads_spent', 0, 'jumlah_pesanan', 4, 'impresi_harian', null),
+        jsonb_build_object('nama', 'Toko Kosong', 'gmv', null, 'ads_spent', null, 'jumlah_pesanan', null, 'impresi_harian', null)))
+      where id = r_a1_past;
+    insert into public.omzet_targets (company_id, user_id, month, amount) values (ca, ea1, date_trunc('month', today::timestamp)::date, 5000000)
+      on conflict (user_id, month) do update set amount = excluded.amount;
+    execute 'set local role anon';
+    j := public.bot_ringkasan_adv(k, today - 1, today, 'UJI_A');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Ringkasan ADV: "1.000.000" jadi angka, ads 0 -> efisiensi null, kosong tetap null',
+      exists (select 1 from jsonb_array_elements(j -> 'per_toko') x where x ->> 'toko' = 'Toko Uji' and (x ->> 'gmv')::numeric = 1000000 and jsonb_typeof(x -> 'efisiensi') = 'null')
+      and exists (select 1 from jsonb_array_elements(j -> 'per_toko') x where x ->> 'toko' = 'Toko Kosong' and jsonb_typeof(x -> 'gmv') = 'null'), '');
+    res := res || pg_temp.t_line(44, 'Ringkasan ADV: dibandingkan target bulan',
+      exists (select 1 from jsonb_array_elements(j -> 'per_adv') x where x ->> 'nama' = 'Uji Karyawan A1' and (x ->> 'target_omzet_bulan')::numeric = 5000000), '');
+    execute 'set local role anon';
+    j := public.bot_target(k, today, today, 'UJI_A');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Target: target bulan ini tampil', exists (select 1 from jsonb_array_elements(j -> 'data') x where (x ->> 'target_omzet')::numeric = 5000000), j ->> 'total');
+
+    -- Tindak lanjut per PIC (lewat tenggat)
+    begin
+      insert into public.meeting_action_items (meeting_id, description, assignee_id, due_date, status) values (m1, 'Tugas uji bot', ea1, today - 1, 'open');
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    execute 'set local role anon';
+    j := public.bot_ringkasan_tindak_lanjut(k, today, today, 'UJI_A');
+    reset role;
+    res := res || pg_temp.t_line(44, 'Tindak lanjut: per PIC, lewat tenggat terhitung',
+      st = 'OK' and exists (select 1 from jsonb_array_elements(j -> 'per_pic') x where (x ->> 'lewat_tenggat')::int >= 1
+        and x -> 'belum_selesai' @> jsonb_build_array(jsonb_build_object('tugas', 'Tugas uji bot'))), 'insert=' || st);
+
+    -- Magang & konten: berjalan, bentuk benar
+    execute 'set local role anon';
+    j := public.bot_ringkasan_magang(k, today - 6, today);
+    e := public.bot_ringkasan_konten(k, today - 6, today);
+    reset role;
+    res := res || pg_temp.t_line(44, 'Ringkasan magang & konten berjalan',
+      jsonb_typeof(j -> 'per_orang') = 'array' and jsonb_typeof(j -> 'per_mentor') = 'array'
+      and jsonb_typeof(e -> 'cc' -> 'per_akun') = 'array' and jsonb_typeof(e -> 'am' -> 'per_akun') = 'array', '');
+
+    -- Tanpa kunci ditolak di endpoint baru
+    begin
+      execute 'set local role anon';
+      perform public.bot_ringkasan_kepatuhan('bbp_' || repeat('1', 64));
+      st := 'OK';
+    exception when others then st := sqlstate; end;
+    reset role;
+    res := res || pg_temp.t_line(44, 'Endpoint baru menolak kunci salah', st = '28000', 'hasil=' || st);
+  end;
+
+  -- =====================================================================
   -- RINGKASAN (error disengaja agar semua data uji otomatis dibatalkan)
   -- =====================================================================
   n := (length(res) - length(replace(res, 'GAGAL', ''))) / 5;
