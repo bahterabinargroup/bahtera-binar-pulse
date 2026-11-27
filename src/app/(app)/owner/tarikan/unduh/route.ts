@@ -1,6 +1,7 @@
-import { mondayOf, todayJakarta } from "@/lib/date";
+import { addDays, mondayOf, todayJakarta } from "@/lib/date";
 import { getCurrentUser } from "@/lib/profile";
 import { isUuid } from "@/lib/uuid";
+import { loadMeetings, meetingsToCsv } from "@/lib/meeting-export";
 import { isMonth, loadRange, loadWeekly, monthRange, toCsv } from "@/lib/weekly";
 
 // Unduh tarikan mingguan atau bulanan sebagai CSV atau JSON (khusus Owner).
@@ -17,6 +18,19 @@ export async function GET(request: Request) {
   const companyId = company && isUuid(company) ? company : null;
   const bulan = url.searchParams.get("bulan") ?? "";
   const monthly = url.searchParams.get("mode") === "bulan" && isMonth(bulan);
+  if (url.searchParams.get("jenis") === "notulensi") {
+    const start = monthly ? monthRange(bulan).start : week;
+    const end = monthly ? monthRange(bulan).end : addDays(week, 6);
+    const meetings = await loadMeetings(start, end, companyId);
+    const name = monthly ? `notulensi-bulanan-${bulan}.${format}` : `notulensi-mingguan-${week}.${format}`;
+    return new Response(format === "json" ? JSON.stringify(meetings, null, 2) : meetingsToCsv(meetings), {
+      headers: {
+        "Content-Type": format === "json" ? "application/json; charset=utf-8" : "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${name}"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
   const rows = monthly
     ? await loadRange(monthRange(bulan).start, monthRange(bulan).end, companyId)
     : await loadWeekly(week, companyId);

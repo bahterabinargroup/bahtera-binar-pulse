@@ -257,7 +257,7 @@ const SECTIONS: { id: string; title: string; badge?: string; body: React.ReactNo
           </li>
           <li><b>Pengguna:</b> ubah role (Karyawan / Lead / Manager / Owner), jabatan, atau nonaktifkan akun yang sudah tidak bekerja. Untuk <b>Lead</b>, centang <b>Divisi yang dipantau</b> bila ia membawahi divisi lain (contoh: Lead ADV yang membimbing anak Magang Hub centang ADV MH).</li>
           <li><b>Koreksi laporan lama:</b> buka laporan lewat Dashboard Tim, lalu ketuk <b>Koreksi (Owner)</b>.</li>
-          <li><b>Tarikan Laporan:</b> lihat laporan per minggu atau per bulan (pilih bulan, mis. November) dan unduh sebagai CSV (Excel) atau JSON.</li>
+          <li><b>Tarikan Laporan:</b> lihat laporan harian atau notulensi meeting per minggu atau per bulan (pilih bulan, mis. November) dan unduh sebagai CSV (Excel) atau JSON.</li>
           <li><b>Pratinjau Form:</b> melihat form setiap jabatan tanpa menyimpan.</li>
         </ul>
         <Tip>
